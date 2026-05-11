@@ -1,24 +1,75 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider, type Theme } from '@react-navigation/native';
+import {
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, FontFamily } from '@/constants/theme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const NavigationTheme: Theme = {
+  ...DefaultTheme,
+  dark: false,
+  colors: {
+    ...DefaultTheme.colors,
+    background: Colors.background,
+    card: Colors.card,
+    text: Colors.text,
+    border: Colors.border,
+    primary: Colors.primary,
+    notification: Colors.primary,
+  },
+  fonts: {
+    regular: { fontFamily: FontFamily.body, fontWeight: '500' },
+    medium: { fontFamily: FontFamily.body, fontWeight: '500' },
+    bold: { fontFamily: FontFamily.bodyBold, fontWeight: '700' },
+    heavy: { fontFamily: FontFamily.display, fontWeight: '800' },
+  },
+};
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <ThemeProvider value={NavigationTheme}>
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: Colors.background },
+          headerStyle: { backgroundColor: Colors.background },
+          headerTitleStyle: { fontFamily: FontFamily.heading, fontWeight: '800' },
+          headerTintColor: Colors.text,
+          headerShadowVisible: false,
+        }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
