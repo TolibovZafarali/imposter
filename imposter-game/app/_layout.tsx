@@ -14,6 +14,7 @@ import 'react-native-reanimated';
 
 import { SplashGate } from '@/components/splash/SplashGate';
 import { Colors, FontFamily } from '@/constants/theme';
+import { LanguageSettingsProvider } from '@/contexts/language-settings';
 
 export const unstable_settings = {
   anchor: 'index',
@@ -73,13 +74,16 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={NavigationTheme}>
-      <View style={styles.root}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-        </Stack>
-        <StatusBar style="light" />
-        <SplashGate />
-      </View>
+      <LanguageSettingsProvider>
+        <View style={styles.root}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="choose-language" options={{ animation: 'slide_from_right' }} />
+          </Stack>
+          <StatusBar style="light" />
+          <SplashGate />
+        </View>
+      </LanguageSettingsProvider>
     </ThemeProvider>
   );
 }

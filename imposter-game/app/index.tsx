@@ -1,12 +1,15 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useLanguageSettings } from '@/contexts/language-settings';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -43,8 +46,9 @@ const CATEGORIES: Category[] = [
 const CATEGORY_ROWS = [
   ['food', 'animals', 'jobs'],
   ['countries', 'objects'],
-  ['sports', 'school', 'movies'],
-  ['celebrities', 'fantasy'],
+  ['sports', 'school'],
+  ['movies', 'celebrities'],
+  ['fantasy'],
 ];
 
 const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
@@ -53,6 +57,8 @@ const ADD_PLAYER_ICON: MaterialIconName = 'person-add-alt-1';
 const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
 const EDIT_ICON: MaterialIconName = 'edit';
 const PLAYER_ICON: MaterialIconName = 'person';
+const PLAY_ICON: MaterialIconName = 'play-arrow';
+const LANGUAGE_ICON: MaterialIconName = 'language';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
@@ -61,9 +67,13 @@ const MAX_SELECTED_CATEGORIES = 3;
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { selectedLanguage } = useLanguageSettings();
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+
+  const canStartGame = selectedCategoryIds.length > 0;
 
   const updatePlayerName = (playerId: string, name: string) => {
     const limitedName = limitPlayerName(name);
@@ -319,6 +329,59 @@ export default function HomeScreen() {
             ))}
           </View>
         </Card>
+
+        <Card variant="flat" style={[styles.setupBox, styles.languageSummaryBox]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Change language, current language ${selectedLanguage.name}`}
+            onPress={() => router.push('/choose-language')}
+            style={({ pressed }) => [
+              styles.languageSummaryRow,
+              pressed && styles.languageSummaryPressed,
+            ]}>
+            <View style={styles.languageInlineText}>
+              <Text
+                variant="heading"
+                color="primary"
+                numberOfLines={1}
+              style={styles.languageTitle}>
+              Language
+            </Text>
+            </View>
+            <View style={styles.languageActionGroup}>
+              <Text
+                variant="bodyEmphasis"
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+                numberOfLines={1}
+                style={styles.selectedLanguageText}>
+                {selectedLanguage.name}
+              </Text>
+              <View style={styles.languageIconButton}>
+                <MaterialIcons name={LANGUAGE_ICON} size={22} color={Colors.text} />
+              </View>
+            </View>
+          </Pressable>
+        </Card>
+
+        <View style={styles.startActions}>
+          <Button
+            label="Start Game"
+            size="lg"
+            fullWidth
+            disabled={!canStartGame}
+            accessibilityLabel={
+              canStartGame ? 'Start game' : 'Select at least one category to start game'
+            }
+            leadingIcon={
+              <MaterialIcons
+                name={PLAY_ICON}
+                size={22}
+                color={Colors.textOnPrimary}
+              />
+            }
+          />
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -486,5 +549,61 @@ const styles = StyleSheet.create({
   },
   categoryLabelSelected: {
     color: Colors.textOnPrimary,
+  },
+  languageSummaryBox: {
+    paddingVertical: Spacing.lg,
+  },
+  languageSummaryRow: {
+    width: '100%',
+    minHeight: 44,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.lg,
+  },
+  languageSummaryPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.99 }],
+  },
+  languageInlineText: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+  },
+  languageTitle: {
+    flexShrink: 0,
+    includeFontPadding: false,
+  },
+  languageActionGroup: {
+    flexShrink: 0,
+    maxWidth: '62%',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  selectedLanguageText: {
+    flexShrink: 1,
+    minWidth: 0,
+    color: Colors.text,
+    includeFontPadding: false,
+  },
+  languageIconButton: {
+    width: 42,
+    height: 42,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+  },
+  startActions: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    paddingBottom: Spacing.md,
   },
 });
