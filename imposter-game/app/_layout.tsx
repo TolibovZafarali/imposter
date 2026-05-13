@@ -14,7 +14,7 @@ import 'react-native-reanimated';
 import { Colors, FontFamily } from '@/constants/theme';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  anchor: 'index',
 };
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -58,18 +58,10 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={NavigationTheme}>
-      <Stack
-        screenOptions={{
-          contentStyle: { backgroundColor: Colors.background },
-          headerStyle: { backgroundColor: Colors.background },
-          headerTitleStyle: { fontFamily: FontFamily.heading, fontWeight: '800' },
-          headerTintColor: Colors.text,
-          headerShadowVisible: false,
-        }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
       </Stack>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
