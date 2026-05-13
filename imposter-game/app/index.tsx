@@ -46,9 +46,8 @@ const CATEGORIES: Category[] = [
 const CATEGORY_ROWS = [
   ['food', 'animals', 'jobs'],
   ['countries', 'objects'],
-  ['sports', 'school'],
-  ['movies', 'celebrities'],
-  ['fantasy'],
+  ['sports', 'school', 'movies'],
+  ['celebrities', 'fantasy'],
 ];
 
 const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
@@ -165,7 +164,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <Card variant="flat" style={styles.setupBox}>
+        <Card variant="flat" style={[styles.setupBox, styles.playersBox]}>
           <View style={styles.sectionHeader}>
             <Text variant="heading" color="primary">
               Players
@@ -263,19 +262,12 @@ export default function HomeScreen() {
               );
             })}
           </View>
-
-          <Text variant="caption" align="center" style={styles.playersHint}>
-            {MIN_PLAYERS} min · {MAX_PLAYERS} max
-          </Text>
         </Card>
 
         <Card variant="flat" style={styles.setupBox}>
           <View style={styles.sectionHeader}>
             <Text variant="heading" color="primary">
               Categories
-            </Text>
-            <Text variant="caption" style={styles.selectedCategoryText}>
-              {selectedCategoryIds.length}/{MAX_SELECTED_CATEGORIES} selected
             </Text>
           </View>
 
@@ -396,9 +388,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: Spacing.xxxxl,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xxxl,
-    gap: Spacing.xxxl,
+    gap: Spacing.xl,
   },
   brand: {
     alignItems: 'center',
@@ -413,6 +405,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: Spacing.lg,
   },
+  playersBox: {
+    gap: Spacing.md,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -422,26 +417,21 @@ const styles = StyleSheet.create({
   playersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  playersHint: {
-    marginTop: -Spacing.xs,
-  },
-  selectedCategoryText: {
-    flexShrink: 0,
+    gap: Spacing.sm,
   },
   playerTile: {
-    aspectRatio: 1,
     width: '47.9%',
+    minHeight: 128,
     minWidth: 132,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
     backgroundColor: 'rgba(250, 247, 242, 0.05)',
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   personBadge: {
     width: 58,
