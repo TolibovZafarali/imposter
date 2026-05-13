@@ -14,6 +14,7 @@ import 'react-native-reanimated';
 
 import { SplashGate } from '@/components/splash/SplashGate';
 import { Colors, FontFamily } from '@/constants/theme';
+import { GameProvider } from '@/contexts/game-context';
 import { LanguageSettingsProvider } from '@/contexts/language-settings';
 
 export const unstable_settings = {
@@ -75,14 +76,18 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={NavigationTheme}>
       <LanguageSettingsProvider>
-        <View style={styles.root}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="choose-language" options={{ animation: 'slide_from_right' }} />
-          </Stack>
-          <StatusBar style="light" />
-          <SplashGate />
-        </View>
+        <GameProvider>
+          <View style={styles.root}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="choose-language" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="play" options={{ gestureEnabled: false }} />
+            </Stack>
+            <StatusBar style="light" />
+            <SplashGate />
+          </View>
+        </GameProvider>
       </LanguageSettingsProvider>
     </ThemeProvider>
   );

@@ -9,14 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
+import type { Player } from '@/game/types';
+import { createMockRound } from '@/services/roundGenerator';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
-
-type Player = {
-  id: string;
-  name: string;
-};
 
 type Category = {
   id: string;
@@ -67,6 +65,7 @@ const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { startRound } = useGame();
   const { selectedLanguage } = useLanguageSettings();
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
@@ -149,6 +148,32 @@ export default function HomeScreen() {
 
       return [...currentCategoryIds, categoryId];
     });
+  };
+
+  const handleStartGame = () => {
+    if (!canStartGame) {
+      return;
+    }
+
+    const roundPlayers = players.map((player, index) => {
+      const trimmedName = player.name.trim();
+
+      return {
+        ...player,
+        name: limitPlayerName(trimmedName || `Player ${index + 1}`),
+      };
+    });
+    const round = createMockRound({
+      players: roundPlayers,
+      categoryIds: selectedCategoryIds,
+      languageId: selectedLanguage.id,
+      languageName: selectedLanguage.name,
+    });
+
+    setPlayers(roundPlayers);
+    setEditingPlayerId(null);
+    startRound(round);
+    router.push('/reveal');
   };
 
   return (
@@ -362,6 +387,7 @@ export default function HomeScreen() {
             size="lg"
             fullWidth
             disabled={!canStartGame}
+            onPress={handleStartGame}
             accessibilityLabel={
               canStartGame ? 'Start game' : 'Select at least one category to start game'
             }
