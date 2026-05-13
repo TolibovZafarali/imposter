@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Imposter Game iOS Wireframes</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --page: #101214;
+        --surface: #171a1d;
+        --phone: #0f1114;
+        --panel: #202428;
+        --panel-2: #2a2f35;
+        --line: #3c434c;
+        --text: #f2f4f7;
+        --muted: #a7b0ba;
+        --faint: #6d7680;
+        --primary: #f0d879;
+        --danger: #e46d6d;
+        --success: #78caa4;
+        --radius: 28px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--text);
+        font-family:
+          ui-rounded,
+          -apple-system,
+          BlinkMacSystemFont,
+          "SF Pro Display",
+          "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        width: min(1440px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+
+      header {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 34px;
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      header p {
+        max-width: 840px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        padding: 7px 10px;
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(318px, 1fr));
+        gap: 28px 24px;
+        align-items: start;
+      }
+
+      .screen {
+        display: grid;
+        gap: 10px;
+      }
+
+      .screen h2 {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .phone {
+        position: relative;
+        width: 318px;
+        min-height: 690px;
+        border: 1px solid #424850;
+        border-radius: 42px;
+        background: var(--phone);
+        box-shadow: 0 24px 70px rgb(0 0 0 / 36%);
+        overflow: hidden;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        width: 88px;
+        height: 25px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: #050607;
+        z-index: 2;
+      }
+
+      .safe {
+        min-height: 690px;
+        display: flex;
+        flex-direction: column;
+        padding: 54px 18px 22px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 28px;
+        margin-bottom: 18px;
+      }
+
+      .back,
+      .icon {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .step {
+        color: var(--faint);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .title {
+        font-size: 28px;
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .hero-mark {
+        display: grid;
+        place-items: center;
+        width: 112px;
+        height: 112px;
+        margin: 18px auto 4px;
+        border-radius: 50%;
+        border: 2px dashed var(--line);
+        color: var(--primary);
+        font-size: 42px;
+        font-weight: 900;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        padding: 14px;
+      }
+
+      .row,
+      .choice,
+      .vote-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .row + .row,
+      .choice + .choice,
+      .vote-row + .vote-row {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .value {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .counter {
+        display: grid;
+        grid-template-columns: 42px 1fr 42px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .square {
+        display: grid;
+        place-items: center;
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+        color: var(--text);
+        font-weight: 800;
+      }
+
+      .segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .segment {
+        min-height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .segment.active {
+        background: var(--panel-2);
+        color: var(--text);
+      }
+
+      .field {
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0 12px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 14px;
+      }
+
+      .player-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .player-chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: var(--surface);
+        padding: 8px 10px;
+      }
+
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--panel-2);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .spacer {
+        flex: 1;
+      }
+
+      .button-stack {
+        display: grid;
+        gap: 9px;
+        margin-top: auto;
+      }
+
+      .button {
+        display: grid;
+        place-items: center;
+        min-height: 52px;
+        border-radius: 16px;
+        border: 1px solid transparent;
+        background: var(--primary);
+        color: #17140a;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .button.secondary {
+        background: transparent;
+        border-color: var(--line);
+        color: var(--muted);
+      }
+
+      .handoff {
+        display: grid;
+        place-items: center;
+        min-height: 210px;
+        border: 1px dashed var(--line);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #171a1d, #101214);
+        text-align: center;
+        padding: 22px;
+      }
+
+      .handoff strong {
+        display: block;
+        font-size: 38px;
+        line-height: 1;
+        margin-bottom: 12px;
+      }
+
+      .secret-card {
+        display: grid;
+        place-items: center;
+        min-height: 230px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface);
+        text-align: center;
+        padding: 22px;
+      }
+
+      .secret-card .word {
+        font-size: 36px;
+        line-height: 1;
+        font-weight: 900;
+      }
+
+      .secret-card .hint {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .progress {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 5px;
+      }
+
+      .dot {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--panel-2);
+      }
+
+      .dot.active {
+        background: var(--primary);
+      }
+
+      .turn-card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--surface);
+        padding: 18px;
+      }
+
+      .turn-card .current {
+        margin-top: 10px;
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 900;
+      }
+
+      .timer {
+        display: grid;
+        place-items: center;
+        width: 110px;
+        height: 110px;
+        margin: 4px auto;
+        border: 8px solid var(--line);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        font-size: 24px;
+        font-weight: 900;
+      }
+
+      .mini-note {
+        color: var(--faint);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .ballot {
+        display: grid;
+        gap: 8px;
+      }
+
+      .vote-row {
+        min-height: 48px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 0 12px;
+      }
+
+      .vote-row + .vote-row {
+        margin-top: 0;
+        padding-top: 0;
+      }
+
+      .radio {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--line);
+        border-radius: 50%;
+      }
+
+      .radio.selected {
+        border: 6px solid var(--primary);
+      }
+
+      .result-mark {
+        display: grid;
+        place-items: center;
+        width: 96px;
+        height: 96px;
+        margin: 12px auto 4px;
+        border-radius: 50%;
+        background: rgb(120 202 164 / 13%);
+        border: 1px solid rgb(120 202 164 / 55%);
+        color: var(--success);
+        font-size: 34px;
+        font-weight: 900;
+      }
+
+      .vote-summary {
+        display: grid;
+        gap: 8px;
+      }
+
+      .bar {
+        display: grid;
+        grid-template-columns: 74px 1fr 24px;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .track {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--panel-2);
+        overflow: hidden;
+      }
+
+      .fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+      }
+
+      .state-note {
+        color: var(--faint);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          width: min(100% - 22px, 390px);
+          padding-top: 24px;
+        }
+
+        .flow {
+          grid-template-columns: 1fr;
+          justify-items: center;
+        }
+
+        header {
+          width: 318px;
+          margin-inline: auto;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        main {
+          width: 100%;
+          padding: 0;
+        }
+
+        .phone {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Imposter Game iOS Wireframes</h1>
+        <p>
+          Low-fidelity iPhone wireframes for the pass-and-play MVP. The flow is
+          optimized for one shared phone, quick handoffs, hidden information,
+          and a linear Expo Router stack.
+        </p>
+        <div class="meta" aria-label="Wireframe metadata">
+          <span class="pill">Target: iPhone portrait</span>
+          <span class="pill">Style: dark-first low fidelity</span>
+          <span class="pill">MVP: offline playable</span>
+          <span class="pill">Navigation: linear stack</span>
+        </div>
+      </header>
+
+      <section class="flow" aria-label="Screen wireframes">
+        <article class="screen">
+          <h2>1. Home / Lobby</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span class="step">Imposter</span>
+                <span class="icon">?</span>
+              </div>
+              <div class="content">
+                <div class="hero-mark">?</div>
+                <h3 class="title">Find the imposter at the table.</h3>
+                <p class="subtitle">
+                  One phone, one secret word, one player trying to blend in.
+                </p>
+                <div class="panel">
+                  <div class="row">
+                    <span class="label">Last setup</span>
+                    <span class="value">6 players</span>
+                  </div>
+                  <div class="row">
+                    <span class="label">Language</span>
+                    <span class="value">English</span>
+                  </div>
+                  <div class="row">
+                    <span class="label">Category</span>
+                    <span class="value">Mixed</span>
+                  </div>
+                </div>
+                <div class="spacer"></div>
+                <div class="button-stack">
+                  <div class="button">Start Game</div>
+                  <div class="button secondary">How to Play</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>2. Game Setup</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span class="back">&lt;</span>
+                <span class="step">Setup</span>
+                <span class="icon">x</span>
+              </div>
+              <div class="content">
+                <h3 class="title">Choose round settings.</h3>
+                <p class="subtitle">Keep inputs fast so the group gets into the round quickly.</p>
+                <div class="panel">
+                  <div class="label">Players</div>
+                  <div class="counter" style="margin-top: 10px">
+                    <span class="square">-</span>
+                    <span class="square">6</span>
+                    <span class="square">+</span>
+                  </div>
+                </div>
+                <div class="field">
+                  <span>Language</span>
+                  <strong>English</strong>
+                </div>
+                <div class="field">
+                  <span>Category</span>
+                  <strong>Mixed</strong>
+                </div>
+                <div class="segmented" aria-label="Difficulty selector">
+                  <span class="segment">Easy</span>
+                  <span class="segment active">Normal</span>
+                  <span class="segment">Hard</span>
+                </div>
+                <div class="panel">
+                  <div class="row">
+                    <span>
+                      <span class="value">Imposter gets clue</span><br />
+                      <span class="mini-note">Optional vague clue instead of blank role.</span>
+                    </span>
+                    <span class="square">On</span>
+                  </div>
+                </div>
+                <div class="button-stack">
+                  <div class="button">Create Round</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>3. Player Handoff</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span></span>
+                <span class="step">Reveal 1 of 6</span>
+                <span></span>
+              </div>
+              <div class="content">
+                <div class="progress" aria-label="Reveal progress">
+                  <span class="dot active"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+                <div class="handoff">
+                  <div>
+                    <strong>P1</strong>
+                    <h3 class="title">Pass to Player 1.</h3>
+                    <p class="subtitle">Only this player should look at the next screen.</p>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="row">
+                    <span class="label">Privacy</span>
+                    <span class="value">Back disabled</span>
+                  </div>
+                  <div class="row">
+                    <span class="label">Action</span>
+                    <span class="value">Tap when ready</span>
+                  </div>
+                </div>
+                <div class="button-stack">
+                  <div class="button">Show My Word</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>4. Secret Reveal</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span></span>
+                <span class="step">Reveal 1 of 6</span>
+                <span></span>
+              </div>
+              <div class="content">
+                <div class="progress" aria-label="Reveal progress">
+                  <span class="dot active"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
+                <div class="secret-card">
+                  <div>
+                    <span class="label">Your word</span>
+                    <div class="word">Lantern</div>
+                    <p class="hint">Remember it, then hide this screen.</p>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="row">
+                    <span class="label">Alternate state</span>
+                    <span class="value" style="color: var(--danger)">Imposter</span>
+                  </div>
+                  <p class="mini-note" style="margin-top: 10px">
+                    If this player is the imposter, the card shows role text and optional clue.
+                  </p>
+                </div>
+                <div class="button-stack">
+                  <div class="button">Done - Pass Phone</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>5. Hints Phase</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span></span>
+                <span class="step">Hints</span>
+                <span class="icon">...</span>
+              </div>
+              <div class="content">
+                <h3 class="title">Give one hint each.</h3>
+                <p class="subtitle">Say something related to your word without making it obvious.</p>
+                <div class="turn-card">
+                  <span class="label">Current turn</span>
+                  <div class="current">Player 3</div>
+                  <p class="subtitle" style="margin-top: 10px">The group listens, then passes the phone.</p>
+                </div>
+                <div class="timer">0:30</div>
+                <div class="player-list">
+                  <div class="player-chip"><span class="avatar">1</span><span>Player 1</span><span class="spacer"></span><span class="label">Done</span></div>
+                  <div class="player-chip"><span class="avatar">2</span><span>Player 2</span><span class="spacer"></span><span class="label">Done</span></div>
+                  <div class="player-chip"><span class="avatar">3</span><span>Player 3</span><span class="spacer"></span><span class="label">Now</span></div>
+                  <div class="player-chip"><span class="avatar">4</span><span>Player 4</span><span class="spacer"></span><span class="label">Next</span></div>
+                </div>
+                <div class="button-stack">
+                  <div class="button">Next Hint</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>6. Secret Vote</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span></span>
+                <span class="step">Vote 2 of 6</span>
+                <span></span>
+              </div>
+              <div class="content">
+                <h3 class="title">Player 2, choose the imposter.</h3>
+                <p class="subtitle">Votes are hidden. Pass the phone after locking your pick.</p>
+                <div class="ballot">
+                  <div class="vote-row"><span>Player 1</span><span class="radio"></span></div>
+                  <div class="vote-row"><span>Player 2</span><span class="label">You</span></div>
+                  <div class="vote-row"><span>Player 3</span><span class="radio selected"></span></div>
+                  <div class="vote-row"><span>Player 4</span><span class="radio"></span></div>
+                  <div class="vote-row"><span>Player 5</span><span class="radio"></span></div>
+                  <div class="vote-row"><span>Player 6</span><span class="radio"></span></div>
+                </div>
+                <p class="state-note">Self-vote is disabled. After each vote, show a handoff screen for the next voter.</p>
+                <div class="button-stack">
+                  <div class="button">Lock Vote</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="screen">
+          <h2>7. Round Result</h2>
+          <div class="phone">
+            <div class="safe">
+              <div class="topbar">
+                <span></span>
+                <span class="step">Result</span>
+                <span></span>
+              </div>
+              <div class="content">
+                <div class="result-mark">!</div>
+                <h3 class="title">The group found the imposter.</h3>
+                <p class="subtitle">Player 4 was the imposter. The secret word was Lantern.</p>
+                <div class="panel">
+                  <div class="row">
+                    <span class="label">Imposter</span>
+                    <span class="value">Player 4</span>
+                  </div>
+                  <div class="row">
+                    <span class="label">Word</span>
+                    <span class="value">Lantern</span>
+                  </div>
+                </div>
+                <div class="panel">
+                  <div class="label">Votes</div>
+                  <div class="vote-summary" style="margin-top: 12px">
+                    <div class="bar"><span>Player 4</span><span class="track"><span class="fill" style="width: 68%"></span></span><strong>4</strong></div>
+                    <div class="bar"><span>Player 3</span><span class="track"><span class="fill" style="width: 22%"></span></span><strong>1</strong></div>
+                    <div class="bar"><span>Player 1</span><span class="track"><span class="fill" style="width: 22%"></span></span><strong>1</strong></div>
+                  </div>
+                </div>
+                <div class="button-stack">
+                  <div class="button">Play Again</div>
+                  <div class="button secondary">Back Home</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

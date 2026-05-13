@@ -12,7 +12,7 @@ import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
 import type { Player } from '@/game/types';
-import { createMockRound } from '@/services/roundGenerator';
+import { createRound } from '@/services/roundGenerator';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -70,8 +70,9 @@ export default function HomeScreen() {
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [isStartingGame, setIsStartingGame] = useState(false);
 
-  const canStartGame = selectedCategoryIds.length > 0;
+  const canStartGame = selectedCategoryIds.length > 0 && !isStartingGame;
 
   const updatePlayerName = (playerId: string, name: string) => {
     const limitedName = limitPlayerName(name);
@@ -150,10 +151,12 @@ export default function HomeScreen() {
     });
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!canStartGame) {
       return;
     }
+
+    setIsStartingGame(true);
 
     const roundPlayers = players.map((player, index) => {
       const trimmedName = player.name.trim();
@@ -163,17 +166,22 @@ export default function HomeScreen() {
         name: limitPlayerName(trimmedName || `Player ${index + 1}`),
       };
     });
-    const round = createMockRound({
-      players: roundPlayers,
-      categoryIds: selectedCategoryIds,
-      languageId: selectedLanguage.id,
-      languageName: selectedLanguage.name,
-    });
 
-    setPlayers(roundPlayers);
-    setEditingPlayerId(null);
-    startRound(round);
-    router.push('/reveal');
+    try {
+      const round = await createRound({
+        players: roundPlayers,
+        categoryIds: selectedCategoryIds,
+        languageId: selectedLanguage.id,
+        languageName: selectedLanguage.name,
+      });
+
+      setPlayers(roundPlayers);
+      setEditingPlayerId(null);
+      startRound(round);
+      router.push('/reveal');
+    } finally {
+      setIsStartingGame(false);
+    }
   };
 
   return (
@@ -361,9 +369,9 @@ export default function HomeScreen() {
                 variant="heading"
                 color="primary"
                 numberOfLines={1}
-              style={styles.languageTitle}>
-              Language
-            </Text>
+                style={styles.languageTitle}>
+                Language
+              </Text>
             </View>
             <View style={styles.languageActionGroup}>
               <Text
@@ -383,17 +391,21 @@ export default function HomeScreen() {
 
         <View style={styles.startActions}>
           <Button
-            label="Start Game"
+            label={isStartingGame ? 'Starting...' : 'Start Game'}
             size="lg"
             fullWidth
             disabled={!canStartGame}
             onPress={handleStartGame}
             accessibilityLabel={
-              canStartGame ? 'Start game' : 'Select at least one category to start game'
+              isStartingGame
+                ? 'Starting game'
+                : canStartGame
+                  ? 'Start game'
+                  : 'Select at least one category to start game'
             }
             leadingIcon={
               <MaterialIcons
-                name={PLAY_ICON}
+                name={isStartingGame ? 'hourglass-top' : PLAY_ICON}
                 size={22}
                 color={Colors.textOnPrimary}
               />
