@@ -9,6 +9,7 @@
     "api:dev": "node --env-file=.env.local --experimental-strip-types scripts/dev-api.mjs",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "expo lint"
   },
   "dependencies": {

@@ -22,9 +22,10 @@ This allows the game to support many languages without storing a huge database o
 
 A global imposter party game that works in many languages.
 
-No massive word database.  
-No complicated setup.  
-No accounts required for the first version.  
+Curated English word bank for stable categories.
+AI translation for other languages.
+No complicated setup.
+No accounts required for the first version.
 Just pick a language, choose a category, and play.
 
 ## MVP [Minimum Viable Product] Features
@@ -36,8 +37,8 @@ Just pick a language, choose a category, and play.
 - Player count selection
 - Player name entry
 - One or more imposters
-- AI-generated secret word
-- AI-generated imposter hint
+- Curated or AI-generated secret word
+- Hard one-word imposter hint
 - Private role reveal screen
 - Discussion phase
 - Optional discussion timer
@@ -170,20 +171,22 @@ Fast food
 
 Bad hints are too specific and may reveal the secret word too easily.
 
-## AI Word Generation
+## Word Generation
 
-The app should call an AI API [Application Programming Interface] once per round to generate the secret word and imposter hint.
+For stable categories, the app should choose a secret word and hard one-word imposter hint from the curated English word bank. If the selected language is not English, the backend should use AI to translate that chosen word and hint naturally.
+
+Movies and celebrities should still call an AI API [Application Programming Interface] once per round so the result can match the selected language and culture.
 
 Users should never type raw prompts. Users only choose simple options like language, category, player count, and number of imposters.
 
-Example AI response:
+Example round word response:
 
 ```json
 {
   "language": "English",
   "category": "Food",
   "mainWord": "Pizza",
-  "imposterHint": "Food",
+  "imposterHint": "Party",
   "difficulty": "easy"
 }
 ```
@@ -532,7 +535,8 @@ The app should be built with a clean structure that separates:
 
 - Game state
 - Player setup
-- AI word generation
+- Curated word selection
+- AI translation and culture-specific generation
 - Round logic
 - Score logic
 - UI [User Interface] components
@@ -540,7 +544,7 @@ The app should be built with a clean structure that separates:
 - Monetization
 - Settings
 
-The AI call should happen once per round, not during every screen change.
+AI calls should happen only when translating a static English word or when Movies/Celebrities are selected, not during every screen change.
 
 Generated words and hints can be cached locally to reduce API cost and improve speed.
 

@@ -24,10 +24,9 @@ imposter/                  ← git repo root (this file lives here)
 
 - Minimal, smooth, modern, dark-first mobile UI.
 - Pass-and-play: one phone, multiple players, no accounts.
-- Multi-language from day one: UI strings and word generation must support any language.
-- No static word database to maintain — words are AI-generated server-side.
-- MVP must be fully playable offline using mock/local round data.
-- AI generation is a future phase; it must never block the MVP.
+- Multi-language from day one: UI strings and translated words must support any language.
+- Stable categories use a curated English word bank; AI translates those words for non-English languages.
+- Movies and celebrities remain AI-generated server-side so they match the selected language and culture.
 
 ---
 
@@ -47,9 +46,9 @@ imposter/                  ← git repo root (this file lives here)
 | React | 19.1.0 | React Compiler enabled |
 | Lint | eslint-config-expo | run with `npm run lint` |
 
-**Not in scope for MVP:** database, auth, payments, ads, analytics, external AI API calls from the app.
+**Not in scope for MVP:** database, auth, payments, ads, analytics, direct external AI API calls from the app.
 
-**Future backend:** Vercel Functions (or similar serverless). AI generation happens server-side only.
+**Backend:** Vercel Functions (or similar serverless). AI generation happens server-side only.
 
 ---
 
@@ -106,7 +105,7 @@ imposter/                  ← git repo root (this file lives here)
 ### Separation of concerns
 ```
 game/          ← pure logic: types, reducers, round generation, validation
-services/      ← async side effects: mock generator, future AI client
+services/      ← async side effects: AI round client
 components/    ← dumb UI primitives (no game logic)
 app/           ← screen-level composition (thin: orchestrate context + components)
 constants/     ← tokens only
@@ -123,9 +122,9 @@ hooks/         ← derived UI state, device utilities
 | 2 | App shell and navigation | Not started |
 | 3 | Reusable UI components | Not started |
 | 4 | Local game state and types | Not started |
-| 5 | Local playable game loop with mock rounds | Not started |
+| 5 | Playable game loop with curated and AI-assisted rounds | Not started |
 | 6 | Voting and results logic | Not started |
-| 7 | Fake AI generator service (local, shaped like real API) | Not started |
+| 7 | AI round service integration | Not started |
 | 8 | Real backend AI generation (Vercel Function) | Not started |
 | 9 | Connect frontend to backend | Not started |
 | 10 | Polish: animations, haptics, TestFlight / App Store prep | Not started |
@@ -159,17 +158,17 @@ Home Screen
 
 ---
 
-## 8. AI Generation Rules (Future Phases)
+## 8. AI Generation Rules
 
 - **AI calls happen server-side only.** The Expo app never calls an AI API directly.
-- The backend endpoint accepts: `{ language, category, difficulty, playerCount }`.
-- The backend returns a validated object: `{ word: string, clue: string | null }`.
+- Stable English categories are selected from `imposter-game/data/wordBank.ts`.
+- For non-English stable categories, the backend translates the selected English word and one-word clue.
+- For movies and celebrities, the backend generates the word and clue directly in the selected language.
+- The backend returns a validated object: `{ word: string, clue: string }`.
 - Validate all AI output against a strict Zod schema before returning it to the client.
-- If the AI response is invalid or the request fails, return a fallback word from a small hardcoded list — never crash the game.
-- The frontend service layer (`services/roundGenerator.ts`) must have two implementations:
-  - `mockGenerator` — returns hardcoded rounds, used in Phases 5–7.
-  - `aiGenerator` — calls the backend, used in Phases 8–10.
-- Swap implementations via a feature flag or config value; do not fork screen logic.
+- If the AI response is invalid or the request fails, return an error and let the UI ask the user to retry.
+- Do not add mock round generators or hardcoded fallback rounds outside the curated word bank.
+- The frontend service layer (`services/roundGenerator.ts`) chooses local static, translated static, or AI generation.
 - Never log or expose the raw AI prompt or response in the mobile app.
 
 ---
@@ -184,7 +183,7 @@ Home Screen
 - **Do not add light-mode-specific styles** in early phases. Keep the palette dark-first.
 - **Do not add loading spinners or skeletons** until async data actually exists.
 - **Keep TypeScript strict.** Do not use `any`, `as unknown`, or disable strict checks.
-- **Use mock data before real AI.** Never block gameplay on a network call in MVP phases.
+- **Use the curated word bank for stable categories.** Do not reintroduce mock or fallback round data.
 
 ---
 

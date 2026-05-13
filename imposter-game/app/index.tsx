@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -71,6 +71,8 @@ export default function HomeScreen() {
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
+  const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
+  const isStartingGameRef = useRef(false);
 
   const canStartGame = selectedCategoryIds.length > 0 && !isStartingGame;
 
@@ -152,11 +154,13 @@ export default function HomeScreen() {
   };
 
   const handleStartGame = async () => {
-    if (!canStartGame) {
+    if (!canStartGame || isStartingGameRef.current) {
       return;
     }
 
+    isStartingGameRef.current = true;
     setIsStartingGame(true);
+    setRoundGenerationError(null);
 
     const roundPlayers = players.map((player, index) => {
       const trimmedName = player.name.trim();
@@ -179,7 +183,10 @@ export default function HomeScreen() {
       setEditingPlayerId(null);
       startRound(round);
       router.push('/reveal');
+    } catch {
+      setRoundGenerationError('Could not create a round. Check the server for translated or AI categories and try again.');
     } finally {
+      isStartingGameRef.current = false;
       setIsStartingGame(false);
     }
   };
@@ -390,6 +397,16 @@ export default function HomeScreen() {
         </Card>
 
         <View style={styles.startActions}>
+          {roundGenerationError ? (
+            <Text
+              accessibilityRole="alert"
+              align="center"
+              color="primary"
+              variant="bodySmall"
+              style={styles.startError}>
+              {roundGenerationError}
+            </Text>
+          ) : null}
           <Button
             label={isStartingGame ? 'Starting...' : 'Start Game'}
             size="lg"
@@ -632,6 +649,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
+    gap: Spacing.md,
     paddingBottom: Spacing.md,
+  },
+  startError: {
+    paddingHorizontal: Spacing.md,
   },
 });
