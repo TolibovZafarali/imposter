@@ -1,25 +1,25 @@
 import { Platform, StyleSheet } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Colors — locked palette. Light-themed; see CLAUDE.md note in commit message.
+// Colors — locked dark-first palette.
 // ---------------------------------------------------------------------------
 
 export const Colors = {
-  background: '#FAF7F2',
-  text: '#171717',
-  primary: '#FF6B4A',
-  secondary: '#5B7CFA',
-  accent: '#FFD166',
-  card: '#FFFFFF',
-  muted: '#8A8A8A',
-  border: '#E9E2D8',
+  background: '#171717',
+  text: '#FAF7F2',
+  primary: '#B6192E',
+  secondary: '#FAF7F2',
+  accent: '#B6192E',
+  card: 'rgba(250, 247, 242, 0.06)',
+  muted: 'rgba(250, 247, 242, 0.68)',
+  border: 'rgba(250, 247, 242, 0.14)',
 
-  textInverse: '#FFFFFF',
-  textOnPrimary: '#FFFFFF',
-  textOnSecondary: '#FFFFFF',
-  textOnAccent: '#171717',
-  shadow: '#171717',
-  overlay: 'rgba(23, 23, 23, 0.45)',
+  textInverse: '#171717',
+  textOnPrimary: '#FAF7F2',
+  textOnSecondary: '#171717',
+  textOnAccent: '#FAF7F2',
+  shadow: '#000000',
+  overlay: 'rgba(0, 0, 0, 0.58)',
 } as const;
 
 // Templated screens read `Colors.light` / `Colors.dark`; route both to the

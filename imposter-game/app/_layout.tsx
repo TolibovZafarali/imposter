@@ -8,9 +8,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { SplashGate } from '@/components/splash/SplashGate';
 import { Colors, FontFamily } from '@/constants/theme';
 
 export const unstable_settings = {
@@ -21,7 +23,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const NavigationTheme: Theme = {
   ...DefaultTheme,
-  dark: false,
+  dark: true,
   colors: {
     ...DefaultTheme.colors,
     background: Colors.background,
@@ -45,23 +47,45 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+  const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {});
+      SplashScreen.hideAsync()
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) {
+            setNativeSplashHidden(true);
+          }
+        });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !nativeSplashHidden) {
     return null;
   }
 
   return (
     <ThemeProvider value={NavigationTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-      </Stack>
-      <StatusBar style="light" />
+      <View style={styles.root}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+        </Stack>
+        <StatusBar style="light" />
+        <SplashGate />
+      </View>
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});
