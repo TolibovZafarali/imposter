@@ -1,136 +1,344 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
+import { useState } from 'react';
 import type { ComponentProps } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { Colors, Radii, Shadows, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
-type HomeAction = {
-  label: string;
-  icon: MaterialIconName;
-  variant: 'primary' | 'secondary';
+type Player = {
+  id: string;
+  name: string;
 };
 
-const HOME_ACTIONS: HomeAction[] = [
-  { label: 'Play', icon: 'play-arrow', variant: 'primary' },
-  { label: 'How to Play', icon: 'menu-book', variant: 'secondary' },
-  { label: 'Settings', icon: 'tune', variant: 'secondary' },
+const INITIAL_PLAYERS: Player[] = [
+  { id: 'player-1', name: 'Player 1' },
+  { id: 'player-2', name: 'Player 2' },
+  { id: 'player-3', name: 'Player 3' },
 ];
 
-const primaryActionShadow: ViewStyle =
-  Platform.OS === 'web'
-    ? ({ boxShadow: '0px 10px 24px rgba(0, 0, 0, 0.32)' } as unknown as ViewStyle)
-    : Shadows.md;
+const ADD_PLAYER_ICON: MaterialIconName = 'person-add-alt-1';
+const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
+const EDIT_ICON: MaterialIconName = 'edit';
+const PLAYER_ICON: MaterialIconName = 'person';
+const MIN_PLAYERS = 3;
+const MAX_PLAYERS = 10;
+const MAX_PLAYER_NAME_LENGTH = 10;
 
-const secondaryActionShadow: ViewStyle =
-  Platform.OS === 'web'
-    ? ({ boxShadow: '0px 6px 18px rgba(0, 0, 0, 0.2)' } as unknown as ViewStyle)
-    : Shadows.sm;
+const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
 export default function HomeScreen() {
+  const [players, setPlayers] = useState(INITIAL_PLAYERS);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+
+  const updatePlayerName = (playerId: string, name: string) => {
+    const limitedName = limitPlayerName(name);
+
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((player) =>
+        player.id === playerId ? { ...player, name: limitedName } : player
+      )
+    );
+  };
+
+  const addPlayer = () => {
+    setPlayers((currentPlayers) => {
+      if (currentPlayers.length >= MAX_PLAYERS) {
+        return currentPlayers;
+      }
+
+      const nextPlayerNumber =
+        currentPlayers.reduce((highestNumber, player) => {
+          const playerNumber = Number(player.id.replace('player-', ''));
+
+          return Number.isFinite(playerNumber)
+            ? Math.max(highestNumber, playerNumber)
+            : highestNumber;
+        }, 0) + 1;
+
+      return [
+        ...currentPlayers,
+        {
+          id: `player-${nextPlayerNumber}`,
+          name: limitPlayerName(`Player ${nextPlayerNumber}`),
+        },
+      ];
+    });
+  };
+
+  const removePlayer = (playerId: string) => {
+    setPlayers((currentPlayers) => {
+      if (currentPlayers.length <= MIN_PLAYERS) {
+        return currentPlayers;
+      }
+
+      return currentPlayers.filter((player) => player.id !== playerId);
+    });
+
+    if (editingPlayerId === playerId) {
+      setEditingPlayerId(null);
+    }
+  };
+
+  const finishEditing = (playerId: string) => {
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((player, index) => {
+        if (player.id !== playerId) {
+          return player;
+        }
+
+        const trimmedName = player.name.trim();
+        return { ...player, name: limitPlayerName(trimmedName || `Player ${index + 1}`) };
+      })
+    );
+    setEditingPlayerId(null);
+  };
+
   return (
     <Screen style={styles.screen}>
-      <View style={styles.brand}>
-        <Image
-          source={require('@/assets/images/imposter-logo.png')}
-          style={styles.logo}
-          contentFit="contain"
-          accessibilityLabel="Imposter"
-        />
-        <Text variant="display" align="center">
-          Imposter
-        </Text>
-      </View>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}>
+        <View style={styles.brand}>
+          <Text variant="display" align="center" style={styles.title}>
+            IMPOSTER
+          </Text>
+        </View>
 
-      <View style={styles.actions}>
-        {HOME_ACTIONS.map((action) => {
-          const isPrimary = action.variant === 'primary';
+        <Card variant="flat" style={styles.playersBox}>
+          <View style={styles.sectionHeader}>
+            <Text variant="heading" color="primary">
+              Players
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                players.length >= MAX_PLAYERS
+                  ? `Maximum ${MAX_PLAYERS} players reached`
+                  : 'Add player'
+              }
+              accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
+              disabled={players.length >= MAX_PLAYERS}
+              hitSlop={8}
+              onPress={addPlayer}
+              style={({ pressed }) => [
+                styles.addPlayerButton,
+                players.length >= MAX_PLAYERS && styles.addPlayerButtonDisabled,
+                pressed && styles.iconButtonPressed,
+              ]}>
+              <MaterialIcons
+                name={ADD_PLAYER_ICON}
+                size={22}
+                color={players.length >= MAX_PLAYERS ? Colors.muted : Colors.primary}
+              />
+            </Pressable>
+          </View>
 
-          return (
-            <View
-              key={action.label}
-              style={[styles.actionRow, isPrimary ? styles.primaryAction : styles.secondaryAction]}>
-              <View style={[styles.iconBadge, isPrimary ? styles.primaryIcon : styles.secondaryIcon]}>
-                <MaterialIcons
-                  name={action.icon}
-                  size={24}
-                  color={isPrimary ? Colors.textOnPrimary : Colors.primary}
-                />
-              </View>
-              <Text
-                variant="subheading"
-                color={isPrimary ? 'textOnPrimary' : 'text'}
-                style={styles.actionLabel}>
-                {action.label}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+          <View style={styles.playersGrid}>
+            {players.map((player, index) => {
+              const isEditing = editingPlayerId === player.id;
+              const canRemovePlayer = index >= 3;
+
+              return (
+                <View key={player.id} style={styles.playerTile}>
+                  {canRemovePlayer ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${player.name}`}
+                      hitSlop={8}
+                      onPress={() => removePlayer(player.id)}
+                      style={({ pressed }) => [
+                        styles.removeButton,
+                        pressed && styles.iconButtonPressed,
+                      ]}>
+                      <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
+                    </Pressable>
+                  ) : null}
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit ${player.name}`}
+                    hitSlop={8}
+                    onPress={() => setEditingPlayerId(player.id)}
+                    style={({ pressed }) => [
+                      styles.editButton,
+                      pressed && styles.iconButtonPressed,
+                    ]}>
+                    <MaterialIcons name={EDIT_ICON} size={18} color={Colors.primary} />
+                  </Pressable>
+
+                  <View style={styles.personBadge}>
+                    <MaterialIcons name={PLAYER_ICON} size={34} color={Colors.text} />
+                  </View>
+
+                  <View style={styles.playerNameRow}>
+                    {isEditing ? (
+                      <TextInput
+                        autoFocus
+                        selectTextOnFocus
+                        value={player.name}
+                        onChangeText={(name) => updatePlayerName(player.id, name)}
+                        onBlur={() => finishEditing(player.id)}
+                        onSubmitEditing={() => finishEditing(player.id)}
+                        returnKeyType="done"
+                        maxLength={MAX_PLAYER_NAME_LENGTH}
+                        placeholder={player.name}
+                        placeholderTextColor={Colors.muted}
+                        textAlign="center"
+                        style={styles.playerInput}
+                      />
+                    ) : (
+                      <Text
+                        variant="bodyEmphasis"
+                        align="center"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.9}
+                        numberOfLines={1}
+                        style={styles.playerName}>
+                        {player.name}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          <Text variant="caption" align="center" style={styles.playersHint}>
+            {MIN_PLAYERS} min · {MAX_PLAYERS} max
+          </Text>
+        </Card>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    justifyContent: 'space-between',
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingTop: Spacing.xxxxl,
     paddingBottom: Spacing.xxxl,
+    gap: Spacing.xxxl,
   },
   brand: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
-  logo: {
-    width: 132,
-    height: 132,
-    marginBottom: Spacing.xl,
+  title: {
+    letterSpacing: 0,
   },
-  actions: {
+  playersBox: {
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
-  actionRow: {
-    minHeight: 68,
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.md,
-    borderRadius: Radii.xl,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+  },
+  playersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  playersHint: {
+    marginTop: -Spacing.xs,
+  },
+  playerTile: {
+    aspectRatio: 1,
+    width: '47.9%',
+    minWidth: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
     borderWidth: 1,
-  },
-  primaryAction: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-    ...primaryActionShadow,
-  },
-  secondaryAction: {
-    backgroundColor: Colors.card,
     borderColor: Colors.border,
-    ...secondaryActionShadow,
+    borderRadius: Radii.lg,
+    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    padding: Spacing.md,
   },
-  iconBadge: {
-    width: 42,
-    height: 42,
+  personBadge: {
+    width: 58,
+    height: 58,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
+    backgroundColor: 'rgba(250, 247, 242, 0.08)',
   },
-  primaryIcon: {
-    backgroundColor: 'rgba(250, 247, 242, 0.16)',
+  playerNameRow: {
+    alignSelf: 'stretch',
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
   },
-  secondaryIcon: {
-    backgroundColor: 'rgba(182, 25, 46, 0.16)',
+  playerName: {
+    alignSelf: 'stretch',
+    minWidth: 0,
+    includeFontPadding: false,
   },
-  actionLabel: {
-    flex: 1,
+  playerInput: {
+    ...Typography.bodyEmphasis,
+    alignSelf: 'stretch',
+    height: 24,
+    lineHeight: 24,
+    minWidth: 72,
+    padding: 0,
+    margin: 0,
+    color: Colors.text,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: Platform.OS === 'ios' ? -1 : 0 }],
+  },
+  addPlayerButton: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(182, 25, 46, 0.14)',
+  },
+  addPlayerButtonDisabled: {
+    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    opacity: 0.64,
+  },
+  editButton: {
+    width: 24,
+    height: 24,
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeButton: {
+    width: 30,
+    height: 30,
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+  },
+  iconButtonPressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.96 }],
   },
 });
