@@ -15,11 +15,39 @@ type Player = {
   name: string;
 };
 
+type Category = {
+  id: string;
+  label: string;
+  icon: MaterialIconName;
+};
+
 const INITIAL_PLAYERS: Player[] = [
   { id: 'player-1', name: 'Player 1' },
   { id: 'player-2', name: 'Player 2' },
   { id: 'player-3', name: 'Player 3' },
 ];
+
+const CATEGORIES: Category[] = [
+  { id: 'food', label: 'Food', icon: 'restaurant' },
+  { id: 'animals', label: 'Animals', icon: 'pets' },
+  { id: 'jobs', label: 'Jobs', icon: 'work' },
+  { id: 'countries', label: 'Countries', icon: 'public' },
+  { id: 'objects', label: 'Objects', icon: 'category' },
+  { id: 'sports', label: 'Sports', icon: 'sports-soccer' },
+  { id: 'school', label: 'School', icon: 'school' },
+  { id: 'movies', label: 'Movies', icon: 'movie' },
+  { id: 'celebrities', label: 'Celebrities', icon: 'star' },
+  { id: 'fantasy', label: 'Fantasy', icon: 'auto-awesome' },
+];
+
+const CATEGORY_ROWS = [
+  ['food', 'animals', 'jobs'],
+  ['countries', 'objects'],
+  ['sports', 'school', 'movies'],
+  ['celebrities', 'fantasy'],
+];
+
+const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
 
 const ADD_PLAYER_ICON: MaterialIconName = 'person-add-alt-1';
 const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
@@ -28,12 +56,14 @@ const PLAYER_ICON: MaterialIconName = 'person';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
+const MAX_SELECTED_CATEGORIES = 3;
 
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
 export default function HomeScreen() {
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   const updatePlayerName = (playerId: string, name: string) => {
     const limitedName = limitPlayerName(name);
@@ -98,6 +128,20 @@ export default function HomeScreen() {
     setEditingPlayerId(null);
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategoryIds((currentCategoryIds) => {
+      if (currentCategoryIds.includes(categoryId)) {
+        return currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryId);
+      }
+
+      if (currentCategoryIds.length >= MAX_SELECTED_CATEGORIES) {
+        return currentCategoryIds;
+      }
+
+      return [...currentCategoryIds, categoryId];
+    });
+  };
+
   return (
     <Screen style={styles.screen}>
       <ScrollView
@@ -111,7 +155,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <Card variant="flat" style={styles.playersBox}>
+        <Card variant="flat" style={styles.setupBox}>
           <View style={styles.sectionHeader}>
             <Text variant="heading" color="primary">
               Players
@@ -214,6 +258,67 @@ export default function HomeScreen() {
             {MIN_PLAYERS} min · {MAX_PLAYERS} max
           </Text>
         </Card>
+
+        <Card variant="flat" style={styles.setupBox}>
+          <View style={styles.sectionHeader}>
+            <Text variant="heading" color="primary">
+              Categories
+            </Text>
+            <Text variant="caption" style={styles.selectedCategoryText}>
+              {selectedCategoryIds.length}/{MAX_SELECTED_CATEGORIES} selected
+            </Text>
+          </View>
+
+          <View style={styles.categoriesRows}>
+            {CATEGORY_ROWS.map((categoryRow) => (
+              <View key={categoryRow.join('-')} style={styles.categoryRow}>
+                {categoryRow.map((categoryId) => {
+                  const category = CATEGORIES_BY_ID.get(categoryId);
+
+                  if (!category) {
+                    return null;
+                  }
+
+                  const isSelected = selectedCategoryIds.includes(category.id);
+                  const isDisabled =
+                    !isSelected && selectedCategoryIds.length >= MAX_SELECTED_CATEGORIES;
+
+                  return (
+                    <Pressable
+                      key={category.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${
+                        category.label
+                      } category`}
+                      accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+                      disabled={isDisabled}
+                      onPress={() => toggleCategory(category.id)}
+                      style={({ pressed }) => [
+                        styles.categoryTile,
+                        isSelected && styles.categoryTileSelected,
+                        isDisabled && styles.categoryTileDisabled,
+                        pressed && styles.categoryTilePressed,
+                      ]}>
+                      <MaterialIcons
+                        name={category.icon}
+                        size={18}
+                        color={isSelected ? Colors.textOnPrimary : Colors.muted}
+                      />
+                      <Text
+                        variant="bodyEmphasis"
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
+                        numberOfLines={1}
+                        style={[styles.categoryLabel, isSelected && styles.categoryLabelSelected]}>
+                        {category.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </Card>
       </ScrollView>
     </Screen>
   );
@@ -239,7 +344,7 @@ const styles = StyleSheet.create({
   title: {
     letterSpacing: 0,
   },
-  playersBox: {
+  setupBox: {
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
@@ -258,6 +363,9 @@ const styles = StyleSheet.create({
   },
   playersHint: {
     marginTop: -Spacing.xs,
+  },
+  selectedCategoryText: {
+    flexShrink: 0,
   },
   playerTile: {
     aspectRatio: 1,
@@ -340,5 +448,43 @@ const styles = StyleSheet.create({
   iconButtonPressed: {
     opacity: 0.72,
     transform: [{ scale: 0.96 }],
+  },
+  categoriesRows: {
+    gap: Spacing.md,
+  },
+  categoryRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: Spacing.sm,
+  },
+  categoryTile: {
+    minHeight: 42,
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs + 2,
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    paddingVertical: Spacing.sm + 1,
+    paddingHorizontal: Spacing.sm + 2,
+  },
+  categoryTileSelected: {
+    backgroundColor: Colors.primary,
+  },
+  categoryTileDisabled: {
+    opacity: 0.42,
+  },
+  categoryTilePressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
+  },
+  categoryLabel: {
+    minWidth: 0,
+    includeFontPadding: false,
+  },
+  categoryLabelSelected: {
+    color: Colors.textOnPrimary,
   },
 });
