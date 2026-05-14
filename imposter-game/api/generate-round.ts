@@ -6,10 +6,12 @@ const DEFAULT_MODEL = 'gpt-5.4-mini';
 const CLIENT_RECENT_WORD_LIMIT = 40;
 const SERVER_RECENT_WORD_LIMIT = 80;
 const GENERATION_ATTEMPTS = 8;
+const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 
 const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
   categoryIds: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
+  difficulty: difficultySchema.default('easy'),
   languageId: z.string().trim().min(1).max(80),
   languageName: z.string().trim().min(1).max(80),
   playerCount: z.number().int().min(3).max(10),
@@ -25,6 +27,7 @@ const translationRequestSchema = z.object({
     clue: z.string().trim().min(1).max(42),
     categoryId: z.string().trim().min(1).max(40),
     categoryLabel: z.string().trim().min(1).max(80),
+    difficulty: difficultySchema.optional(),
     sense: z.string().trim().min(1).max(160).optional(),
   }),
 });
@@ -279,8 +282,14 @@ const createVarietyKey = (attempt: number) =>
 const isUzbekLanguageRequest = ({ languageId, languageName }: Pick<TranslationWordRequest, 'languageId' | 'languageName'>) =>
   languageId === 'uzbek' || languageName.toLocaleLowerCase().includes('uzbek');
 
+const difficultyInstructions = {
+  easy: 'Difficulty target: easy. Choose a highly familiar, everyday answer most casual players recognize immediately.',
+  medium: 'Difficulty target: medium. Choose a familiar but less obvious answer that still works for casual players.',
+  hard: 'Difficulty target: hard. Choose a more specific or less common answer, but avoid obscure trivia.',
+} as const;
+
 const buildPrompt = (
-  { categoryIds, languageName, playerCount }: RoundWordRequest,
+  { categoryIds, difficulty, languageName, playerCount }: RoundWordRequest,
   varietyKey: string,
   blockedRecentWords: string[]
 ) => {
@@ -292,12 +301,14 @@ const buildPrompt = (
   return [
     `Language: ${languageName}`,
     `Categories: ${categories}`,
+    `Difficulty: ${difficulty}`,
     `Player count: ${playerCount}`,
     `Variety key: ${varietyKey}`,
     `Recent secret words to avoid: ${recentWordList}`,
     '',
     'Generate one secret word and one imposter clue for this round.',
     'Choose a fair, broadly playable answer that casual players can discuss.',
+    difficultyInstructions[difficulty],
     'Treat the variety key as a random seed; do not output it.',
     'Never choose any word from the recent secret words list. Choose a different valid word each request.',
     'Do not copy wording from these instructions as the answer.',
@@ -333,8 +344,9 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     `Target language: ${languageName}`,
     `English source word: ${source.word}`,
     `English source category: ${source.categoryLabel}`,
+    source.difficulty ? `English source difficulty: ${source.difficulty}` : null,
     source.sense ? `English source sense: ${source.sense}` : null,
-    `English hard imposter clue: ${source.clue}`,
+    `English imposter clue: ${source.clue}`,
     '',
     'Translate the source word naturally for native speakers in the target language.',
     'Do not replace the source word with a different example.',

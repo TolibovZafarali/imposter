@@ -127,15 +127,12 @@ Initial categories may include:
 
 - Food
 - Animals
-- Jobs
-- Countries
 - Objects
+- Places
 - Sports
-- School
+- Activities
 - Movies
 - Celebrities
-- Fantasy
-- Random
 
 More categories can be added later.
 

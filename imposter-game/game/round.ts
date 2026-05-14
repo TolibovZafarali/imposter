@@ -1,8 +1,10 @@
 import type { Player, Round } from '@/game/types';
+import type { WordDifficulty } from '@/data/wordBank';
 
 type BuildRoundInput = {
   players: Player[];
   categoryIds: string[];
+  difficulty: WordDifficulty;
   languageId: string;
   languageName: string;
   secretWord: string;
@@ -16,6 +18,7 @@ const getRandomIndex = (itemCount: number, rng: () => number) =>
 export function buildRound({
   players,
   categoryIds,
+  difficulty,
   languageId,
   languageName,
   secretWord,
@@ -46,6 +49,7 @@ export function buildRound({
     firstSpeakerId: firstSpeaker.id,
     config: {
       categoryIds,
+      difficulty,
       languageId,
       languageName,
     },

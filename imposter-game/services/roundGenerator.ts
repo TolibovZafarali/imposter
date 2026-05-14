@@ -5,6 +5,7 @@ import {
   hasPlayableCelebrityAnswer,
   resolveRoundWordPlan,
   type EnglishWordEntry,
+  type WordDifficulty,
 } from '@/data/wordBank';
 
 type GeneratedWord = {
@@ -15,6 +16,7 @@ type GeneratedWord = {
 export type RoundGeneratorInput = {
   players: Player[];
   categoryIds: string[];
+  difficulty: WordDifficulty;
   languageId: string;
   languageName: string;
   rng?: () => number;
@@ -79,6 +81,7 @@ const getAiGenerationAttemptLimit = (categoryIds: readonly string[]) =>
 async function fetchAiGeneratedWord({
   players,
   categoryIds,
+  difficulty,
   languageId,
   languageName,
 }: RoundGeneratorInput): Promise<GeneratedWord> {
@@ -97,6 +100,7 @@ async function fetchAiGeneratedWord({
         },
         body: JSON.stringify({
           categoryIds,
+          difficulty,
           languageId,
           languageName,
           playerCount: players.length,
@@ -164,6 +168,7 @@ async function fetchTranslatedStaticWord({
           clue: sourceEntry.hint,
           categoryId: sourceEntry.categoryId,
           categoryLabel: CATEGORY_LABELS[sourceEntry.categoryId],
+          difficulty: sourceEntry.difficulty,
           sense: sourceEntry.sense,
         },
       }),
@@ -194,6 +199,7 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
   const round = buildRound({
     players: input.players,
     categoryIds: input.categoryIds,
+    difficulty: input.difficulty,
     languageId: input.languageId,
     languageName: input.languageName,
     secretWord: generatedWord.word,
@@ -208,6 +214,7 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
 export async function createRound(input: RoundGeneratorInput): Promise<Round> {
   const wordPlan = resolveRoundWordPlan({
     categoryIds: input.categoryIds,
+    difficulty: input.difficulty,
     languageId: input.languageId,
     languageName: input.languageName,
     recentWords: recentRoundWords,
@@ -235,6 +242,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
   const round = buildRound({
     players: input.players,
     categoryIds: [wordPlan.source.categoryId],
+    difficulty: input.difficulty,
     languageId: input.languageId,
     languageName: input.languageName,
     secretWord: generatedWord.word,

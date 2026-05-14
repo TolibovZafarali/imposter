@@ -11,19 +11,56 @@ import {
   selectStaticWordEntry,
 } from '../data/wordBank.ts';
 
-test('static word bank is intentionally empty', () => {
-  assert.equal(ENGLISH_WORD_BANK.length, 0);
+test('static word bank is populated from replacement categories', () => {
+  assert.equal(ENGLISH_WORD_BANK.length, 4324);
+  assert.deepEqual(STATIC_CATEGORY_IDS, [
+    'activities',
+    'food',
+    'animals',
+    'objects',
+    'places',
+    'sports',
+  ]);
 
-  for (const categoryId of STATIC_CATEGORY_IDS) {
-    assert.deepEqual(ENGLISH_WORD_BANK_BY_CATEGORY[categoryId], []);
-  }
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.activities.length, 698);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.food.length, 492);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.animals.length, 380);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.objects.length, 600);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.places.length, 645);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.sports.length, 1509);
 });
 
-test('static category selection fails clearly while word data is absent', () => {
-  assert.throws(
-    () => selectStaticWordEntry({ categoryId: 'food' }),
-    /No static word data available/
-  );
+test('static category selection respects difficulty', () => {
+  const foodEntry = selectStaticWordEntry({
+    categoryId: 'food',
+    difficulty: 'medium',
+    rng: () => 0,
+  });
+  const sportsEntry = selectStaticWordEntry({
+    categoryId: 'sports',
+    difficulty: 'hard',
+    rng: () => 0,
+  });
+
+  assert.equal(foodEntry.word, 'cantaloupe');
+  assert.equal(foodEntry.difficulty, 'medium');
+  assert.equal(sportsEntry.word, 'soccer');
+  assert.equal(sportsEntry.difficulty, 'hard');
+});
+
+test('english static rounds use selected difficulty data', () => {
+  const plan = resolveRoundWordPlan({
+    categoryIds: ['places'],
+    difficulty: 'hard',
+    languageId: 'english',
+    languageName: 'English',
+    rng: () => 0,
+  });
+
+  assert.equal(plan.mode, 'local-static');
+  assert.equal(plan.source.type, 'static');
+  assert.equal(plan.source.categoryId, 'places');
+  assert.equal(plan.source.entry.difficulty, 'hard');
 });
 
 test('round word plan keeps dynamic categories on AI generation', () => {

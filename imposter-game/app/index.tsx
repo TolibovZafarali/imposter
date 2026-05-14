@@ -1,8 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
+import type { WordDifficulty } from '@/data/wordBank';
 import type { Player } from '@/game/types';
 import { createRound } from '@/services/roundGenerator';
 
@@ -29,24 +30,27 @@ const INITIAL_PLAYERS: Player[] = [
 ];
 
 const CATEGORIES: Category[] = [
+  { id: 'activities', label: 'Activities', icon: 'directions-run' },
   { id: 'food', label: 'Food', icon: 'restaurant' },
   { id: 'animals', label: 'Animals', icon: 'pets' },
-  { id: 'jobs', label: 'Jobs', icon: 'work' },
-  { id: 'countries', label: 'Countries', icon: 'public' },
   { id: 'objects', label: 'Objects', icon: 'category' },
+  { id: 'places', label: 'Places', icon: 'place' },
   { id: 'sports', label: 'Sports', icon: 'sports-soccer' },
-  { id: 'school', label: 'School', icon: 'school' },
   { id: 'movies', label: 'Movies', icon: 'movie' },
   { id: 'celebrities', label: 'Celebrities', icon: 'star' },
-  { id: 'fantasy', label: 'Fantasy', icon: 'auto-awesome' },
 ];
 
 const CATEGORY_ROWS = [
-  ['food', 'animals', 'jobs'],
-  ['countries', 'objects'],
-  ['sports', 'school', 'movies'],
-  ['celebrities', 'fantasy'],
+  ['food', 'animals', 'objects'],
+  ['places', 'activities', 'sports'],
+  ['movies', 'celebrities'],
 ];
+
+const DIFFICULTY_OPTIONS = [
+  { id: 'easy', label: 'Easy' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'hard', label: 'Hard' },
+] as const satisfies readonly { id: WordDifficulty; label: string }[];
 
 const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
 
@@ -60,6 +64,8 @@ const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
+const DIFFICULTY_SWITCH_GAP = Spacing.xs;
+const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
@@ -70,11 +76,36 @@ export default function HomeScreen() {
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<WordDifficulty>('easy');
+  const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
+  const difficultySlideValue = useRef(new Animated.Value(0)).current;
 
   const canStartGame = selectedCategoryIds.length > 0 && !isStartingGame;
+  const difficultyOptionWidth = Math.max(
+    0,
+    (difficultyToggleWidth -
+      DIFFICULTY_SWITCH_PADDING * 2 -
+      DIFFICULTY_SWITCH_GAP * (DIFFICULTY_OPTIONS.length - 1)) /
+      DIFFICULTY_OPTIONS.length
+  );
+
+  useEffect(() => {
+    const selectedDifficultyIndex = Math.max(
+      DIFFICULTY_OPTIONS.findIndex((difficultyOption) => difficultyOption.id === selectedDifficulty),
+      0
+    );
+
+    Animated.spring(difficultySlideValue, {
+      toValue: selectedDifficultyIndex * (difficultyOptionWidth + DIFFICULTY_SWITCH_GAP),
+      damping: 18,
+      mass: 0.8,
+      stiffness: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [difficultyOptionWidth, difficultySlideValue, selectedDifficulty]);
 
   const updatePlayerName = (playerId: string, name: string) => {
     const limitedName = limitPlayerName(name);
@@ -175,6 +206,7 @@ export default function HomeScreen() {
       const round = await createRound({
         players: roundPlayers,
         categoryIds: selectedCategoryIds,
+        difficulty: selectedDifficulty,
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
       });
@@ -359,6 +391,50 @@ export default function HomeScreen() {
                 })}
               </View>
             ))}
+          </View>
+
+          <View
+            onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
+            style={styles.difficultyToggle}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.difficultyIndicator,
+                {
+                  opacity: difficultyOptionWidth > 0 ? 1 : 0,
+                  transform: [{ translateX: difficultySlideValue }],
+                  width: difficultyOptionWidth,
+                },
+              ]}
+            />
+            {DIFFICULTY_OPTIONS.map((difficultyOption) => {
+              const isSelected = selectedDifficulty === difficultyOption.id;
+
+              return (
+                <Pressable
+                  key={difficultyOption.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => setSelectedDifficulty(difficultyOption.id)}
+                  style={({ pressed }) => [
+                    styles.difficultyOption,
+                    pressed && styles.difficultyOptionPressed,
+                  ]}>
+                  <Text
+                    variant="bodyEmphasis"
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.84}
+                    numberOfLines={1}
+                    style={[
+                      styles.difficultyOptionText,
+                      isSelected && styles.difficultyOptionTextSelected,
+                    ]}>
+                    {difficultyOption.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </Card>
 
@@ -559,6 +635,49 @@ const styles = StyleSheet.create({
   },
   categoriesRows: {
     gap: Spacing.md,
+  },
+  difficultyToggle: {
+    minHeight: 46,
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: DIFFICULTY_SWITCH_GAP,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    padding: DIFFICULTY_SWITCH_PADDING,
+  },
+  difficultyIndicator: {
+    position: 'absolute',
+    top: DIFFICULTY_SWITCH_PADDING,
+    bottom: DIFFICULTY_SWITCH_PADDING,
+    left: DIFFICULTY_SWITCH_PADDING,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.primary,
+  },
+  difficultyOption: {
+    height: 36,
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    zIndex: 1,
+  },
+  difficultyOptionPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
+  },
+  difficultyOptionText: {
+    minWidth: 0,
+    color: Colors.muted,
+    includeFontPadding: false,
+  },
+  difficultyOptionTextSelected: {
+    color: Colors.textOnPrimary,
   },
   categoryRow: {
     width: '100%',

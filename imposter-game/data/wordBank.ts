@@ -1,12 +1,19 @@
+import { activitiesHobbiesActionsWords } from './activitiesHobbiesActionsWords.ts';
+import animalWords from './animalsWords.ts';
+import { everydayObjectsWords } from './everydayObjectsWords.ts';
+import { foodDrinkWords } from './foodDrinkWords.ts';
+import placesGeographyWords from './placesGeographyWords.ts';
+import sportsGamesWords from './sportsGamesWords.ts';
+
+export type WordDifficulty = 'easy' | 'medium' | 'hard';
+
 export type StaticCategoryId =
+  | 'activities'
   | 'food'
   | 'animals'
-  | 'jobs'
-  | 'countries'
   | 'objects'
+  | 'places'
   | 'sports'
-  | 'school'
-  | 'fantasy';
 
 export type DynamicCategoryId = 'movies' | 'celebrities';
 
@@ -15,6 +22,7 @@ export type EnglishWordEntry = {
   word: string;
   hint: string;
   categoryId: StaticCategoryId;
+  difficulty: WordDifficulty;
   sense?: string;
 };
 
@@ -44,14 +52,12 @@ export type RoundWordPlan =
     };
 
 export const STATIC_CATEGORY_IDS = [
+  'activities',
   'food',
   'animals',
-  'jobs',
-  'countries',
   'objects',
+  'places',
   'sports',
-  'school',
-  'fantasy',
 ] as const satisfies readonly StaticCategoryId[];
 
 export const DYNAMIC_CATEGORY_IDS = [
@@ -60,16 +66,14 @@ export const DYNAMIC_CATEGORY_IDS = [
 ] as const satisfies readonly DynamicCategoryId[];
 
 export const CATEGORY_LABELS = {
+  activities: 'Activities',
   food: 'Food',
   animals: 'Animals',
-  jobs: 'Jobs',
-  countries: 'Countries',
   objects: 'Objects',
+  places: 'Places',
   sports: 'Sports',
-  school: 'School',
   movies: 'Movies',
   celebrities: 'Celebrities',
-  fantasy: 'Fantasy',
 } as const satisfies Record<StaticCategoryId | DynamicCategoryId, string>;
 
 export const normalizeWordKey = (value: string) =>
@@ -82,7 +86,68 @@ export const normalizeWordKey = (value: string) =>
 export const hasPlayableCelebrityAnswer = (word: string) =>
   normalizeWordKey(word).split(' ').filter(Boolean).length >= 2;
 
-export const ENGLISH_WORD_BANK: EnglishWordEntry[] = [];
+export const WORD_DIFFICULTIES = ['easy', 'medium', 'hard'] as const satisfies readonly WordDifficulty[];
+
+const buildStaticWordEntries = ({
+  categoryId,
+  difficulties,
+}: {
+  categoryId: StaticCategoryId;
+  difficulties: Record<WordDifficulty, readonly { secret: string; hint: string }[]>;
+}): EnglishWordEntry[] =>
+  WORD_DIFFICULTIES.flatMap((difficulty) =>
+    difficulties[difficulty].map(({ secret, hint }) => ({
+      id: `${categoryId}-${difficulty}-${normalizeWordKey(secret).replace(/\s+/g, '-')}`,
+      word: secret,
+      hint,
+      categoryId,
+      difficulty,
+    }))
+  );
+
+const buildUnsplitStaticWordEntries = ({
+  categoryId,
+  words,
+}: {
+  categoryId: StaticCategoryId;
+  words: readonly { secret: string; hint: string }[];
+}): EnglishWordEntry[] =>
+  WORD_DIFFICULTIES.flatMap((difficulty) =>
+    words.map(({ secret, hint }) => ({
+      id: `${categoryId}-${difficulty}-${normalizeWordKey(secret).replace(/\s+/g, '-')}`,
+      word: secret,
+      hint,
+      categoryId,
+      difficulty,
+    }))
+  );
+
+export const ENGLISH_WORD_BANK: EnglishWordEntry[] = [
+  ...buildStaticWordEntries({
+    categoryId: 'activities',
+    difficulties: activitiesHobbiesActionsWords.difficulties,
+  }),
+  ...buildStaticWordEntries({
+    categoryId: 'food',
+    difficulties: foodDrinkWords.difficulties,
+  }),
+  ...buildStaticWordEntries({
+    categoryId: 'animals',
+    difficulties: animalWords.difficulties,
+  }),
+  ...buildStaticWordEntries({
+    categoryId: 'objects',
+    difficulties: everydayObjectsWords.difficulties,
+  }),
+  ...buildStaticWordEntries({
+    categoryId: 'places',
+    difficulties: placesGeographyWords.difficulties,
+  }),
+  ...buildUnsplitStaticWordEntries({
+    categoryId: 'sports',
+    words: sportsGamesWords.words,
+  }),
+];
 
 export const ENGLISH_WORD_BANK_BY_CATEGORY = STATIC_CATEGORY_IDS.reduce(
   (entriesByCategory, categoryId) => ({
@@ -118,16 +183,20 @@ const isRecentlyUsedEntry = (
 
 export function selectStaticWordEntry({
   categoryId,
+  difficulty = 'easy',
   recentWords = [],
   recentEntryIds = [],
   rng = Math.random,
 }: {
   categoryId: StaticCategoryId;
+  difficulty?: WordDifficulty;
   recentWords?: readonly string[];
   recentEntryIds?: readonly string[];
   rng?: () => number;
 }): EnglishWordEntry {
-  const selectionEntries = ENGLISH_WORD_BANK_BY_CATEGORY[categoryId];
+  const selectionEntries = ENGLISH_WORD_BANK_BY_CATEGORY[categoryId].filter(
+    (entry) => entry.difficulty === difficulty
+  );
   const freshEntries = selectionEntries.filter(
     (entry) => !isRecentlyUsedEntry(entry, recentWords, recentEntryIds)
   );
@@ -150,11 +219,13 @@ export function chooseRoundCategory(categoryIds: readonly string[], rng = Math.r
 
 export function resolveRoundWordSource({
   categoryIds,
+  difficulty = 'easy',
   recentWords = [],
   recentEntryIds = [],
   rng = Math.random,
 }: {
   categoryIds: readonly string[];
+  difficulty?: WordDifficulty;
   recentWords?: readonly string[];
   recentEntryIds?: readonly string[];
   rng?: () => number;
@@ -167,6 +238,7 @@ export function resolveRoundWordSource({
       categoryId: selectedCategoryId,
       entry: selectStaticWordEntry({
         categoryId: selectedCategoryId,
+        difficulty,
         recentWords,
         recentEntryIds,
         rng,
@@ -194,6 +266,7 @@ export const isEnglishLanguage = ({
 
 export function resolveRoundWordPlan({
   categoryIds,
+  difficulty = 'easy',
   languageId,
   languageName,
   recentWords = [],
@@ -201,6 +274,7 @@ export function resolveRoundWordPlan({
   rng = Math.random,
 }: {
   categoryIds: readonly string[];
+  difficulty?: WordDifficulty;
   languageId: string;
   languageName: string;
   recentWords?: readonly string[];
@@ -209,6 +283,7 @@ export function resolveRoundWordPlan({
 }): RoundWordPlan {
   const source = resolveRoundWordSource({
     categoryIds,
+    difficulty,
     recentWords,
     recentEntryIds,
     rng,

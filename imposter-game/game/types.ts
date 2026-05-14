@@ -1,3 +1,5 @@
+import type { WordDifficulty } from '@/data/wordBank';
+
 export type Player = {
   id: string;
   name: string;
@@ -16,6 +18,7 @@ export type RoundCard = {
 
 export type RoundConfig = {
   categoryIds: string[];
+  difficulty: WordDifficulty;
   languageId: string;
   languageName: string;
 };
