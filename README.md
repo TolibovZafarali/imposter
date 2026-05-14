@@ -22,7 +22,7 @@ This allows the game to support many languages without storing a huge database o
 
 A global imposter party game that works in many languages.
 
-Curated English word bank for stable categories.
+Static word bank is currently empty and ready for a future rebuild.
 AI translation for other languages.
 No complicated setup.
 No accounts required for the first version.
@@ -82,54 +82,7 @@ After discussion, everyone votes for the player they think is the imposter.
 
 ## Example Round
 
-Category:
-
-```txt
-Food
-```
-
-Language:
-
-```txt
-English
-```
-
-Secret word:
-
-```txt
-Pizza
-```
-
-Imposter hint:
-
-```txt
-Food
-```
-
-Normal players see:
-
-```txt
-Your word is: Pizza
-```
-
-The imposter sees:
-
-```txt
-You are the Imposter.
-
-Hint: Food
-```
-
-Possible discussion:
-
-```txt
-Player 1: People eat this with friends.
-Player 2: It is usually hot.
-Player 3: You can order it at restaurants.
-Player 4: It can have cheese.
-```
-
-Then the group discusses and votes.
+Example word and hint content is intentionally omitted while the static word data is reset.
 
 ## Imposter Hint System
 
@@ -140,56 +93,17 @@ The imposter only receives:
 1. Their role
 2. A broad hint
 
-Good hints are general enough to keep the game challenging, but helpful enough for the imposter to say something close during the first talking round.
-
-### Good Hints
-
-```txt
-Food
-Animal
-Place
-Object
-Sport
-Movie
-Job
-Country
-Something people use
-Something people eat
-Something you can find outside
-Something you can find at home
-```
-
-### Bad Hints
-
-```txt
-Italian food
-Cheesy food
-Round food
-Delivery food
-Fast food
-```
-
-Bad hints are too specific and may reveal the secret word too easily.
+Hint examples are intentionally omitted while the static word data is reset.
 
 ## Word Generation
 
-For stable categories, the app should choose a secret word and hard one-word imposter hint from the curated English word bank. If the selected language is not English, the backend should use AI to translate that chosen word and hint naturally.
+The static word bank is currently empty. Stable category data should be rebuilt later from a clean source.
 
 Movies and celebrities should still call an AI API [Application Programming Interface] once per round so the result can match the selected language and culture.
 
+The host can choose Mixed, Easy, Medium, or Hard before starting a round. Mixed uses the full static pool; the other choices filter static categories by difficulty and guide AI generation for Movies and Celebrities.
+
 Users should never type raw prompts. Users only choose simple options like language, category, player count, and number of imposters.
-
-Example round word response:
-
-```json
-{
-  "language": "English",
-  "category": "Food",
-  "mainWord": "Pizza",
-  "imposterHint": "Party",
-  "difficulty": "easy"
-}
-```
 
 The hint should help the imposter say something generally related during the first discussion, but it should not make the word obvious.
 
@@ -413,19 +327,7 @@ This prevents accidental role leaks.
 
 ### Role Reveal Screen
 
-Normal player:
-
-```txt
-Your word is: Flag
-```
-
-Imposter:
-
-```txt
-You are the Imposter.
-
-Hint: Wind
-```
+Normal-player and imposter-card example content is intentionally omitted while the static word data is reset.
 
 After viewing, the player taps:
 
@@ -535,7 +437,7 @@ The app should be built with a clean structure that separates:
 
 - Game state
 - Player setup
-- Curated word selection
+- Static word selection
 - AI translation and culture-specific generation
 - Round logic
 - Score logic
@@ -544,9 +446,9 @@ The app should be built with a clean structure that separates:
 - Monetization
 - Settings
 
-AI calls should happen only when translating a static English word or when Movies/Celebrities are selected, not during every screen change.
+AI calls should happen only when static data exists and needs translation, or when Movies/Celebrities are selected, not during every screen change.
 
-Generated words and hints can be cached locally to reduce API cost and improve speed.
+Generated round content can be cached locally to reduce API cost and improve speed.
 
 ## Development Priority
 

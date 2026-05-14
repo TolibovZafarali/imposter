@@ -1,10 +1,12 @@
 import type { Player, Round } from '@/game/types';
+import type { RoundDifficulty } from '@/data/wordBank';
 
 type BuildRoundInput = {
   players: Player[];
   categoryIds: string[];
   languageId: string;
   languageName: string;
+  difficulty: RoundDifficulty;
   secretWord: string;
   imposterHint: string;
   rng?: () => number;
@@ -18,6 +20,7 @@ export function buildRound({
   categoryIds,
   languageId,
   languageName,
+  difficulty,
   secretWord,
   imposterHint,
   rng = Math.random,
@@ -48,6 +51,7 @@ export function buildRound({
       categoryIds,
       languageId,
       languageName,
+      difficulty,
     },
   };
 }

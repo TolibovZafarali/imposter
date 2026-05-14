@@ -2,9 +2,11 @@ import { buildRound } from '@/game/round';
 import type { Player, Round } from '@/game/types';
 import {
   CATEGORY_LABELS,
+  DEFAULT_ROUND_DIFFICULTY,
   hasPlayableCelebrityAnswer,
   resolveRoundWordPlan,
   type EnglishWordEntry,
+  type RoundDifficulty,
 } from '@/data/wordBank';
 
 type GeneratedWord = {
@@ -17,6 +19,7 @@ export type RoundGeneratorInput = {
   categoryIds: string[];
   languageId: string;
   languageName: string;
+  difficulty: RoundDifficulty;
   rng?: () => number;
 };
 
@@ -81,6 +84,7 @@ async function fetchAiGeneratedWord({
   categoryIds,
   languageId,
   languageName,
+  difficulty = DEFAULT_ROUND_DIFFICULTY,
 }: RoundGeneratorInput): Promise<GeneratedWord> {
   const rejectedWords: string[] = [];
   let lastError: unknown;
@@ -99,6 +103,7 @@ async function fetchAiGeneratedWord({
           categoryIds,
           languageId,
           languageName,
+          difficulty,
           playerCount: players.length,
           recentWords: [...rejectedWords, ...recentRoundWords].slice(0, RECENT_WORD_LIMIT),
         }),
@@ -190,12 +195,14 @@ async function fetchTranslatedStaticWord({
 }
 
 export async function createAiRound(input: RoundGeneratorInput): Promise<Round> {
-  const generatedWord = await fetchAiGeneratedWord(input);
+  const difficulty = input.difficulty ?? DEFAULT_ROUND_DIFFICULTY;
+  const generatedWord = await fetchAiGeneratedWord({ ...input, difficulty });
   const round = buildRound({
     players: input.players,
     categoryIds: input.categoryIds,
     languageId: input.languageId,
     languageName: input.languageName,
+    difficulty,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
   });
@@ -206,10 +213,12 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
 }
 
 export async function createRound(input: RoundGeneratorInput): Promise<Round> {
+  const difficulty = input.difficulty ?? DEFAULT_ROUND_DIFFICULTY;
   const wordPlan = resolveRoundWordPlan({
     categoryIds: input.categoryIds,
     languageId: input.languageId,
     languageName: input.languageName,
+    difficulty,
     recentWords: recentRoundWords,
     recentEntryIds: recentRoundEntryIds,
     rng: input.rng,
@@ -220,6 +229,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
       ? await fetchAiGeneratedWord({
           ...input,
           categoryIds: [wordPlan.source.categoryId],
+          difficulty,
         })
       : wordPlan.mode === 'local-static'
         ? {
@@ -237,6 +247,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     categoryIds: [wordPlan.source.categoryId],
     languageId: input.languageId,
     languageName: input.languageName,
+    difficulty,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
     rng: input.rng,

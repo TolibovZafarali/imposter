@@ -25,7 +25,7 @@ imposter/                  ← git repo root (this file lives here)
 - Minimal, smooth, modern, dark-first mobile UI.
 - Pass-and-play: one phone, multiple players, no accounts.
 - Multi-language from day one: UI strings and translated words must support any language.
-- Stable categories use a curated English word bank; AI translates those words for non-English languages.
+- Stable category word data is currently empty and should be rebuilt from a clean source before static rounds are used.
 - Movies and celebrities remain AI-generated server-side so they match the selected language and culture.
 
 ---
@@ -122,7 +122,7 @@ hooks/         ← derived UI state, device utilities
 | 2 | App shell and navigation | Not started |
 | 3 | Reusable UI components | Not started |
 | 4 | Local game state and types | Not started |
-| 5 | Playable game loop with curated and AI-assisted rounds | Not started |
+| 5 | Playable game loop with static and AI-assisted rounds | Not started |
 | 6 | Voting and results logic | Not started |
 | 7 | AI round service integration | Not started |
 | 8 | Real backend AI generation (Vercel Function) | Not started |
@@ -161,13 +161,13 @@ Home Screen
 ## 8. AI Generation Rules
 
 - **AI calls happen server-side only.** The Expo app never calls an AI API directly.
-- Stable English categories are selected from `imposter-game/data/wordBank.ts`.
-- For non-English stable categories, the backend translates the selected English word and one-word clue.
+- Stable English categories are selected from `imposter-game/data/wordBank.ts` once static word data exists.
+- For non-English stable categories, the backend translates the selected English word and one-word clue once static word data exists.
 - For movies and celebrities, the backend generates the word and clue directly in the selected language.
 - The backend returns a validated object: `{ word: string, clue: string }`.
 - Validate all AI output against a strict Zod schema before returning it to the client.
 - If the AI response is invalid or the request fails, return an error and let the UI ask the user to retry.
-- Do not add mock round generators or hardcoded fallback rounds outside the curated word bank.
+- Do not add mock round generators or hardcoded fallback rounds.
 - The frontend service layer (`services/roundGenerator.ts`) chooses local static, translated static, or AI generation.
 - Never log or expose the raw AI prompt or response in the mobile app.
 
@@ -183,7 +183,7 @@ Home Screen
 - **Do not add light-mode-specific styles** in early phases. Keep the palette dark-first.
 - **Do not add loading spinners or skeletons** until async data actually exists.
 - **Keep TypeScript strict.** Do not use `any`, `as unknown`, or disable strict checks.
-- **Use the curated word bank for stable categories.** Do not reintroduce mock or fallback round data.
+- **Keep stable category data explicit.** Do not reintroduce mock or fallback round data.
 
 ---
 

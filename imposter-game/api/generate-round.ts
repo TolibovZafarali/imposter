@@ -6,12 +6,14 @@ const DEFAULT_MODEL = 'gpt-5.4-mini';
 const CLIENT_RECENT_WORD_LIMIT = 40;
 const SERVER_RECENT_WORD_LIMIT = 80;
 const GENERATION_ATTEMPTS = 8;
+const difficultySchema = z.enum(['mixed', 'easy', 'medium', 'hard']).default('mixed');
 
 const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
   categoryIds: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
   languageId: z.string().trim().min(1).max(80),
   languageName: z.string().trim().min(1).max(80),
+  difficulty: difficultySchema,
   playerCount: z.number().int().min(3).max(10),
   recentWords: z.array(z.string().trim().min(1).max(42)).max(CLIENT_RECENT_WORD_LIMIT).default([]),
 });
@@ -280,7 +282,7 @@ const isUzbekLanguageRequest = ({ languageId, languageName }: Pick<TranslationWo
   languageId === 'uzbek' || languageName.toLocaleLowerCase().includes('uzbek');
 
 const buildPrompt = (
-  { categoryIds, languageName, playerCount }: RoundWordRequest,
+  { categoryIds, languageName, difficulty, playerCount }: RoundWordRequest,
   varietyKey: string,
   blockedRecentWords: string[]
 ) => {
@@ -292,14 +294,27 @@ const buildPrompt = (
   return [
     `Language: ${languageName}`,
     `Categories: ${categories}`,
+    `Difficulty: ${difficulty}`,
     `Player count: ${playerCount}`,
     `Variety key: ${varietyKey}`,
     `Recent secret words to avoid: ${recentWordList}`,
     '',
     'Generate one secret word and one imposter clue for this round.',
+    difficulty === 'easy'
+      ? 'Use a mainstream, familiar answer most casual players would recognize quickly.'
+      : null,
+    difficulty === 'medium'
+      ? 'Use a broadly recognizable answer that is less obvious than the easiest examples.'
+      : null,
+    difficulty === 'hard'
+      ? 'Use a more niche but still fair and discussable answer, never an obscure private reference.'
+      : null,
+    difficulty === 'mixed'
+      ? 'Choose any fair difficulty, leaning toward broadly playable answers.'
+      : null,
     'Treat the variety key as a random seed; do not output it.',
     'Never choose any word from the recent secret words list. Choose a different valid word each request.',
-    'Do not reuse example words from this prompt unless there is no reasonable alternative.',
+    'Do not copy wording from these instructions as the answer.',
     'Both fields must be in the requested language, using the natural script for that language.',
     'The imposter clue must be exactly one word. No spaces, hyphens, slashes, punctuation, or short phrases.',
     'The clue must be far from the answer: use a distant vibe, mood, situation, or abstract context.',
@@ -310,15 +325,13 @@ const buildPrompt = (
       ? 'For Celebrities, the secret word must be a complete public name with at least two words: first and last name, or a complete multi-word stage/public name.'
       : null,
     hasCelebrityCategory
-      ? 'For Celebrities, never return a first name, nickname, or partial name by itself, such as Dilbar, Sherzod, Messi, Beyonce, or Ronaldo.'
+      ? 'For Celebrities, never return a first name, nickname, or partial name by itself.'
       : null,
     hasCelebrityCategory && isUzbekLanguage
-      ? 'For Uzbek Celebrities, do not output ordinary Uzbek first names by themselves. Use full recognizable public names such as Yulduz Usmonova, Ozodbek Nazarbekov, Sevara Nazarkhan, Oksana Chusovitina, or another similarly recognizable full name.'
+      ? 'For Uzbek Celebrities, do not output ordinary Uzbek first names by themselves. Use complete recognizable public names.'
       : null,
-    'Do not use the secret word category or class. For Elephant, never use Animal, Mammal, Creature, Large, Land, Safari, Zoo, or Jungle.',
+    'Do not use the secret word category, class, synonym, usual location, habitat, obvious trait, or direct association as the clue.',
     'Do not use synonyms, translations, rhymes, famous associations, ingredients, materials, colors, shapes, sizes, parts, actions, usual locations, habitats, or any text contained in the answer.',
-    'Bad clues: Elephant -> Large land animal, Elephant -> Animal, Panda -> Black-and-white, Panda -> Bamboo, Pizza -> Food, Doctor -> Hospital, Lionel Messi -> Football.',
-    'Good clues: Elephant -> Nature, Panda -> Nature, Pizza -> Party, Doctor -> Routine, Umbrella -> Prepared, Lionel Messi -> Legend.',
     'Return short answers only: one secret word or short phrase, and exactly one distant clue word.',
   ]
     .filter((line): line is string => line !== null)
