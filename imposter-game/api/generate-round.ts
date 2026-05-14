@@ -6,14 +6,12 @@ const DEFAULT_MODEL = 'gpt-5.4-mini';
 const CLIENT_RECENT_WORD_LIMIT = 40;
 const SERVER_RECENT_WORD_LIMIT = 80;
 const GENERATION_ATTEMPTS = 8;
-const difficultySchema = z.enum(['mixed', 'easy', 'medium', 'hard']).default('mixed');
 
 const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
   categoryIds: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
   languageId: z.string().trim().min(1).max(80),
   languageName: z.string().trim().min(1).max(80),
-  difficulty: difficultySchema,
   playerCount: z.number().int().min(3).max(10),
   recentWords: z.array(z.string().trim().min(1).max(42)).max(CLIENT_RECENT_WORD_LIMIT).default([]),
 });
@@ -282,7 +280,7 @@ const isUzbekLanguageRequest = ({ languageId, languageName }: Pick<TranslationWo
   languageId === 'uzbek' || languageName.toLocaleLowerCase().includes('uzbek');
 
 const buildPrompt = (
-  { categoryIds, languageName, difficulty, playerCount }: RoundWordRequest,
+  { categoryIds, languageName, playerCount }: RoundWordRequest,
   varietyKey: string,
   blockedRecentWords: string[]
 ) => {
@@ -294,24 +292,12 @@ const buildPrompt = (
   return [
     `Language: ${languageName}`,
     `Categories: ${categories}`,
-    `Difficulty: ${difficulty}`,
     `Player count: ${playerCount}`,
     `Variety key: ${varietyKey}`,
     `Recent secret words to avoid: ${recentWordList}`,
     '',
     'Generate one secret word and one imposter clue for this round.',
-    difficulty === 'easy'
-      ? 'Use a mainstream, familiar answer most casual players would recognize quickly.'
-      : null,
-    difficulty === 'medium'
-      ? 'Use a broadly recognizable answer that is less obvious than the easiest examples.'
-      : null,
-    difficulty === 'hard'
-      ? 'Use a more niche but still fair and discussable answer, never an obscure private reference.'
-      : null,
-    difficulty === 'mixed'
-      ? 'Choose any fair difficulty, leaning toward broadly playable answers.'
-      : null,
+    'Choose a fair, broadly playable answer that casual players can discuss.',
     'Treat the variety key as a random seed; do not output it.',
     'Never choose any word from the recent secret words list. Choose a different valid word each request.',
     'Do not copy wording from these instructions as the answer.',

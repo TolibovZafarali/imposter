@@ -59,7 +59,6 @@ Core elements:
 - Player count stepper.
 - Language selector.
 - Category selector.
-- Difficulty segmented control.
 - Imposter clue toggle.
 - Primary `Create Round` action.
 

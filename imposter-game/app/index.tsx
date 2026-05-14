@@ -11,7 +11,6 @@ import { Text } from '@/components/ui/text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
-import { DEFAULT_ROUND_DIFFICULTY, type RoundDifficulty } from '@/data/wordBank';
 import type { Player } from '@/game/types';
 import { createRound } from '@/services/roundGenerator';
 
@@ -21,11 +20,6 @@ type Category = {
   id: string;
   label: string;
   icon: MaterialIconName;
-};
-
-type DifficultyOption = {
-  id: RoundDifficulty;
-  label: string;
 };
 
 const INITIAL_PLAYERS: Player[] = [
@@ -56,13 +50,6 @@ const CATEGORY_ROWS = [
 
 const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
 
-const DIFFICULTY_OPTIONS: DifficultyOption[] = [
-  { id: 'mixed', label: 'Mixed' },
-  { id: 'easy', label: 'Easy' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'hard', label: 'Hard' },
-];
-
 const ADD_PLAYER_ICON: MaterialIconName = 'person-add-alt-1';
 const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
 const EDIT_ICON: MaterialIconName = 'edit';
@@ -83,9 +70,6 @@ export default function HomeScreen() {
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<RoundDifficulty>(
-    DEFAULT_ROUND_DIFFICULTY
-  );
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
@@ -193,7 +177,6 @@ export default function HomeScreen() {
         categoryIds: selectedCategoryIds,
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
-        difficulty: selectedDifficulty,
       });
 
       setPlayers(roundPlayers);
@@ -376,46 +359,6 @@ export default function HomeScreen() {
                 })}
               </View>
             ))}
-          </View>
-        </Card>
-
-        <Card variant="flat" style={styles.setupBox}>
-          <View style={styles.sectionHeader}>
-            <Text variant="heading" color="primary">
-              Difficulty
-            </Text>
-          </View>
-
-          <View style={styles.difficultyOptions}>
-            {DIFFICULTY_OPTIONS.map((difficulty) => {
-              const isSelected = selectedDifficulty === difficulty.id;
-
-              return (
-                <Pressable
-                  key={difficulty.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${difficulty.label} difficulty`}
-                  accessibilityState={{ selected: isSelected }}
-                  onPress={() => setSelectedDifficulty(difficulty.id)}
-                  style={({ pressed }) => [
-                    styles.difficultyOption,
-                    isSelected && styles.difficultyOptionSelected,
-                    pressed && styles.categoryTilePressed,
-                  ]}>
-                  <Text
-                    variant="bodyEmphasis"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.78}
-                    numberOfLines={1}
-                    style={[
-                      styles.difficultyLabel,
-                      isSelected && styles.difficultyLabelSelected,
-                    ]}>
-                    {difficulty.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
           </View>
         </Card>
 
@@ -650,32 +593,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   categoryLabelSelected: {
-    color: Colors.textOnPrimary,
-  },
-  difficultyOptions: {
-    minHeight: 44,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    gap: Spacing.sm,
-  },
-  difficultyOption: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.05)',
-    paddingHorizontal: Spacing.xs,
-  },
-  difficultyOptionSelected: {
-    backgroundColor: Colors.primary,
-  },
-  difficultyLabel: {
-    minWidth: 0,
-    includeFontPadding: false,
-  },
-  difficultyLabelSelected: {
     color: Colors.textOnPrimary,
   },
   languageSummaryBox: {

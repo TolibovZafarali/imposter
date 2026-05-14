@@ -81,7 +81,7 @@ imposter/                  ← git repo root (this file lives here)
   app/
   ├── _layout.tsx          ← root layout, GameProvider wraps everything
   ├── index.tsx            ← home / lobby
-  ├── setup.tsx            ← player count, language, category, difficulty
+  ├── setup.tsx            ← player count, language, category
   ├── reveal/
   │   └── [playerIndex].tsx ← word reveal per player (pass phone)
   ├── hints.tsx            ← hint-giving phase
@@ -135,7 +135,7 @@ hooks/         ← derived UI state, device utilities
 
 ```
 Home Screen
-  └─► Setup Screen (players, language, category, difficulty, rounds)
+  └─► Setup Screen (players, language, category, rounds)
         └─► Reveal Screen × N players (each player taps to see their word / "You are the Imposter")
               └─► Hints Screen (each player gives one hint aloud; app tracks turn order)
                     └─► Vote Screen (each player secretly votes for who they think the Imposter is)

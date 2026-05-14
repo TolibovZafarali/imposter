@@ -9,15 +9,12 @@ export type StaticCategoryId =
   | 'fantasy';
 
 export type DynamicCategoryId = 'movies' | 'celebrities';
-export type WordDifficulty = 'easy' | 'medium' | 'hard';
-export type RoundDifficulty = WordDifficulty | 'mixed';
 
 export type EnglishWordEntry = {
   id: string;
   word: string;
   hint: string;
   categoryId: StaticCategoryId;
-  difficulty: WordDifficulty;
   sense?: string;
 };
 
@@ -62,19 +59,6 @@ export const DYNAMIC_CATEGORY_IDS = [
   'celebrities',
 ] as const satisfies readonly DynamicCategoryId[];
 
-export const WORD_DIFFICULTIES = [
-  'easy',
-  'medium',
-  'hard',
-] as const satisfies readonly WordDifficulty[];
-
-export const ROUND_DIFFICULTIES = [
-  'mixed',
-  ...WORD_DIFFICULTIES,
-] as const satisfies readonly RoundDifficulty[];
-
-export const DEFAULT_ROUND_DIFFICULTY = 'mixed' as const satisfies RoundDifficulty;
-
 export const CATEGORY_LABELS = {
   food: 'Food',
   animals: 'Animals',
@@ -114,12 +98,6 @@ export const isStaticCategoryId = (categoryId: string): categoryId is StaticCate
 export const isDynamicCategoryId = (categoryId: string): categoryId is DynamicCategoryId =>
   (DYNAMIC_CATEGORY_IDS as readonly string[]).includes(categoryId);
 
-export const isWordDifficulty = (difficulty: string): difficulty is WordDifficulty =>
-  (WORD_DIFFICULTIES as readonly string[]).includes(difficulty);
-
-export const isRoundDifficulty = (difficulty: string): difficulty is RoundDifficulty =>
-  (ROUND_DIFFICULTIES as readonly string[]).includes(difficulty);
-
 const getRandomIndex = (itemCount: number, rng: () => number) =>
   Math.min(Math.floor(rng() * itemCount), itemCount - 1);
 
@@ -138,27 +116,18 @@ const isRecentlyUsedEntry = (
   return recentWordKeys.has(entryWordKey);
 };
 
-const getEntriesForDifficulty = (
-  entries: readonly EnglishWordEntry[],
-  difficulty: RoundDifficulty
-) => (difficulty === 'mixed' ? entries : entries.filter((entry) => entry.difficulty === difficulty));
-
 export function selectStaticWordEntry({
   categoryId,
-  difficulty = DEFAULT_ROUND_DIFFICULTY,
   recentWords = [],
   recentEntryIds = [],
   rng = Math.random,
 }: {
   categoryId: StaticCategoryId;
-  difficulty?: RoundDifficulty;
   recentWords?: readonly string[];
   recentEntryIds?: readonly string[];
   rng?: () => number;
 }): EnglishWordEntry {
-  const entries = getEntriesForDifficulty(ENGLISH_WORD_BANK_BY_CATEGORY[categoryId], difficulty);
-  const fallbackEntries = ENGLISH_WORD_BANK_BY_CATEGORY[categoryId];
-  const selectionEntries = entries.length ? entries : fallbackEntries;
+  const selectionEntries = ENGLISH_WORD_BANK_BY_CATEGORY[categoryId];
   const freshEntries = selectionEntries.filter(
     (entry) => !isRecentlyUsedEntry(entry, recentWords, recentEntryIds)
   );
@@ -181,13 +150,11 @@ export function chooseRoundCategory(categoryIds: readonly string[], rng = Math.r
 
 export function resolveRoundWordSource({
   categoryIds,
-  difficulty = DEFAULT_ROUND_DIFFICULTY,
   recentWords = [],
   recentEntryIds = [],
   rng = Math.random,
 }: {
   categoryIds: readonly string[];
-  difficulty?: RoundDifficulty;
   recentWords?: readonly string[];
   recentEntryIds?: readonly string[];
   rng?: () => number;
@@ -200,7 +167,6 @@ export function resolveRoundWordSource({
       categoryId: selectedCategoryId,
       entry: selectStaticWordEntry({
         categoryId: selectedCategoryId,
-        difficulty,
         recentWords,
         recentEntryIds,
         rng,
@@ -230,7 +196,6 @@ export function resolveRoundWordPlan({
   categoryIds,
   languageId,
   languageName,
-  difficulty = DEFAULT_ROUND_DIFFICULTY,
   recentWords = [],
   recentEntryIds = [],
   rng = Math.random,
@@ -238,14 +203,12 @@ export function resolveRoundWordPlan({
   categoryIds: readonly string[];
   languageId: string;
   languageName: string;
-  difficulty?: RoundDifficulty;
   recentWords?: readonly string[];
   recentEntryIds?: readonly string[];
   rng?: () => number;
 }): RoundWordPlan {
   const source = resolveRoundWordSource({
     categoryIds,
-    difficulty,
     recentWords,
     recentEntryIds,
     rng,

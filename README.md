@@ -101,8 +101,6 @@ The static word bank is currently empty. Stable category data should be rebuilt 
 
 Movies and celebrities should still call an AI API [Application Programming Interface] once per round so the result can match the selected language and culture.
 
-The host can choose Mixed, Easy, Medium, or Hard before starting a round. Mixed uses the full static pool; the other choices filter static categories by difficulty and guide AI generation for Movies and Celebrities.
-
 Users should never type raw prompts. Users only choose simple options like language, category, player count, and number of imposters.
 
 The hint should help the imposter say something generally related during the first discussion, but it should not make the word obvious.
@@ -292,7 +290,6 @@ The host chooses:
 - Number of players
 - Number of imposters
 - Discussion timer
-- Difficulty
 
 ### Player Setup Screen
 
