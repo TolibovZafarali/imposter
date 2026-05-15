@@ -1,5 +1,6 @@
 .DS_Store
 .playwright-mcp/
+dist/
 supabase/.branches/
 supabase/.temp/
 supabase/functions/.env

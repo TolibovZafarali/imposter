@@ -2,6 +2,23 @@
 
 A minimal, multilingual party word game where players try to find the hidden imposter.
 
+## Legal and Support Web App
+
+This repo includes a dependency-free static web app for public policy and support pages:
+
+- `index.html`
+- `privacy.html`
+- `terms.html`
+- `support.html`
+
+Vercel deployment is configured at the repo root with `vercel.json`. The build command is:
+
+```bash
+node scripts/build-site.mjs
+```
+
+The script copies only the legal/support pages and shared assets into `dist/`, which is the Vercel output directory.
+
 The goal is simple:
 
 ```txt
