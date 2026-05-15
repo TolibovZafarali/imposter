@@ -179,28 +179,56 @@ export const Radii = {
 // Shadows — soft, playful, never harsh
 // ---------------------------------------------------------------------------
 
+const shadowColorRgb = '17, 24, 39';
+
+const createShadow = ({
+  width,
+  height,
+  opacity,
+  radius,
+  elevation,
+}: {
+  width: number;
+  height: number;
+  opacity: number;
+  radius: number;
+  elevation: number;
+}) =>
+  Platform.select({
+    web: {
+      boxShadow: `${width}px ${height}px ${radius}px rgba(${shadowColorRgb}, ${opacity})`,
+    },
+    default: {
+      shadowColor: Colors.shadow,
+      shadowOffset: { width, height },
+      shadowOpacity: opacity,
+      shadowRadius: radius,
+      elevation,
+    },
+  });
+
 export const Shadows = StyleSheet.create({
-  sm: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
-  },
+  sm: createShadow({ width: 0, height: 2, opacity: 0.06, radius: 6, elevation: 2 }),
+  md: createShadow({ width: 0, height: 6, opacity: 0.08, radius: 14, elevation: 4 }),
+  lg: createShadow({ width: 0, height: 12, opacity: 0.12, radius: 24, elevation: 8 }),
+  float: Platform.select({
+    web: {
+      boxShadow: `0px 0px 22px rgba(${shadowColorRgb}, 0.12)`,
+    },
+    ios: {
+      shadowColor: Colors.shadow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.18,
+      shadowRadius: 24,
+    },
+    default: {
+      shadowColor: Colors.shadow,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.14,
+      shadowRadius: 22,
+      elevation: 7,
+    },
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -220,8 +248,7 @@ export const Cards = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: Radii.xl,
     padding: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    ...Shadows.float,
   },
   elevated: {
     backgroundColor: Colors.card,

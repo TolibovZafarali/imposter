@@ -416,7 +416,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <Screen style={styles.screen}>
+    <Screen padded={false} style={styles.screen}>
       <ScrollView
         alwaysBounceVertical={false}
         bounces={isSetupScrollEnabled}
@@ -776,6 +776,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: SETUP_SCROLL_BOTTOM_PADDING,
     gap: Spacing.lg,
