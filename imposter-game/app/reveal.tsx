@@ -225,17 +225,19 @@ export default function RevealScreen() {
                     IMPOSTER
                   </Text>
                   <Text variant="bodyEmphasis" align="center" color="muted">
-                    Hint
+                    {currentCard.hint ? 'Hint' : 'No hint this round'}
                   </Text>
-                  <Text
-                    variant="title"
-                    align="center"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.76}
-                    numberOfLines={1}
-                    style={styles.hintWord}>
-                    {currentCard.hint}
-                  </Text>
+                  {currentCard.hint ? (
+                    <Text
+                      variant="title"
+                      align="center"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.76}
+                      numberOfLines={1}
+                      style={styles.hintWord}>
+                      {currentCard.hint}
+                    </Text>
+                  ) : null}
                 </>
               ) : null}
 

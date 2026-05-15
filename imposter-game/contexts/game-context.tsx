@@ -3,6 +3,7 @@ import { createContext, useContext, useMemo, useReducer, type ReactNode } from '
 import type { WordDifficulty } from '@/data/wordBank';
 import {
   clampImposterCount,
+  DEFAULT_IMPOSTER_HINT_ENABLED,
   DEFAULT_IMPOSTER_COUNT,
   DEFAULT_ROUND_TIMER_MINUTES,
 } from '@/game/setupRules';
@@ -14,6 +15,7 @@ type GameSetupPreferences = {
   isRandomCategoryMode: boolean;
   selectedDifficulty: WordDifficulty;
   imposterCount: ImposterCount;
+  isImposterHintEnabled: boolean;
   roundTimerMinutes: RoundTimerSetting;
 };
 
@@ -57,6 +59,7 @@ const initialState: GameState = {
     isRandomCategoryMode: true,
     selectedDifficulty: 'easy',
     imposterCount: DEFAULT_IMPOSTER_COUNT,
+    isImposterHintEnabled: DEFAULT_IMPOSTER_HINT_ENABLED,
     roundTimerMinutes: DEFAULT_ROUND_TIMER_MINUTES,
   },
 };

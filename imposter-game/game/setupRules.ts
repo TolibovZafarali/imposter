@@ -3,6 +3,7 @@ import type { ImposterCount, RoundTimerMinutes, RoundTimerSetting } from './type
 export const DEFAULT_IMPOSTER_COUNT: ImposterCount = 1;
 export const MAX_IMPOSTER_COUNT: ImposterCount = 2;
 export const MIN_PLAYERS_FOR_TWO_IMPOSTERS = 5;
+export const DEFAULT_IMPOSTER_HINT_ENABLED = true;
 export const DEFAULT_ROUND_TIMER_MINUTES: RoundTimerSetting = 3;
 export const ROUND_TIMER_MINUTE_OPTIONS = [1, 2, 3, 5, 10] as const satisfies readonly RoundTimerMinutes[];
 

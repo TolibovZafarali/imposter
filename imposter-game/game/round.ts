@@ -1,4 +1,8 @@
-import { clampImposterCount, DEFAULT_ROUND_TIMER_MINUTES } from '@/game/setupRules';
+import {
+  clampImposterCount,
+  DEFAULT_IMPOSTER_HINT_ENABLED,
+  DEFAULT_ROUND_TIMER_MINUTES,
+} from '@/game/setupRules';
 import type { ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
 import type { WordDifficulty } from '@/data/wordBank';
 
@@ -11,6 +15,7 @@ type BuildRoundInput = {
   secretWord: string;
   imposterHint: string;
   imposterCount?: ImposterCount;
+  isImposterHintEnabled?: boolean;
   roundTimerMinutes?: RoundTimerSetting;
   rng?: () => number;
 };
@@ -41,6 +46,7 @@ export function buildRound({
   secretWord,
   imposterHint,
   imposterCount,
+  isImposterHintEnabled = DEFAULT_IMPOSTER_HINT_ENABLED,
   roundTimerMinutes = DEFAULT_ROUND_TIMER_MINUTES,
   rng = Math.random,
 }: BuildRoundInput): Round {
@@ -62,7 +68,7 @@ export function buildRound({
         playerId: player.id,
         role: isImposter ? 'imposter' : 'regular',
         word: isImposter ? null : secretWord,
-        hint: isImposter ? imposterHint : null,
+        hint: isImposter && isImposterHintEnabled ? imposterHint : null,
       };
     }),
     secretWord,
@@ -76,6 +82,7 @@ export function buildRound({
       languageId,
       languageName,
       imposterCount: selectedImposterCount,
+      isImposterHintEnabled,
       roundTimerMinutes,
     },
   };

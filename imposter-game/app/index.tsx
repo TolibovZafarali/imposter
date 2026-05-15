@@ -249,6 +249,7 @@ export default function HomeScreen() {
     isRandomCategoryMode,
     selectedDifficulty,
     imposterCount,
+    isImposterHintEnabled,
     roundTimerMinutes,
   } = setupPreferences;
 
@@ -455,6 +456,7 @@ export default function HomeScreen() {
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
         imposterCount,
+        isImposterHintEnabled,
         roundTimerMinutes,
       });
 

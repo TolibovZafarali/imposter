@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   clampImposterCount,
+  DEFAULT_IMPOSTER_HINT_ENABLED,
   DEFAULT_ROUND_TIMER_MINUTES,
   formatRoundTimerSetting,
   getMaxImposterCount,
@@ -27,4 +28,8 @@ test('round timer options include no timer and minute choices', () => {
   assert.equal(formatRoundTimerSetting(null), 'No timer');
   assert.equal(formatRoundTimerSetting(1), '1 min');
   assert.equal(formatRoundTimerSetting(5), '5 mins');
+});
+
+test('imposter hints are enabled by default', () => {
+  assert.equal(DEFAULT_IMPOSTER_HINT_ENABLED, true);
 });

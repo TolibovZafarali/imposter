@@ -26,6 +26,7 @@ export type RoundGeneratorInput = {
   languageId: string;
   languageName: string;
   imposterCount?: ImposterCount;
+  isImposterHintEnabled?: boolean;
   roundTimerMinutes?: RoundTimerSetting;
   rng?: () => number;
 };
@@ -272,6 +273,7 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
     imposterCount: input.imposterCount,
+    isImposterHintEnabled: input.isImposterHintEnabled,
     roundTimerMinutes: input.roundTimerMinutes,
   });
 
@@ -326,6 +328,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
     imposterCount: input.imposterCount,
+    isImposterHintEnabled: input.isImposterHintEnabled,
     roundTimerMinutes: input.roundTimerMinutes,
     rng: input.rng,
   });

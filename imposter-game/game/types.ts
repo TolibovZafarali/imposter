@@ -25,6 +25,7 @@ export type RoundConfig = {
   languageId: string;
   languageName: string;
   imposterCount: ImposterCount;
+  isImposterHintEnabled: boolean;
   roundTimerMinutes: RoundTimerSetting;
 };
 

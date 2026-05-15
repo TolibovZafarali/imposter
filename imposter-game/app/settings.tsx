@@ -31,6 +31,7 @@ const BACK_ICON: MaterialIconName = 'arrow-back-ios-new';
 const LANGUAGE_ICON: MaterialIconName = 'language';
 const CHEVRON_ICON: MaterialIconName = 'chevron-right';
 const IMPOSTERS_ICON: MaterialIconName = 'groups';
+const HINT_ICON: MaterialIconName = 'tips-and-updates';
 const TIMER_ICON: MaterialIconName = 'timer';
 const CHECK_ICON: MaterialIconName = 'check';
 const DROPDOWN_OPEN_ICON: MaterialIconName = 'keyboard-arrow-up';
@@ -39,6 +40,11 @@ const IMPOSTER_COUNT_OPTIONS: ImposterCount[] = [1, 2];
 const IMPOSTER_COUNT_OPTION_WIDTH = 38;
 const IMPOSTER_COUNT_SWITCH_GAP = Spacing.xs;
 const IMPOSTER_COUNT_SWITCH_PADDING = Spacing.xs;
+const HINT_TOGGLE_WIDTH = 54;
+const HINT_TOGGLE_HEIGHT = 32;
+const HINT_TOGGLE_PADDING = 3;
+const HINT_TOGGLE_THUMB_SIZE = HINT_TOGGLE_HEIGHT - HINT_TOGGLE_PADDING * 2;
+const HINT_TOGGLE_TRAVEL = HINT_TOGGLE_WIDTH - HINT_TOGGLE_THUMB_SIZE - HINT_TOGGLE_PADDING * 2;
 const TIMER_DROPDOWN_OPTIONS: RoundTimerSetting[] = [null, ...ROUND_TIMER_MINUTE_OPTIONS];
 
 export default function SettingsScreen() {
@@ -47,7 +53,10 @@ export default function SettingsScreen() {
   const { setupPreferences, updateSetupPreferences } = useGame();
   const [isTimerDropdownOpen, setIsTimerDropdownOpen] = useState(false);
   const imposterCountSlideValue = useRef(new RNAnimated.Value(0)).current;
-  const { players, imposterCount, roundTimerMinutes } = setupPreferences;
+  const { players, imposterCount, isImposterHintEnabled, roundTimerMinutes } = setupPreferences;
+  const hintToggleSlideValue = useRef(
+    new RNAnimated.Value(isImposterHintEnabled ? HINT_TOGGLE_TRAVEL : 0)
+  ).current;
   const maxImposterCount = getMaxImposterCount(players.length);
   const isTwoImpostersAvailable = maxImposterCount === 2;
 
@@ -67,8 +76,22 @@ export default function SettingsScreen() {
     }).start();
   }, [imposterCount, imposterCountSlideValue]);
 
+  useEffect(() => {
+    RNAnimated.spring(hintToggleSlideValue, {
+      toValue: isImposterHintEnabled ? HINT_TOGGLE_TRAVEL : 0,
+      damping: 18,
+      mass: 0.8,
+      stiffness: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [hintToggleSlideValue, isImposterHintEnabled]);
+
   const updateImposterCount = (nextImposterCount: ImposterCount) => {
     updateSetupPreferences({ imposterCount: nextImposterCount });
+  };
+
+  const toggleImposterHint = () => {
+    updateSetupPreferences({ isImposterHintEnabled: !isImposterHintEnabled });
   };
 
   const updateRoundTimer = (nextRoundTimerMinutes: RoundTimerSetting) => {
@@ -185,6 +208,44 @@ export default function SettingsScreen() {
             })}
           </View>
         </View>
+
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel={`Imposter hint, currently ${isImposterHintEnabled ? 'on' : 'off'}`}
+          accessibilityState={{ checked: isImposterHintEnabled }}
+          onPress={toggleImposterHint}
+          style={({ pressed }) => [styles.settingRow, pressed && styles.settingRowPressed]}>
+          <View style={styles.settingIconBadge}>
+            <MaterialIcons name={HINT_ICON} size={22} color={Colors.primary} />
+          </View>
+          <View style={styles.settingTextGroup}>
+            <Text variant="bodyEmphasis" numberOfLines={1} style={styles.settingLabel}>
+              Imposter hint
+            </Text>
+            <Text
+              variant="bodySmall"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.82}
+              style={styles.settingValue}>
+              {isImposterHintEnabled ? 'Shown to imposters' : 'Hidden from imposters'}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.hintToggle,
+              isImposterHintEnabled && styles.hintToggleEnabled,
+            ]}>
+            <RNAnimated.View
+              style={[
+                styles.hintToggleThumb,
+                {
+                  transform: [{ translateX: hintToggleSlideValue }],
+                },
+              ]}
+            />
+          </View>
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
@@ -393,6 +454,27 @@ const styles = StyleSheet.create({
   },
   countOptionTextSelected: {
     color: Colors.textOnPrimary,
+  },
+  hintToggle: {
+    width: HINT_TOGGLE_WIDTH,
+    height: HINT_TOGGLE_HEIGHT,
+    flexShrink: 0,
+    justifyContent: 'center',
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    padding: HINT_TOGGLE_PADDING,
+  },
+  hintToggleEnabled: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  hintToggleThumb: {
+    width: HINT_TOGGLE_THUMB_SIZE,
+    height: HINT_TOGGLE_THUMB_SIZE,
+    borderRadius: Radii.pill,
+    backgroundColor: Colors.textOnPrimary,
   },
   timerDropdown: {
     width: '100%',
