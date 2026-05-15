@@ -60,14 +60,36 @@ const EDIT_ICON: MaterialIconName = 'edit';
 const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
 const LANGUAGE_ICON: MaterialIconName = 'language';
+const RANDOM_CATEGORY_ICON: MaterialIconName = 'shuffle';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
+const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
+
+const pickRandomCategoryIds = (rng = Math.random) => {
+  const availableCategoryIds = CATEGORIES.map((category) => category.id);
+  const selectedCategoryIds: string[] = [];
+
+  while (
+    selectedCategoryIds.length < RANDOM_CATEGORY_COUNT &&
+    availableCategoryIds.length > 0
+  ) {
+    const selectedIndex = Math.min(
+      Math.floor(rng() * availableCategoryIds.length),
+      availableCategoryIds.length - 1
+    );
+    const [selectedCategoryId] = availableCategoryIds.splice(selectedIndex, 1);
+
+    selectedCategoryIds.push(selectedCategoryId);
+  }
+
+  return selectedCategoryIds;
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -76,6 +98,7 @@ export default function HomeScreen() {
   const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [isRandomCategoryMode, setIsRandomCategoryMode] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<WordDifficulty>('easy');
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
@@ -83,7 +106,8 @@ export default function HomeScreen() {
   const isStartingGameRef = useRef(false);
   const difficultySlideValue = useRef(new Animated.Value(0)).current;
 
-  const canStartGame = selectedCategoryIds.length > 0 && !isStartingGame;
+  const canStartGame =
+    (isRandomCategoryMode || selectedCategoryIds.length > 0) && !isStartingGame;
   const difficultyOptionWidth = Math.max(
     0,
     (difficultyToggleWidth -
@@ -171,17 +195,27 @@ export default function HomeScreen() {
   };
 
   const toggleCategory = (categoryId: string) => {
-    setSelectedCategoryIds((currentCategoryIds) => {
-      if (currentCategoryIds.includes(categoryId)) {
-        return currentCategoryIds.filter((currentCategoryId) => currentCategoryId !== categoryId);
+    let nextCategoryIds: string[];
+
+    if (selectedCategoryIds.includes(categoryId)) {
+      nextCategoryIds = selectedCategoryIds.filter(
+        (currentCategoryId) => currentCategoryId !== categoryId
+      );
+    } else {
+      if (selectedCategoryIds.length >= MAX_SELECTED_CATEGORIES) {
+        return;
       }
 
-      if (currentCategoryIds.length >= MAX_SELECTED_CATEGORIES) {
-        return currentCategoryIds;
-      }
+      nextCategoryIds = [...selectedCategoryIds, categoryId];
+    }
 
-      return [...currentCategoryIds, categoryId];
-    });
+    setSelectedCategoryIds(nextCategoryIds);
+    setIsRandomCategoryMode(nextCategoryIds.length === 0);
+  };
+
+  const selectRandomCategories = () => {
+    setIsRandomCategoryMode(true);
+    setSelectedCategoryIds([]);
   };
 
   const handleStartGame = async () => {
@@ -201,11 +235,14 @@ export default function HomeScreen() {
         name: limitPlayerName(trimmedName || `Player ${index + 1}`),
       };
     });
+    const roundCategoryIds = isRandomCategoryMode
+      ? pickRandomCategoryIds()
+      : selectedCategoryIds;
 
     try {
       const round = await createRound({
         players: roundPlayers,
-        categoryIds: selectedCategoryIds,
+        categoryIds: roundCategoryIds,
         difficulty: selectedDifficulty,
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
@@ -337,10 +374,42 @@ export default function HomeScreen() {
         </Card>
 
         <Card variant="flat" style={styles.setupBox}>
-          <View style={styles.sectionHeader}>
-            <Text variant="heading" color="primary">
+          <View style={styles.categoriesHeader}>
+            <Text
+              variant="heading"
+              color="primary"
+              numberOfLines={1}
+              style={styles.categoriesTitle}>
               Categories
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Choose three random categories each round"
+              accessibilityState={{ selected: isRandomCategoryMode }}
+              hitSlop={8}
+              onPress={selectRandomCategories}
+              style={({ pressed }) => [
+                styles.randomCategoryButton,
+                isRandomCategoryMode && styles.randomCategoryButtonSelected,
+                pressed && styles.randomCategoryButtonPressed,
+              ]}>
+              <MaterialIcons
+                name={RANDOM_CATEGORY_ICON}
+                size={17}
+                color={isRandomCategoryMode ? Colors.primary : Colors.muted}
+              />
+              <Text
+                variant="bodyEmphasis"
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+                numberOfLines={1}
+                style={[
+                  styles.randomCategoryLabel,
+                  isRandomCategoryMode && styles.randomCategoryLabelSelected,
+                ]}>
+                Random
+              </Text>
+            </Pressable>
           </View>
 
           <View style={styles.categoriesRows}>
@@ -545,6 +614,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
+  categoriesHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  categoriesTitle: {
+    flex: 1,
+    minWidth: 0,
+  },
   playersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -635,6 +715,39 @@ const styles = StyleSheet.create({
   },
   categoriesRows: {
     gap: Spacing.md,
+  },
+  randomCategoryButton: {
+    minHeight: 36,
+    maxWidth: 140,
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs + 2,
+    borderWidth: 1,
+    borderColor: 'rgba(250, 247, 242, 0.28)',
+    borderStyle: 'dashed',
+    borderRadius: Radii.pill,
+    backgroundColor: 'transparent',
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.sm + 2,
+  },
+  randomCategoryButtonSelected: {
+    borderColor: Colors.primary,
+    borderStyle: 'solid',
+    backgroundColor: 'rgba(182, 25, 46, 0.16)',
+  },
+  randomCategoryButtonPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.97 }],
+  },
+  randomCategoryLabel: {
+    minWidth: 0,
+    color: Colors.muted,
+    includeFontPadding: false,
+  },
+  randomCategoryLabelSelected: {
+    color: Colors.text,
   },
   difficultyToggle: {
     minHeight: 46,
