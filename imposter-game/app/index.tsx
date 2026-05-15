@@ -86,6 +86,8 @@ const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
 const PLAYER_LIST_GAP = Spacing.sm;
 const PLAYERS_SECTION_PADDING = Spacing.xl;
+const SETUP_SCROLL_BOTTOM_PADDING = Spacing.xxxl;
+const SETUP_SCROLL_OVERFLOW_TOLERANCE = 2;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 const PLAYER_TILE_ENTER_DURATION = Transitions.slow;
@@ -178,6 +180,8 @@ export default function HomeScreen() {
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [playerNameSelection, setPlayerNameSelection] = useState<PlayerNameSelection | null>(null);
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
+  const [setupViewportHeight, setSetupViewportHeight] = useState(0);
+  const [setupContentHeight, setSetupContentHeight] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
@@ -195,6 +199,10 @@ export default function HomeScreen() {
 
   const canStartGame =
     (isRandomCategoryMode || selectedCategoryIds.length > 0) && !isStartingGame;
+  const isSetupScrollEnabled =
+    setupViewportHeight > 0 &&
+    Math.max(0, setupContentHeight - SETUP_SCROLL_BOTTOM_PADDING) >
+      setupViewportHeight + SETUP_SCROLL_OVERFLOW_TOLERANCE;
   const difficultyOptionWidth = Math.max(
     0,
     (difficultyToggleWidth -
@@ -410,7 +418,13 @@ export default function HomeScreen() {
   return (
     <Screen style={styles.screen}>
       <ScrollView
+        alwaysBounceVertical={false}
+        bounces={isSetupScrollEnabled}
         keyboardShouldPersistTaps="handled"
+        onContentSizeChange={(_, contentHeight) => setSetupContentHeight(contentHeight)}
+        onLayout={(event) => setSetupViewportHeight(event.nativeEvent.layout.height)}
+        overScrollMode={isSetupScrollEnabled ? 'auto' : 'never'}
+        scrollEnabled={isSetupScrollEnabled}
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}>
@@ -665,55 +679,55 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
-        </Card>
 
-        <View style={styles.setupBox}>
-          <View
-            onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
-            style={styles.difficultyToggle}>
-            <RNAnimated.View
-              pointerEvents="none"
-              style={[
-                styles.difficultyIndicator,
-                {
-                  opacity: difficultyOptionWidth > 0 ? 1 : 0,
-                  transform: [{ translateX: difficultySlideValue }],
-                  width: difficultyOptionWidth,
-                },
-              ]}
-            />
-            {DIFFICULTY_OPTIONS.map((difficultyOption) => {
-              const isSelected = selectedDifficulty === difficultyOption.id;
+          <View style={styles.categoriesFooter}>
+            <View
+              onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
+              style={styles.difficultyToggle}>
+              <RNAnimated.View
+                pointerEvents="none"
+                style={[
+                  styles.difficultyIndicator,
+                  {
+                    opacity: difficultyOptionWidth > 0 ? 1 : 0,
+                    transform: [{ translateX: difficultySlideValue }],
+                    width: difficultyOptionWidth,
+                  },
+                ]}
+              />
+              {DIFFICULTY_OPTIONS.map((difficultyOption) => {
+                const isSelected = selectedDifficulty === difficultyOption.id;
 
-              return (
-                <Pressable
-                  key={difficultyOption.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
-                  accessibilityState={{ selected: isSelected }}
-                  onPress={() =>
-                    updateSetupPreferences({ selectedDifficulty: difficultyOption.id })
-                  }
-                  style={({ pressed }) => [
-                    styles.difficultyOption,
-                    pressed && styles.difficultyOptionPressed,
-                  ]}>
-                  <Text
-                    variant="bodyEmphasis"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.84}
-                    numberOfLines={1}
-                    style={[
-                      styles.difficultyOptionText,
-                      isSelected && styles.difficultyOptionTextSelected,
+                return (
+                  <Pressable
+                    key={difficultyOption.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
+                    accessibilityState={{ selected: isSelected }}
+                    onPress={() =>
+                      updateSetupPreferences({ selectedDifficulty: difficultyOption.id })
+                    }
+                    style={({ pressed }) => [
+                      styles.difficultyOption,
+                      pressed && styles.difficultyOptionPressed,
                     ]}>
-                    {difficultyOption.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      variant="bodyEmphasis"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.84}
+                      numberOfLines={1}
+                      style={[
+                        styles.difficultyOptionText,
+                        isSelected && styles.difficultyOptionTextSelected,
+                      ]}>
+                      {difficultyOption.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </Card>
 
         <View style={styles.startActions}>
           {roundGenerationError ? (
@@ -763,8 +777,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
-    gap: Spacing.xl,
+    paddingBottom: SETUP_SCROLL_BOTTOM_PADDING,
+    gap: Spacing.lg,
   },
   topBar: {
     width: '100%',
@@ -924,6 +938,11 @@ const styles = StyleSheet.create({
   },
   categoriesRows: {
     gap: Spacing.md,
+  },
+  categoriesFooter: {
+    width: '100%',
+    alignSelf: 'stretch',
+    justifyContent: 'flex-end',
   },
   randomCategoryButton: {
     minHeight: 36,
