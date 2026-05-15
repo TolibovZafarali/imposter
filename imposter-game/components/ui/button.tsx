@@ -70,7 +70,8 @@ export function Button({
       ]}
       {...rest}>
       {leadingIcon ? <View style={styles.iconSlot}>{leadingIcon}</View> : null}
-      <Text style={[Typography.button, sizeLabelStyles[size], { color: labelColor }]}>
+      <Text
+        style={[Typography.button, styles.label, sizeLabelStyles[size], { color: labelColor }]}>
         {label}
       </Text>
       {trailingIcon ? <View style={styles.iconSlot}>{trailingIcon}</View> : null}
@@ -91,6 +92,11 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.45, shadowOpacity: 0 },
   iconSlot: { alignItems: 'center', justifyContent: 'center' },
+  label: {
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
+  },
 });
 
 const sizeStyles = StyleSheet.create({

@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ComponentRef } from 'react';
 import {
   Animated as RNAnimated,
   Platform,
@@ -30,6 +30,13 @@ import type { Player } from '@/game/types';
 import { createRound } from '@/services/roundGenerator';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
+type PlayerNameInputRef = ComponentRef<typeof TextInput>;
+
+type PlayerNameSelection = {
+  playerId: string;
+  start: number;
+  end: number;
+};
 
 type Category = {
   id: string;
@@ -69,16 +76,15 @@ const EDIT_ICON: MaterialIconName = 'edit';
 const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
 const LANGUAGE_ICON: MaterialIconName = 'language';
-const RANDOM_CATEGORY_ICON: MaterialIconName = 'shuffle';
+const RANDOM_CATEGORY_ICON: MaterialIconName = 'casino';
 const AI_GENERATED_CATEGORY_ICON: MaterialIconName = 'auto-awesome';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
-const PLAYER_GRID_GAP = Spacing.sm;
+const PLAYER_LIST_GAP = Spacing.sm;
 const PLAYERS_SECTION_PADDING = Spacing.xl;
-const PLAYERS_GRID_EDGE_OFFSET = PLAYERS_SECTION_PADDING - PLAYER_GRID_GAP;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 const PLAYER_TILE_ENTER_DURATION = Transitions.slow;
@@ -169,11 +175,15 @@ export default function HomeScreen() {
   const { setupPreferences, startRound, updateSetupPreferences } = useGame();
   const { selectedLanguage } = useLanguageSettings();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [playerNameSelection, setPlayerNameSelection] = useState<PlayerNameSelection | null>(null);
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
-  const [playersGridWidth, setPlayersGridWidth] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
+  const playerInputRefs = useRef(new Map<string, PlayerNameInputRef>());
+  const playerFocusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playerBlurUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playerBlurLockRef = useRef<string | null>(null);
   const difficultySlideValue = useRef(new RNAnimated.Value(0)).current;
   const {
     players,
@@ -191,9 +201,6 @@ export default function HomeScreen() {
       DIFFICULTY_SWITCH_GAP * (DIFFICULTY_OPTIONS.length - 1)) /
       DIFFICULTY_OPTIONS.length
   );
-  const playerTileWidth =
-    playersGridWidth > 0 ? Math.max(0, (playersGridWidth - PLAYER_GRID_GAP * 2) / 3) : undefined;
-
   useEffect(() => {
     const selectedDifficultyIndex = Math.max(
       DIFFICULTY_OPTIONS.findIndex((difficultyOption) => difficultyOption.id === selectedDifficulty),
@@ -208,6 +215,53 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   }, [difficultyOptionWidth, difficultySlideValue, selectedDifficulty]);
+
+  useEffect(() => {
+    return () => {
+      if (playerFocusTimeoutRef.current) {
+        clearTimeout(playerFocusTimeoutRef.current);
+      }
+
+      if (playerBlurUnlockTimeoutRef.current) {
+        clearTimeout(playerBlurUnlockTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const clearPlayerNameSelection = () => {
+    setPlayerNameSelection(null);
+  };
+
+  const beginEditingPlayer = (player: Player) => {
+    const selection = { playerId: player.id, start: 0, end: player.name.length };
+
+    if (playerFocusTimeoutRef.current) {
+      clearTimeout(playerFocusTimeoutRef.current);
+    }
+
+    if (playerBlurUnlockTimeoutRef.current) {
+      clearTimeout(playerBlurUnlockTimeoutRef.current);
+    }
+
+    playerBlurLockRef.current = player.id;
+    setEditingPlayerId(player.id);
+    setPlayerNameSelection(selection);
+
+    playerFocusTimeoutRef.current = setTimeout(() => {
+      const input = playerInputRefs.current.get(player.id);
+      input?.focus();
+      input?.setNativeProps?.({ selection: { start: selection.start, end: selection.end } });
+      playerFocusTimeoutRef.current = null;
+    }, 50);
+
+    playerBlurUnlockTimeoutRef.current = setTimeout(() => {
+      if (playerBlurLockRef.current === player.id) {
+        playerBlurLockRef.current = null;
+      }
+
+      playerBlurUnlockTimeoutRef.current = null;
+    }, 250);
+  };
 
   const updatePlayers = (getNextPlayers: (currentPlayers: Player[]) => Player[]) => {
     updateSetupPreferences({ players: getNextPlayers(players) });
@@ -259,6 +313,8 @@ export default function HomeScreen() {
 
     if (editingPlayerId === playerId) {
       setEditingPlayerId(null);
+      playerBlurLockRef.current = null;
+      clearPlayerNameSelection();
     }
   };
 
@@ -274,6 +330,8 @@ export default function HomeScreen() {
       })
     );
     setEditingPlayerId(null);
+    playerBlurLockRef.current = null;
+    clearPlayerNameSelection();
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -336,6 +394,8 @@ export default function HomeScreen() {
 
       updateSetupPreferences({ players: roundPlayers });
       setEditingPlayerId(null);
+      playerBlurLockRef.current = null;
+      clearPlayerNameSelection();
       startRound(round);
       router.push('/reveal');
     } catch {
@@ -402,14 +462,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View
-            onLayout={(event) => {
-              const nextWidth = event.nativeEvent.layout.width;
-              setPlayersGridWidth((currentWidth) =>
-                currentWidth === nextWidth ? currentWidth : nextWidth
-              );
-            }}
-            style={styles.playersGrid}>
+          <View style={styles.playersGrid}>
             {players.map((player, index) => {
               const isEditing = editingPlayerId === player.id;
               const canRemovePlayer = index >= 3;
@@ -420,64 +473,92 @@ export default function HomeScreen() {
                   entering={playerTileEntering}
                   exiting={playerTileExiting}
                   layout={playerTileLayoutTransition}
-                  style={[styles.playerTile, playerTileWidth ? { width: playerTileWidth } : null]}>
-                  {canRemovePlayer ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove ${player.name}`}
-                      hitSlop={8}
-                      onPress={() => removePlayer(player.id)}
-                      style={({ pressed }) => [
-                        styles.removeButton,
-                        pressed && styles.iconButtonPressed,
-                      ]}>
-                      <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
-                    </Pressable>
-                  ) : null}
-
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${player.name}`}
-                    hitSlop={8}
-                    onPress={() => setEditingPlayerId(player.id)}
-                    style={({ pressed }) => [
-                      styles.editButton,
-                      pressed && styles.iconButtonPressed,
-                    ]}>
-                    <MaterialIcons name={EDIT_ICON} size={18} color={Colors.primary} />
-                  </Pressable>
-
+                  style={styles.playerTile}>
                   <View style={styles.personBadge}>
-                    <MaterialIcons name={PLAYER_ICON} size={30} color={Colors.text} />
+                    <MaterialIcons name={PLAYER_ICON} size={24} color={Colors.text} />
                   </View>
 
                   <View style={styles.playerNameRow}>
                     {isEditing ? (
                       <TextInput
-                        autoFocus
+                        ref={(input) => {
+                          if (input) {
+                            playerInputRefs.current.set(player.id, input);
+                          } else {
+                            playerInputRefs.current.delete(player.id);
+                          }
+                        }}
                         selectTextOnFocus
                         value={player.name}
-                        onChangeText={(name) => updatePlayerName(player.id, name)}
-                        onBlur={() => finishEditing(player.id)}
+                        onChangeText={(name) => {
+                          clearPlayerNameSelection();
+                          updatePlayerName(player.id, name);
+                        }}
+                        onPressIn={clearPlayerNameSelection}
+                        onBlur={() => {
+                          if (playerBlurLockRef.current === player.id) {
+                            return;
+                          }
+
+                          finishEditing(player.id);
+                        }}
                         onSubmitEditing={() => finishEditing(player.id)}
                         returnKeyType="done"
                         maxLength={MAX_PLAYER_NAME_LENGTH}
                         placeholder={player.name}
                         placeholderTextColor={Colors.muted}
-                        textAlign="center"
-                        style={styles.playerInput}
+                        selection={
+                          playerNameSelection?.playerId === player.id
+                            ? {
+                                start: playerNameSelection.start,
+                                end: playerNameSelection.end,
+                              }
+                            : undefined
+                        }
+                        textAlign="left"
+                        style={[
+                          styles.playerInput,
+                          Platform.OS === 'ios' && styles.playerInputEditingIos,
+                        ]}
                       />
                     ) : (
                       <Text
                         variant="bodyEmphasis"
-                        align="center"
                         adjustsFontSizeToFit
                         minimumFontScale={0.72}
                         numberOfLines={1}
-                        style={styles.playerName}>
+                        style={styles.playerNameText}>
                         {player.name}
                       </Text>
                     )}
+                  </View>
+
+                  <View style={styles.playerActions}>
+                    {canRemovePlayer ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${player.name}`}
+                        hitSlop={8}
+                        onPress={() => removePlayer(player.id)}
+                        style={({ pressed }) => [
+                          styles.removeButton,
+                          pressed && styles.iconButtonPressed,
+                        ]}>
+                        <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
+                      </Pressable>
+                    ) : null}
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${player.name}`}
+                      hitSlop={8}
+                      onPress={() => beginEditingPlayer(player)}
+                      style={({ pressed }) => [
+                        styles.editButton,
+                        pressed && styles.iconButtonPressed,
+                      ]}>
+                      <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
+                    </Pressable>
                   </View>
                 </Animated.View>
               );
@@ -581,7 +662,9 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
+        </Card>
 
+        <View style={styles.setupBox}>
           <View
             onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
             style={styles.difficultyToggle}>
@@ -627,7 +710,7 @@ export default function HomeScreen() {
               );
             })}
           </View>
-        </Card>
+        </View>
 
         <View style={styles.startActions}>
           {roundGenerationError ? (
@@ -728,57 +811,81 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   playersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: PLAYER_GRID_GAP,
-    marginHorizontal: -PLAYERS_GRID_EDGE_OFFSET,
+    gap: PLAYER_LIST_GAP,
   },
   playerTile: {
-    width: '31.4%',
-    minHeight: 128,
+    minHeight: 64,
     minWidth: 0,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs + 2,
+    justifyContent: 'space-between',
+    gap: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
     backgroundColor: 'rgba(250, 247, 242, 0.05)',
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
   personBadge: {
-    width: 50,
-    height: 50,
+    width: 42,
+    height: 42,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
     backgroundColor: 'rgba(250, 247, 242, 0.08)',
   },
   playerNameRow: {
-    alignSelf: 'stretch',
-    height: 28,
+    flex: 1,
+    height: 44,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xs,
   },
-  playerName: {
+  playerNameText: {
     alignSelf: 'stretch',
+    height: 44,
+    lineHeight: 44,
     minWidth: 0,
+    color: Colors.text,
     includeFontPadding: false,
   },
   playerInput: {
     ...Typography.bodyEmphasis,
     alignSelf: 'stretch',
-    height: 24,
+    height: 44,
     lineHeight: 24,
     minWidth: 0,
     padding: 0,
+    paddingVertical: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
     margin: 0,
     color: Colors.text,
     includeFontPadding: false,
+    textAlign: 'left',
     textAlignVertical: 'center',
-    transform: [{ translateY: Platform.OS === 'ios' ? -1 : 0 }],
+  },
+  playerInputEditingIos: {
+    height: 44,
+    lineHeight: 24,
+    paddingVertical: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: Radii.sm,
+    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    paddingHorizontal: Spacing.sm,
+  },
+  playerActions: {
+    minWidth: 40,
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
   },
   addPlayerButton: {
     width: 38,
@@ -793,20 +900,16 @@ const styles = StyleSheet.create({
     opacity: 0.64,
   },
   editButton: {
-    width: 24,
-    height: 24,
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(182, 25, 46, 0.14)',
   },
   removeButton: {
-    width: 30,
-    height: 30,
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
@@ -846,8 +949,11 @@ const styles = StyleSheet.create({
   },
   randomCategoryLabel: {
     minWidth: 0,
+    lineHeight: 20,
     color: Colors.muted,
     includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   randomCategoryLabelSelected: {
     color: Colors.text,
@@ -889,8 +995,11 @@ const styles = StyleSheet.create({
   },
   difficultyOptionText: {
     minWidth: 0,
+    lineHeight: 20,
     color: Colors.muted,
     includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   difficultyOptionTextSelected: {
     color: Colors.textOnPrimary,
@@ -925,7 +1034,10 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     minWidth: 0,
+    lineHeight: 20,
     includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   categoryLabelSelected: {
     color: Colors.textOnPrimary,

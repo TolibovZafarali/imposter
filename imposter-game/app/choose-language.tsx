@@ -193,6 +193,9 @@ const styles = StyleSheet.create({
     height: 48,
     padding: 0,
     color: Colors.text,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   clearButton: {
     width: 36,
@@ -236,10 +239,14 @@ const styles = StyleSheet.create({
   },
   languageName: {
     includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   languageNativeName: {
     color: Colors.muted,
     includeFontPadding: false,
+    textAlignVertical: 'center',
+    transform: [{ translateY: -2 }],
   },
   checkBadge: {
     width: 32,
