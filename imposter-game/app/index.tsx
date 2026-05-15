@@ -21,6 +21,7 @@ type Category = {
   id: string;
   label: string;
   icon: MaterialIconName;
+  isAiGenerated?: boolean;
 };
 
 const INITIAL_PLAYERS: Player[] = [
@@ -36,8 +37,8 @@ const CATEGORIES: Category[] = [
   { id: 'objects', label: 'Objects', icon: 'category' },
   { id: 'places', label: 'Places', icon: 'place' },
   { id: 'sports', label: 'Sports', icon: 'sports-soccer' },
-  { id: 'movies', label: 'Movies', icon: 'movie' },
-  { id: 'celebrities', label: 'Celebrities', icon: 'star' },
+  { id: 'movies', label: 'Movies', icon: 'movie', isAiGenerated: true },
+  { id: 'celebrities', label: 'Celebrities', icon: 'star', isAiGenerated: true },
 ];
 
 const CATEGORY_ROWS = [
@@ -61,6 +62,7 @@ const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
 const LANGUAGE_ICON: MaterialIconName = 'language';
 const RANDOM_CATEGORY_ICON: MaterialIconName = 'shuffle';
+const AI_GENERATED_CATEGORY_ICON: MaterialIconName = 'auto-awesome';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
@@ -413,6 +415,7 @@ export default function HomeScreen() {
                   const isSelected = selectedCategoryIds.includes(category.id);
                   const isDisabled =
                     !isSelected && selectedCategoryIds.length >= MAX_SELECTED_CATEGORIES;
+                  const categoryStatusLabel = category.isAiGenerated ? ', AI generated' : '';
 
                   return (
                     <Pressable
@@ -420,7 +423,7 @@ export default function HomeScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${
                         category.label
-                      } category`}
+                      } category${categoryStatusLabel}`}
                       accessibilityState={{ selected: isSelected, disabled: isDisabled }}
                       disabled={isDisabled}
                       onPress={() => toggleCategory(category.id)}
@@ -443,6 +446,13 @@ export default function HomeScreen() {
                         style={[styles.categoryLabel, isSelected && styles.categoryLabelSelected]}>
                         {category.label}
                       </Text>
+                      {category.isAiGenerated ? (
+                        <MaterialIcons
+                          name={AI_GENERATED_CATEGORY_ICON}
+                          size={14}
+                          color={isSelected ? Colors.textOnPrimary : Colors.primary}
+                        />
+                      ) : null}
                     </Pressable>
                   );
                 })}
