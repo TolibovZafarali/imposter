@@ -101,6 +101,8 @@ The static word bank is currently empty. Stable category data should be rebuilt 
 
 Movies and celebrities should still call an AI API [Application Programming Interface] once per round so the result can match the selected language and culture.
 
+Production AI generation runs through a Supabase Edge Function so API keys never ship in the mobile app. See [docs/backend/supabase.md](docs/backend/supabase.md) for setup and deployment.
+
 Users should never type raw prompts. Users only choose simple options like language, category, player count, and number of imposters.
 
 The hint should help the imposter say something generally related during the first discussion, but it should not make the word obvious.

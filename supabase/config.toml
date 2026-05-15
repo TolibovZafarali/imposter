@@ -1,0 +1,4 @@
+project_id = "imposter"
+
+[functions.generate-round]
+verify_jwt = false

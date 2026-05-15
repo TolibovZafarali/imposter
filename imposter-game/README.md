@@ -16,6 +16,18 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Backend
+
+AI-backed categories and translated words use the Supabase Edge Function documented in `../docs/backend/supabase.md`.
+
+For production builds, set:
+
+```bash
+EXPO_PUBLIC_AI_ROUND_API_URL=https://wqryrqffcldnpubcgtyh.supabase.co/functions/v1/generate-round
+```
+
+Never put `OPENAI_API_KEY` in an Expo public environment variable.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
