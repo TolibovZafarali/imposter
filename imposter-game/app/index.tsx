@@ -2,13 +2,27 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
-import { Animated, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Animated as RNAnimated,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, {
+  Easing as ReanimatedEasing,
+  LinearTransition,
+  withTiming,
+  type EntryExitAnimationFunction,
+} from 'react-native-reanimated';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Transitions, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
 import { selectRandomCategoryIds, type WordDifficulty } from '@/data/wordBank';
@@ -64,6 +78,78 @@ const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
+const PLAYER_TILE_ENTER_DURATION = Transitions.slow;
+const PLAYER_TILE_EXIT_DURATION = Transitions.base;
+const PLAYER_TILE_MOTION_OFFSET = 8;
+const PLAYER_TILE_ENTER_SCALE = 0.96;
+const PLAYER_TILE_EXIT_SCALE = 0.97;
+
+const playerTileEasing = ReanimatedEasing.bezier(...Transitions.easing);
+const playerTileLayoutTransition = LinearTransition.duration(PLAYER_TILE_ENTER_DURATION).easing(
+  playerTileEasing
+);
+
+const playerTileEntering: EntryExitAnimationFunction = () => {
+  'worklet';
+
+  return {
+    initialValues: {
+      opacity: 0,
+      transform: [{ translateY: PLAYER_TILE_MOTION_OFFSET }, { scale: PLAYER_TILE_ENTER_SCALE }],
+    },
+    animations: {
+      opacity: withTiming(1, {
+        duration: PLAYER_TILE_ENTER_DURATION,
+        easing: playerTileEasing,
+      }),
+      transform: [
+        {
+          translateY: withTiming(0, {
+            duration: PLAYER_TILE_ENTER_DURATION,
+            easing: playerTileEasing,
+          }),
+        },
+        {
+          scale: withTiming(1, {
+            duration: PLAYER_TILE_ENTER_DURATION,
+            easing: playerTileEasing,
+          }),
+        },
+      ],
+    },
+  };
+};
+
+const playerTileExiting: EntryExitAnimationFunction = () => {
+  'worklet';
+
+  return {
+    initialValues: {
+      opacity: 1,
+      transform: [{ translateY: 0 }, { scale: 1 }],
+    },
+    animations: {
+      opacity: withTiming(0, {
+        duration: PLAYER_TILE_EXIT_DURATION,
+        easing: playerTileEasing,
+      }),
+      transform: [
+        {
+          translateY: withTiming(-PLAYER_TILE_MOTION_OFFSET, {
+            duration: PLAYER_TILE_EXIT_DURATION,
+            easing: playerTileEasing,
+          }),
+        },
+        {
+          scale: withTiming(PLAYER_TILE_EXIT_SCALE, {
+            duration: PLAYER_TILE_EXIT_DURATION,
+            easing: playerTileEasing,
+          }),
+        },
+      ],
+    },
+  };
+};
 
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
@@ -84,7 +170,7 @@ export default function HomeScreen() {
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
-  const difficultySlideValue = useRef(new Animated.Value(0)).current;
+  const difficultySlideValue = useRef(new RNAnimated.Value(0)).current;
   const {
     players,
     selectedCategoryIds,
@@ -108,7 +194,7 @@ export default function HomeScreen() {
       0
     );
 
-    Animated.spring(difficultySlideValue, {
+    RNAnimated.spring(difficultySlideValue, {
       toValue: selectedDifficultyIndex * (difficultyOptionWidth + DIFFICULTY_SWITCH_GAP),
       damping: 18,
       mass: 0.8,
@@ -302,7 +388,12 @@ export default function HomeScreen() {
               const canRemovePlayer = index >= 3;
 
               return (
-                <View key={player.id} style={styles.playerTile}>
+                <Animated.View
+                  key={player.id}
+                  entering={playerTileEntering}
+                  exiting={playerTileExiting}
+                  layout={playerTileLayoutTransition}
+                  style={styles.playerTile}>
                   {canRemovePlayer ? (
                     <Pressable
                       accessibilityRole="button"
@@ -361,7 +452,7 @@ export default function HomeScreen() {
                       </Text>
                     )}
                   </View>
-                </View>
+                </Animated.View>
               );
             })}
           </View>
@@ -467,7 +558,7 @@ export default function HomeScreen() {
           <View
             onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
             style={styles.difficultyToggle}>
-            <Animated.View
+            <RNAnimated.View
               pointerEvents="none"
               style={[
                 styles.difficultyIndicator,
