@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text as RNText,
   TextInput,
   View,
 } from 'react-native';
@@ -22,6 +23,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { getLanguageFlagEmoji } from '@/constants/languages';
 import { Colors, Radii, Spacing, Transitions, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
@@ -75,7 +77,6 @@ const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
 const EDIT_ICON: MaterialIconName = 'edit';
 const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
-const LANGUAGE_ICON: MaterialIconName = 'language';
 const RANDOM_CATEGORY_ICON: MaterialIconName = 'casino';
 const AI_GENERATED_CATEGORY_ICON: MaterialIconName = 'auto-awesome';
 const MIN_PLAYERS = 3;
@@ -429,7 +430,9 @@ export default function HomeScreen() {
               styles.languageIconButton,
               pressed && styles.iconButtonPressed,
             ]}>
-            <MaterialIcons name={LANGUAGE_ICON} size={24} color={Colors.text} />
+            <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
+              {getLanguageFlagEmoji(selectedLanguage)}
+            </RNText>
           </Pressable>
         </View>
 
@@ -1052,6 +1055,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radii.pill,
     backgroundColor: Colors.surface,
+  },
+  languageFlagIcon: {
+    fontSize: 26,
+    lineHeight: 30,
+    includeFontPadding: false,
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   startActions: {
     width: '100%',
