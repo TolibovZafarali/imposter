@@ -2,11 +2,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import type { ComponentProps } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text as RNText, TextInput, View } from 'react-native';
 
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { LANGUAGES, type LanguageOption } from '@/constants/languages';
+import { getLanguageFlagEmoji, LANGUAGES, type LanguageOption } from '@/constants/languages';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useLanguageSettings } from '@/contexts/language-settings';
 
@@ -71,11 +71,16 @@ export default function ChooseLanguageScreen() {
             {item.nativeName}
           </Text>
         </View>
-        {isSelected ? (
-          <View style={styles.checkBadge}>
-            <MaterialIcons name={CHECK_ICON} size={18} color={Colors.textOnPrimary} />
-          </View>
-        ) : null}
+        <View style={styles.languageTrailing}>
+          {isSelected ? (
+            <View style={styles.checkBadge}>
+              <MaterialIcons name={CHECK_ICON} size={18} color={Colors.textOnPrimary} />
+            </View>
+          ) : null}
+          <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
+            {getLanguageFlagEmoji(item)}
+          </RNText>
+        </View>
       </Pressable>
     );
   };
@@ -237,6 +242,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: Spacing.xs,
   },
+  languageTrailing: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+  },
   languageName: {
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -255,6 +267,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radii.pill,
     backgroundColor: Colors.primary,
+  },
+  languageFlagIcon: {
+    width: 34,
+    fontSize: 26,
+    lineHeight: 30,
+    includeFontPadding: false,
+    textAlign: 'right',
+    textAlignVertical: 'center',
   },
   emptyState: {
     minHeight: 180,
