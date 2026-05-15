@@ -24,12 +24,6 @@ type Category = {
   isAiGenerated?: boolean;
 };
 
-const INITIAL_PLAYERS: Player[] = [
-  { id: 'player-1', name: 'Player 1' },
-  { id: 'player-2', name: 'Player 2' },
-  { id: 'player-3', name: 'Player 3' },
-];
-
 const CATEGORIES: Category[] = [
   { id: 'activities', label: 'Activities', icon: 'directions-run' },
   { id: 'food', label: 'Food', icon: 'restaurant' },
@@ -83,18 +77,20 @@ const pickRandomCategoryIds = (rng = Math.random) => {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { startRound } = useGame();
+  const { setupPreferences, startRound, updateSetupPreferences } = useGame();
   const { selectedLanguage } = useLanguageSettings();
-  const [players, setPlayers] = useState(INITIAL_PLAYERS);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [isRandomCategoryMode, setIsRandomCategoryMode] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<WordDifficulty>('easy');
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
   const difficultySlideValue = useRef(new Animated.Value(0)).current;
+  const {
+    players,
+    selectedCategoryIds,
+    isRandomCategoryMode,
+    selectedDifficulty,
+  } = setupPreferences;
 
   const canStartGame =
     (isRandomCategoryMode || selectedCategoryIds.length > 0) && !isStartingGame;
@@ -121,10 +117,14 @@ export default function HomeScreen() {
     }).start();
   }, [difficultyOptionWidth, difficultySlideValue, selectedDifficulty]);
 
+  const updatePlayers = (getNextPlayers: (currentPlayers: Player[]) => Player[]) => {
+    updateSetupPreferences({ players: getNextPlayers(players) });
+  };
+
   const updatePlayerName = (playerId: string, name: string) => {
     const limitedName = limitPlayerName(name);
 
-    setPlayers((currentPlayers) =>
+    updatePlayers((currentPlayers) =>
       currentPlayers.map((player) =>
         player.id === playerId ? { ...player, name: limitedName } : player
       )
@@ -132,7 +132,7 @@ export default function HomeScreen() {
   };
 
   const addPlayer = () => {
-    setPlayers((currentPlayers) => {
+    updatePlayers((currentPlayers) => {
       if (currentPlayers.length >= MAX_PLAYERS) {
         return currentPlayers;
       }
@@ -157,7 +157,7 @@ export default function HomeScreen() {
   };
 
   const removePlayer = (playerId: string) => {
-    setPlayers((currentPlayers) => {
+    updatePlayers((currentPlayers) => {
       if (currentPlayers.length <= MIN_PLAYERS) {
         return currentPlayers;
       }
@@ -171,7 +171,7 @@ export default function HomeScreen() {
   };
 
   const finishEditing = (playerId: string) => {
-    setPlayers((currentPlayers) =>
+    updatePlayers((currentPlayers) =>
       currentPlayers.map((player, index) => {
         if (player.id !== playerId) {
           return player;
@@ -199,13 +199,17 @@ export default function HomeScreen() {
       nextCategoryIds = [...selectedCategoryIds, categoryId];
     }
 
-    setSelectedCategoryIds(nextCategoryIds);
-    setIsRandomCategoryMode(nextCategoryIds.length === 0);
+    updateSetupPreferences({
+      selectedCategoryIds: nextCategoryIds,
+      isRandomCategoryMode: nextCategoryIds.length === 0,
+    });
   };
 
   const selectRandomCategories = () => {
-    setIsRandomCategoryMode(true);
-    setSelectedCategoryIds([]);
+    updateSetupPreferences({
+      selectedCategoryIds: [],
+      isRandomCategoryMode: true,
+    });
   };
 
   const handleStartGame = async () => {
@@ -238,7 +242,7 @@ export default function HomeScreen() {
         languageName: selectedLanguage.name,
       });
 
-      setPlayers(roundPlayers);
+      updateSetupPreferences({ players: roundPlayers });
       setEditingPlayerId(null);
       startRound(round);
       router.push('/reveal');
@@ -483,7 +487,9 @@ export default function HomeScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
                   accessibilityState={{ selected: isSelected }}
-                  onPress={() => setSelectedDifficulty(difficultyOption.id)}
+                  onPress={() =>
+                    updateSetupPreferences({ selectedDifficulty: difficultyOption.id })
+                  }
                   style={({ pressed }) => [
                     styles.difficultyOption,
                     pressed && styles.difficultyOptionPressed,
