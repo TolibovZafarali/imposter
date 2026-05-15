@@ -78,6 +78,8 @@ export const CATEGORY_LABELS = {
 
 export const normalizeWordKey = (value: string) =>
   value
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
@@ -166,39 +168,39 @@ export const isDynamicCategoryId = (categoryId: string): categoryId is DynamicCa
 const getRandomIndex = (itemCount: number, rng: () => number) =>
   Math.min(Math.floor(rng() * itemCount), itemCount - 1);
 
-const isRecentlyUsedEntry = (
+const isPlayedEntry = (
   entry: EnglishWordEntry,
-  recentWords: readonly string[],
-  recentEntryIds: readonly string[]
+  playedWords: readonly string[],
+  playedEntryIds: readonly string[]
 ) => {
-  if (recentEntryIds.includes(entry.id)) {
+  if (playedEntryIds.includes(entry.id)) {
     return true;
   }
 
   const entryWordKey = normalizeWordKey(entry.word);
-  const recentWordKeys = new Set(recentWords.map(normalizeWordKey).filter(Boolean));
+  const playedWordKeys = new Set(playedWords.map(normalizeWordKey).filter(Boolean));
 
-  return recentWordKeys.has(entryWordKey);
+  return playedWordKeys.has(entryWordKey);
 };
 
 export function selectStaticWordEntry({
   categoryId,
   difficulty = 'easy',
-  recentWords = [],
-  recentEntryIds = [],
+  playedWords = [],
+  playedEntryIds = [],
   rng = Math.random,
 }: {
   categoryId: StaticCategoryId;
   difficulty?: WordDifficulty;
-  recentWords?: readonly string[];
-  recentEntryIds?: readonly string[];
+  playedWords?: readonly string[];
+  playedEntryIds?: readonly string[];
   rng?: () => number;
 }): EnglishWordEntry {
   const selectionEntries = ENGLISH_WORD_BANK_BY_CATEGORY[categoryId].filter(
     (entry) => entry.difficulty === difficulty
   );
   const freshEntries = selectionEntries.filter(
-    (entry) => !isRecentlyUsedEntry(entry, recentWords, recentEntryIds)
+    (entry) => !isPlayedEntry(entry, playedWords, playedEntryIds)
   );
   const wordPool = freshEntries.length ? freshEntries : selectionEntries;
 
@@ -220,14 +222,14 @@ export function chooseRoundCategory(categoryIds: readonly string[], rng = Math.r
 export function resolveRoundWordSource({
   categoryIds,
   difficulty = 'easy',
-  recentWords = [],
-  recentEntryIds = [],
+  playedWords = [],
+  playedEntryIds = [],
   rng = Math.random,
 }: {
   categoryIds: readonly string[];
   difficulty?: WordDifficulty;
-  recentWords?: readonly string[];
-  recentEntryIds?: readonly string[];
+  playedWords?: readonly string[];
+  playedEntryIds?: readonly string[];
   rng?: () => number;
 }): RoundWordSource {
   const selectedCategoryId = chooseRoundCategory(categoryIds, rng);
@@ -239,8 +241,8 @@ export function resolveRoundWordSource({
       entry: selectStaticWordEntry({
         categoryId: selectedCategoryId,
         difficulty,
-        recentWords,
-        recentEntryIds,
+        playedWords,
+        playedEntryIds,
         rng,
       }),
     };
@@ -269,23 +271,23 @@ export function resolveRoundWordPlan({
   difficulty = 'easy',
   languageId,
   languageName,
-  recentWords = [],
-  recentEntryIds = [],
+  playedWords = [],
+  playedEntryIds = [],
   rng = Math.random,
 }: {
   categoryIds: readonly string[];
   difficulty?: WordDifficulty;
   languageId: string;
   languageName: string;
-  recentWords?: readonly string[];
-  recentEntryIds?: readonly string[];
+  playedWords?: readonly string[];
+  playedEntryIds?: readonly string[];
   rng?: () => number;
 }): RoundWordPlan {
   const source = resolveRoundWordSource({
     categoryIds,
     difficulty,
-    recentWords,
-    recentEntryIds,
+    playedWords,
+    playedEntryIds,
     rng,
   });
 

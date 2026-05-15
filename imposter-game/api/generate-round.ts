@@ -3,10 +3,9 @@ import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 
 const DEFAULT_MODEL = 'gpt-5.4-mini';
-const CLIENT_RECENT_WORD_LIMIT = 40;
-const SERVER_RECENT_WORD_LIMIT = 80;
 const GENERATION_ATTEMPTS = 8;
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
+const playedWordSchema = z.string().trim().min(1).max(42);
 
 const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
@@ -15,7 +14,7 @@ const roundWordRequestSchema = z.object({
   languageId: z.string().trim().min(1).max(80),
   languageName: z.string().trim().min(1).max(80),
   playerCount: z.number().int().min(3).max(10),
-  recentWords: z.array(z.string().trim().min(1).max(42)).max(CLIENT_RECENT_WORD_LIMIT).default([]),
+  playedWords: z.array(playedWordSchema).default([]),
 });
 
 const translationRequestSchema = z.object({
@@ -41,6 +40,8 @@ const aiWordSchema = z.object({
 
 const normalizeForCloseness = (value: string) =>
   value
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
@@ -202,6 +203,7 @@ export const hasPlayableCelebrityAnswer = (word: string) =>
   normalizeForCloseness(word).split(' ').filter(Boolean).length >= 2;
 
 const isCelebrityRequest = (categoryIds: readonly string[]) => categoryIds.includes('celebrities');
+const isMovieRequest = (categoryIds: readonly string[]) => categoryIds.includes('movies');
 
 const responseSchema = z
   .object({
@@ -213,7 +215,7 @@ const responseSchema = z
     path: ['clue'],
   })
   .refine((value) => !hasOverSpecificClue(value.clue), {
-    message: 'The clue must be distant, not a category or descriptor',
+    message: 'The clue must be indirect, not a category or descriptor',
     path: ['clue'],
   })
   .refine(
@@ -224,7 +226,8 @@ const responseSchema = z
 type RoundWordRequest = z.infer<typeof roundWordRequestSchema>;
 type TranslationWordRequest = z.infer<typeof translationRequestSchema>;
 type RoundWordResponse = z.infer<typeof responseSchema>;
-let serverRecentWords: string[] = [];
+export type PopularityScope = 'international' | 'local';
+let serverPlayedWordsByContext = new Map<string, string[]>();
 
 const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -247,17 +250,17 @@ const jsonResponse = (body: unknown, status = 200) =>
     headers: corsHeaders,
   });
 
-const isRecentlyUsedWord = (word: string, recentWords: string[]) => {
+const isAlreadyPlayedWord = (word: string, playedWords: readonly string[]) => {
   const wordKey = normalizeForCloseness(word);
-  const recentWordKeys = new Set(recentWords.map(normalizeForCloseness).filter(Boolean));
+  const playedWordKeys = new Set(playedWords.map(normalizeForCloseness).filter(Boolean));
 
-  return recentWordKeys.has(wordKey);
+  return playedWordKeys.has(wordKey);
 };
 
-const getBlockedRecentWords = (clientRecentWords: string[]) => {
+const mergeUniquePlayedWords = (words: readonly string[]) => {
   const seenWordKeys = new Set<string>();
 
-  return [...clientRecentWords, ...serverRecentWords].filter((word) => {
+  return words.filter((word) => {
     const wordKey = normalizeForCloseness(word);
 
     if (!wordKey || seenWordKeys.has(wordKey)) {
@@ -269,18 +272,56 @@ const getBlockedRecentWords = (clientRecentWords: string[]) => {
   });
 };
 
-const rememberGeneratedWord = (word: string) => {
-  serverRecentWords = [
-    word,
-    ...serverRecentWords.filter((recentWord) => !isRecentlyUsedWord(word, [recentWord])),
-  ].slice(0, SERVER_RECENT_WORD_LIMIT);
+const getPlayedWordContextKey = ({
+  categoryIds,
+  languageId,
+  languageName,
+}: Pick<RoundWordRequest, 'categoryIds' | 'languageId' | 'languageName'>) => {
+  const languageKey = normalizeForCloseness(languageId) || normalizeForCloseness(languageName) || 'unknown-language';
+  const categoryKey = categoryIds.map(normalizeForCloseness).filter(Boolean).sort().join('|') || 'unknown-category';
+
+  return `${languageKey}:${categoryKey}`;
+};
+
+const getServerPlayedWords = (input: RoundWordRequest) =>
+  serverPlayedWordsByContext.get(getPlayedWordContextKey(input)) ?? [];
+
+const getAlreadyPlayedWords = (input: RoundWordRequest, extraWords: readonly string[] = []) =>
+  mergeUniquePlayedWords([
+    ...extraWords,
+    ...input.playedWords,
+    ...getServerPlayedWords(input),
+  ]);
+
+const rememberGeneratedWord = (input: RoundWordRequest, word: string) => {
+  const contextKey = getPlayedWordContextKey(input);
+  const playedWords = getServerPlayedWords(input);
+
+  serverPlayedWordsByContext.set(
+    contextKey,
+    mergeUniquePlayedWords([word, ...playedWords.filter((playedWord) => !isAlreadyPlayedWord(word, [playedWord]))])
+  );
 };
 
 const createVarietyKey = (attempt: number) =>
   `${Date.now().toString(36)}-${attempt}-${Math.random().toString(36).slice(2, 10)}`;
 
-const isUzbekLanguageRequest = ({ languageId, languageName }: Pick<TranslationWordRequest, 'languageId' | 'languageName'>) =>
-  languageId === 'uzbek' || languageName.toLocaleLowerCase().includes('uzbek');
+const hashVarietyKey = (varietyKey: string) => {
+  let hash = 2166136261;
+
+  for (const character of varietyKey) {
+    hash ^= character.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+};
+
+export const selectPopularityScope = (varietyKey: string): PopularityScope =>
+  hashVarietyKey(varietyKey) % 2 === 0 ? 'international' : 'local';
+
+const formatPopularityScope = (popularityScope: PopularityScope) =>
+  popularityScope === 'international' ? 'International' : 'Local to the selected language/culture';
 
 const difficultyInstructions = {
   easy: 'Difficulty target: easy. Choose a highly familiar, everyday answer most casual players recognize immediately.',
@@ -288,48 +329,73 @@ const difficultyInstructions = {
   hard: 'Difficulty target: hard. Choose a more specific or less common answer, but avoid obscure trivia.',
 } as const;
 
-const buildPrompt = (
+export const buildPrompt = (
   { categoryIds, difficulty, languageName, playerCount }: RoundWordRequest,
   varietyKey: string,
-  blockedRecentWords: string[]
+  alreadyPlayedWords: readonly string[],
+  popularityScope: PopularityScope = selectPopularityScope(varietyKey)
 ) => {
   const categories = categoryIds.map(categoryLabel).join(', ');
-  const recentWordList = blockedRecentWords.length ? blockedRecentWords.join(', ') : 'None';
+  const playedWordList = alreadyPlayedWords.length ? alreadyPlayedWords.join(', ') : 'None';
   const hasCelebrityCategory = isCelebrityRequest(categoryIds);
-  const isUzbekLanguage = languageName.toLocaleLowerCase().includes('uzbek');
+  const hasMovieCategory = isMovieRequest(categoryIds);
 
   return [
     `Language: ${languageName}`,
     `Categories: ${categories}`,
     `Difficulty: ${difficulty}`,
     `Player count: ${playerCount}`,
+    `Popularity scope: ${formatPopularityScope(popularityScope)}`,
     `Variety key: ${varietyKey}`,
-    `Recent secret words to avoid: ${recentWordList}`,
+    `Already played secret words to avoid: ${playedWordList}`,
     '',
     'Generate one secret word and one imposter clue for this round.',
     'Choose a fair, broadly playable answer that casual players can discuss.',
     difficultyInstructions[difficulty],
-    'Treat the variety key as a random seed; do not output it.',
-    'Never choose any word from the recent secret words list. Choose a different valid word each request.',
-    'Do not copy wording from these instructions as the answer.',
-    'Both fields must be in the requested language, using the natural script for that language.',
-    'The imposter clue must be exactly one word. No spaces, hyphens, slashes, punctuation, or short phrases.',
-    'The clue must be far from the answer: use a distant vibe, mood, situation, or abstract context.',
-    hasCelebrityCategory
-      ? 'For Celebrities, return only widely recognizable public figures in the selected language/culture.'
+    '',
+    'Popularity rules:',
+    '- If Popularity scope is International, choose something extremely famous worldwide. Most casual players should recognize it, even if they are not experts.',
+    '- If Popularity scope is Local, choose something extremely famous among speakers of the requested language or people from the main culture/country associated with that language.',
+    '- Do not choose obscure, niche, old, regional-only, or expert-level answers.',
+    '- The answer should feel obvious and playable for a casual party game.',
+    '',
+    'Repeat-prevention rules:',
+    '- Never choose any word from the already played secret words list.',
+    '- Choose a different valid word each request.',
+    '- Treat minor spelling, punctuation, spacing, casing, diacritic, or transliteration differences as the same word when avoiding repeats.',
+    '',
+    'Category rules:',
+    hasMovieCategory
+      ? '- For Movies, return a well-known movie title in the requested language when there is a natural/common localized title. Otherwise use the title most commonly recognized by speakers of that language.'
       : null,
     hasCelebrityCategory
-      ? 'For Celebrities, the secret word must be a complete public name with at least two words: first and last name, or a complete multi-word stage/public name.'
+      ? '- For Celebrities, return only widely recognizable public figures.'
       : null,
     hasCelebrityCategory
-      ? 'For Celebrities, never return a first name, nickname, or partial name by itself.'
+      ? '- For Celebrities, the secret word must be a complete public name with at least two words: first and last name, or a complete multi-word stage/public name.'
       : null,
-    hasCelebrityCategory && isUzbekLanguage
-      ? 'For Uzbek Celebrities, do not output ordinary Uzbek first names by themselves. Use complete recognizable public names.'
+    hasCelebrityCategory
+      ? '- For Celebrities, never return a first name, nickname, or partial name by itself.'
       : null,
-    'Do not use the secret word category, class, synonym, usual location, habitat, obvious trait, or direct association as the clue.',
-    'Do not use synonyms, translations, rhymes, famous associations, ingredients, materials, colors, shapes, sizes, parts, actions, usual locations, habitats, or any text contained in the answer.',
-    'Return short answers only: one secret word or short phrase, and exactly one distant clue word.',
+    '- These rules apply to every language. Do not add special exceptions for any specific language.',
+    '',
+    'Clue rules:',
+    '- The imposter clue must be exactly one word.',
+    '- The clue should be simple, common, and easy for an imposter to use in conversation.',
+    '- The clue should be indirectly related in vibe, mood, situation, or broad context, but not too obscure.',
+    '- Avoid clues that are so distant, poetic, or abstract that the imposter cannot participate.',
+    '- Do not use the secret word category, class, synonym, usual location, habitat, obvious trait, or direct association as the clue.',
+    '- Do not use synonyms, translations, rhymes, famous associations, ingredients, materials, colors, shapes, sizes, parts, actions, usual locations, habitats, or any text contained in the answer.',
+    '- The clue must have no spaces, hyphens, slashes, punctuation, or short phrases.',
+    '',
+    'Output rules:',
+    '- Return short answers only.',
+    '- Return one secret word or short phrase.',
+    '- Return exactly one clue word.',
+    '- Both fields must be in the requested language, using the natural script for that language.',
+    '- Treat the variety key as a random seed; do not output it.',
+    '- Do not output the popularity scope.',
+    '- Do not copy wording from these instructions as the answer.',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
@@ -338,7 +404,6 @@ const buildPrompt = (
 const buildTranslationPrompt = (input: TranslationWordRequest) => {
   const { languageName, source } = input;
   const isAnimalTranslation = source.categoryId === 'animals';
-  const isUzbekTranslation = isUzbekLanguageRequest(input);
 
   return [
     `Target language: ${languageName}`,
@@ -358,21 +423,18 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     isAnimalTranslation
       ? 'For animals, prefer natural everyday animal names over scientific or taxonomy-level precision.'
       : null,
-    isAnimalTranslation && isUzbekTranslation
-      ? 'For Uzbek animal translations, use natural Uzbek words. Example: Gecko should be Kaltakesak, not Geko or Gekkon.'
-      : null,
     'Return one translated secret word or short phrase, and one translated imposter clue.',
     'The imposter clue must be exactly one word. No spaces, hyphens, slashes, punctuation, or short phrases.',
-    'The clue must stay hard and indirect, like the English source clue.',
-    'If the literal clue translation would be multiple words or too obvious, choose a natural one-word equivalent that keeps the same distant relationship.',
+    'The clue must stay indirect, simple, common, and playable like the English source clue.',
+    'If the literal clue translation would be multiple words or too obvious, choose a natural one-word equivalent that keeps the same indirect relationship.',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
 };
 
-const parseGeneratedWord = (
+export const parseGeneratedWord = (
   value: RoundWordResponse,
-  blockedRecentWords: string[] = [],
+  alreadyPlayedWords: readonly string[] = [],
   categoryIds: readonly string[] = []
 ): RoundWordResponse => {
   const parsedWord = responseSchema.parse({
@@ -384,8 +446,8 @@ const parseGeneratedWord = (
     throw new Error('OpenAI returned an incomplete celebrity name');
   }
 
-  if (isRecentlyUsedWord(parsedWord.word, blockedRecentWords)) {
-    throw new Error('OpenAI returned a recently used round word');
+  if (isAlreadyPlayedWord(parsedWord.word, alreadyPlayedWords)) {
+    throw new Error('OpenAI returned an already played round word');
   }
 
   return parsedWord;
@@ -404,7 +466,9 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
 
   for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt += 1) {
     try {
-      const blockedRecentWords = getBlockedRecentWords(input.recentWords);
+      const varietyKey = createVarietyKey(attempt);
+      const popularityScope = selectPopularityScope(varietyKey);
+      const alreadyPlayedWords = getAlreadyPlayedWords(input);
       const response = await openai.responses.parse({
         model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
         reasoning: {
@@ -418,11 +482,12 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
             content: [
               'You generate safe, family-friendly words for a pass-and-play Imposter party game.',
               'Regular players see the secret word. The imposter sees only the clue.',
-              'The imposter clue must be exactly one word and far from the secret word.',
-              'Use distant vibe words, moods, situations, or abstract context only.',
+              'The imposter clue must be exactly one simple, common word and indirectly related to the secret word.',
+              'Use broad vibe, mood, situation, or context clues that are playable in conversation.',
               'Never use categories, classes, defining attributes, ingredients, parts, usual locations, habitats, actions, famous associations, or adjacent examples.',
               'Never make the clue descriptive, category-level, or multi-word, such as "large land animal", "black-and-white", "animal", or "food".',
-              'If a typical player could guess the word from the clue, make the clue more distant.',
+              'If a typical player could guess the word immediately from the clue, make the clue less direct.',
+              'If an imposter could not use the clue in conversation, make the clue simpler and more common.',
               'Avoid adult content, slurs, gore, politics, religion, tragedies, and obscure niche references.',
               'Avoid multi-sentence output, punctuation-heavy answers, translations, romanization, and explanations.',
               'Use proper nouns only when the chosen category naturally asks for them.',
@@ -430,7 +495,7 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
           },
           {
             role: 'user',
-            content: buildPrompt(input, createVarietyKey(attempt), blockedRecentWords),
+            content: buildPrompt(input, varietyKey, alreadyPlayedWords, popularityScope),
           },
         ],
         text: {
@@ -444,11 +509,11 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
 
       const generatedWord = parseGeneratedWord(
         response.output_parsed,
-        getBlockedRecentWords(input.recentWords),
+        getAlreadyPlayedWords(input),
         input.categoryIds
       );
 
-      rememberGeneratedWord(generatedWord.word);
+      rememberGeneratedWord(input, generatedWord.word);
 
       return generatedWord;
     } catch (error) {
@@ -486,7 +551,7 @@ async function translateStaticWord(input: TranslationWordRequest): Promise<Round
               'You translate words for a pass-and-play Imposter party game.',
               'Regular players see the secret word. The imposter sees only the clue.',
               'The output must be in the requested target language and natural script.',
-              'The imposter clue must be exactly one word and stay far from the secret word.',
+              'The imposter clue must be exactly one simple, common word and stay indirectly related to the secret word.',
               'Never return explanations, romanization, punctuation-heavy answers, or multi-sentence output.',
             ].join(' '),
           },

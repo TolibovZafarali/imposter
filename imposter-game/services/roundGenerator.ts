@@ -13,6 +13,12 @@ type GeneratedWord = {
   clue: string;
 };
 
+type PlayedWordContext = {
+  categoryIds: readonly string[];
+  languageId: string;
+  languageName: string;
+};
+
 export type RoundGeneratorInput = {
   players: Player[];
   categoryIds: string[];
@@ -22,33 +28,77 @@ export type RoundGeneratorInput = {
   rng?: () => number;
 };
 
-const RECENT_WORD_LIMIT = 40;
-const RECENT_ENTRY_LIMIT = 80;
 const AI_CLIENT_GENERATION_ATTEMPTS = 4;
 const DEFAULT_AI_ROUND_API_URL = 'http://localhost:3000/api/generate-round';
-let recentRoundWords: string[] = [];
-let recentRoundEntryIds: string[] = [];
+let playedRoundWordsByContext = new Map<string, string[]>();
+let playedRoundEntryIdsByContext = new Map<string, string[]>();
 
-const normalizeWordKey = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+const normalizeWordKey = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 
-const isRecentlyUsedWord = (word: string, recentWords = recentRoundWords) => {
+const isPlayedWord = (word: string, playedWords: readonly string[]) => {
   const wordKey = normalizeWordKey(word);
-  const recentWordKeys = new Set(recentWords.map(normalizeWordKey));
+  const playedWordKeys = new Set(playedWords.map(normalizeWordKey).filter(Boolean));
 
-  return recentWordKeys.has(wordKey);
+  return playedWordKeys.has(wordKey);
 };
 
-const rememberRoundWord = (word: string, entryId?: string) => {
-  recentRoundWords = [word, ...recentRoundWords.filter((recentWord) => !isRecentlyUsedWord(word, [recentWord]))].slice(
-    0,
-    RECENT_WORD_LIMIT
+const mergeUniquePlayedWords = (words: readonly string[]) => {
+  const seenWordKeys = new Set<string>();
+
+  return words.filter((word) => {
+    const wordKey = normalizeWordKey(word);
+
+    if (!wordKey || seenWordKeys.has(wordKey)) {
+      return false;
+    }
+
+    seenWordKeys.add(wordKey);
+    return true;
+  });
+};
+
+const getPlayedWordContextKeys = ({ categoryIds, languageId, languageName }: PlayedWordContext) => {
+  const languageKey = normalizeWordKey(languageId) || normalizeWordKey(languageName) || 'unknown-language';
+
+  return categoryIds.map((categoryId) => {
+    const categoryKey = normalizeWordKey(categoryId) || 'unknown-category';
+
+    return `${languageKey}:${categoryKey}`;
+  });
+};
+
+const getPlayedWordsForContext = (context: PlayedWordContext) =>
+  mergeUniquePlayedWords(
+    getPlayedWordContextKeys(context).flatMap((contextKey) => playedRoundWordsByContext.get(contextKey) ?? [])
   );
 
-  if (entryId) {
-    recentRoundEntryIds = [entryId, ...recentRoundEntryIds.filter((recentEntryId) => recentEntryId !== entryId)].slice(
-      0,
-      RECENT_ENTRY_LIMIT
+const getPlayedEntryIdsForContext = (context: PlayedWordContext) =>
+  getPlayedWordContextKeys(context).flatMap((contextKey) => playedRoundEntryIdsByContext.get(contextKey) ?? []);
+
+const rememberRoundWord = (word: string, context: PlayedWordContext, entryId?: string) => {
+  for (const contextKey of getPlayedWordContextKeys(context)) {
+    const playedWords = playedRoundWordsByContext.get(contextKey) ?? [];
+
+    playedRoundWordsByContext.set(
+      contextKey,
+      mergeUniquePlayedWords([word, ...playedWords.filter((playedWord) => !isPlayedWord(word, [playedWord]))])
     );
+
+    if (entryId) {
+      const playedEntryIds = playedRoundEntryIdsByContext.get(contextKey) ?? [];
+
+      playedRoundEntryIdsByContext.set(contextKey, [
+        entryId,
+        ...playedEntryIds.filter((playedEntryId) => playedEntryId !== entryId),
+      ]);
+    }
   }
 };
 
@@ -87,12 +137,21 @@ async function fetchAiGeneratedWord({
 }: RoundGeneratorInput): Promise<GeneratedWord> {
   const rejectedWords: string[] = [];
   let lastError: unknown;
+  const playedWordContext = {
+    categoryIds,
+    languageId,
+    languageName,
+  };
 
   for (let attempt = 0; attempt < getAiGenerationAttemptLimit(categoryIds); attempt += 1) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     try {
+      const playedWords = mergeUniquePlayedWords([
+        ...rejectedWords,
+        ...getPlayedWordsForContext(playedWordContext),
+      ]);
       const response = await fetch(getAiRoundApiUrl(), {
         method: 'POST',
         headers: {
@@ -104,7 +163,7 @@ async function fetchAiGeneratedWord({
           languageId,
           languageName,
           playerCount: players.length,
-          recentWords: [...rejectedWords, ...recentRoundWords].slice(0, RECENT_WORD_LIMIT),
+          playedWords,
         }),
         signal: controller.signal,
       });
@@ -123,6 +182,12 @@ async function fetchAiGeneratedWord({
         word: payload.word.trim(),
         clue: payload.clue.trim(),
       };
+
+      if (isPlayedWord(generatedWord.word, playedWords)) {
+        rejectedWords.unshift(generatedWord.word);
+        lastError = new Error('AI round generation returned an already played word');
+        continue;
+      }
 
       if (!isGeneratedWordValidForCategories(generatedWord, categoryIds)) {
         rejectedWords.unshift(generatedWord.word);
@@ -206,19 +271,28 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
     imposterHint: generatedWord.clue,
   });
 
-  rememberRoundWord(generatedWord.word);
+  rememberRoundWord(generatedWord.word, {
+    categoryIds: input.categoryIds,
+    languageId: input.languageId,
+    languageName: input.languageName,
+  });
 
   return round;
 }
 
 export async function createRound(input: RoundGeneratorInput): Promise<Round> {
+  const playedWordContext = {
+    categoryIds: input.categoryIds,
+    languageId: input.languageId,
+    languageName: input.languageName,
+  };
   const wordPlan = resolveRoundWordPlan({
     categoryIds: input.categoryIds,
     difficulty: input.difficulty,
     languageId: input.languageId,
     languageName: input.languageName,
-    recentWords: recentRoundWords,
-    recentEntryIds: recentRoundEntryIds,
+    playedWords: getPlayedWordsForContext(playedWordContext),
+    playedEntryIds: getPlayedEntryIdsForContext(playedWordContext),
     rng: input.rng,
   });
 
@@ -250,7 +324,15 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     rng: input.rng,
   });
 
-  rememberRoundWord(generatedWord.word, wordPlan.source.type === 'static' ? wordPlan.source.entry.id : undefined);
+  rememberRoundWord(
+    generatedWord.word,
+    {
+      categoryIds: [wordPlan.source.categoryId],
+      languageId: input.languageId,
+      languageName: input.languageName,
+    },
+    wordPlan.source.type === 'static' ? wordPlan.source.entry.id : undefined
+  );
 
   return round;
 }
