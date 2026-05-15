@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
 import {
   Animated as RNAnimated,
+  Alert,
+  Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text as RNText,
   View,
 } from 'react-native';
+import * as StoreReview from 'expo-store-review';
 
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -33,9 +37,14 @@ const CHEVRON_ICON: MaterialIconName = 'chevron-right';
 const IMPOSTERS_ICON: MaterialIconName = 'groups';
 const HINT_ICON: MaterialIconName = 'tips-and-updates';
 const TIMER_ICON: MaterialIconName = 'timer';
+const SHARE_ICON: MaterialIconName = 'share';
+const REVIEW_ICON: MaterialIconName = 'rate-review';
 const CHECK_ICON: MaterialIconName = 'check';
 const DROPDOWN_OPEN_ICON: MaterialIconName = 'keyboard-arrow-up';
 const DROPDOWN_CLOSED_ICON: MaterialIconName = 'keyboard-arrow-down';
+const APP_NAME = 'IMPOSTER';
+const SHARE_MESSAGE =
+  'Play IMPOSTER with friends - a pass-and-play party word game where one player tries to blend in.';
 const IMPOSTER_COUNT_OPTIONS: ImposterCount[] = [1, 2];
 const IMPOSTER_COUNT_OPTION_WIDTH = 38;
 const IMPOSTER_COUNT_SWITCH_GAP = Spacing.xs;
@@ -97,6 +106,40 @@ export default function SettingsScreen() {
   const updateRoundTimer = (nextRoundTimerMinutes: RoundTimerSetting) => {
     updateSetupPreferences({ roundTimerMinutes: nextRoundTimerMinutes });
     setIsTimerDropdownOpen(false);
+  };
+
+  const shareWithFriends = async () => {
+    try {
+      await Share.share({
+        title: APP_NAME,
+        message: SHARE_MESSAGE,
+      });
+    } catch {
+      Alert.alert('Sharing unavailable', 'Try sharing IMPOSTER again from this device.');
+    }
+  };
+
+  const writeReview = async () => {
+    try {
+      if (await StoreReview.hasAction()) {
+        await StoreReview.requestReview();
+        return;
+      }
+
+      const storeUrl = StoreReview.storeUrl();
+
+      if (storeUrl) {
+        await Linking.openURL(storeUrl);
+        return;
+      }
+
+      Alert.alert(
+        'Reviews unavailable',
+        'Store review links can be added once IMPOSTER is published.'
+      );
+    } catch {
+      Alert.alert('Reviews unavailable', 'Try opening the app store again from this device.');
+    }
   };
 
   return (
@@ -312,6 +355,56 @@ export default function SettingsScreen() {
             })}
           </View>
         ) : null}
+
+        <View style={styles.actionSection}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Share IMPOSTER with friends"
+            onPress={shareWithFriends}
+            style={({ pressed }) => [styles.settingRow, pressed && styles.settingRowPressed]}>
+            <View style={styles.settingIconBadge}>
+              <MaterialIcons name={SHARE_ICON} size={22} color={Colors.primary} />
+            </View>
+            <View style={styles.settingTextGroup}>
+              <Text variant="bodyEmphasis" numberOfLines={1} style={styles.settingLabel}>
+                Share with friends
+              </Text>
+              <Text
+                variant="bodySmall"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+                style={styles.settingValue}>
+                Invite your group to play
+              </Text>
+            </View>
+            <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Write a review for IMPOSTER"
+            onPress={writeReview}
+            style={({ pressed }) => [styles.settingRow, pressed && styles.settingRowPressed]}>
+            <View style={styles.settingIconBadge}>
+              <MaterialIcons name={REVIEW_ICON} size={22} color={Colors.primary} />
+            </View>
+            <View style={styles.settingTextGroup}>
+              <Text variant="bodyEmphasis" numberOfLines={1} style={styles.settingLabel}>
+                Write a review
+              </Text>
+              <Text
+                variant="bodySmall"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+                style={styles.settingValue}>
+                Rate IMPOSTER in the store
+              </Text>
+            </View>
+            <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
+          </Pressable>
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -374,6 +467,12 @@ const styles = StyleSheet.create({
   },
   settingRowOpen: {
     borderColor: Colors.redBorder,
+  },
+  actionSection: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    marginTop: Spacing.lg,
   },
   settingIconBadge: {
     width: 42,
