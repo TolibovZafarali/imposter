@@ -76,6 +76,9 @@ const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
+const PLAYER_GRID_GAP = Spacing.sm;
+const PLAYERS_SECTION_PADDING = Spacing.xl;
+const PLAYERS_GRID_EDGE_OFFSET = PLAYERS_SECTION_PADDING - PLAYER_GRID_GAP;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 const PLAYER_TILE_ENTER_DURATION = Transitions.slow;
@@ -167,6 +170,7 @@ export default function HomeScreen() {
   const { selectedLanguage } = useLanguageSettings();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
+  const [playersGridWidth, setPlayersGridWidth] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
@@ -187,6 +191,8 @@ export default function HomeScreen() {
       DIFFICULTY_SWITCH_GAP * (DIFFICULTY_OPTIONS.length - 1)) /
       DIFFICULTY_OPTIONS.length
   );
+  const playerTileWidth =
+    playersGridWidth > 0 ? Math.max(0, (playersGridWidth - PLAYER_GRID_GAP * 2) / 3) : undefined;
 
   useEffect(() => {
     const selectedDifficultyIndex = Math.max(
@@ -347,10 +353,24 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}>
-        <View style={styles.brand}>
-          <Text variant="display" align="center" style={styles.title}>
-            IMPOSTER
-          </Text>
+        <View style={styles.topBar}>
+          <View style={styles.topBarSide} />
+          <View style={styles.brand}>
+            <Text variant="display" align="center" style={styles.title}>
+              IMPOSTER
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Change language, current language ${selectedLanguage.name}`}
+            hitSlop={8}
+            onPress={() => router.push('/choose-language')}
+            style={({ pressed }) => [
+              styles.languageIconButton,
+              pressed && styles.iconButtonPressed,
+            ]}>
+            <MaterialIcons name={LANGUAGE_ICON} size={24} color={Colors.text} />
+          </Pressable>
         </View>
 
         <Card variant="flat" style={[styles.setupBox, styles.playersBox]}>
@@ -382,7 +402,14 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.playersGrid}>
+          <View
+            onLayout={(event) => {
+              const nextWidth = event.nativeEvent.layout.width;
+              setPlayersGridWidth((currentWidth) =>
+                currentWidth === nextWidth ? currentWidth : nextWidth
+              );
+            }}
+            style={styles.playersGrid}>
             {players.map((player, index) => {
               const isEditing = editingPlayerId === player.id;
               const canRemovePlayer = index >= 3;
@@ -393,7 +420,7 @@ export default function HomeScreen() {
                   entering={playerTileEntering}
                   exiting={playerTileExiting}
                   layout={playerTileLayoutTransition}
-                  style={styles.playerTile}>
+                  style={[styles.playerTile, playerTileWidth ? { width: playerTileWidth } : null]}>
                   {canRemovePlayer ? (
                     <Pressable
                       accessibilityRole="button"
@@ -421,7 +448,7 @@ export default function HomeScreen() {
                   </Pressable>
 
                   <View style={styles.personBadge}>
-                    <MaterialIcons name={PLAYER_ICON} size={34} color={Colors.text} />
+                    <MaterialIcons name={PLAYER_ICON} size={30} color={Colors.text} />
                   </View>
 
                   <View style={styles.playerNameRow}>
@@ -445,7 +472,7 @@ export default function HomeScreen() {
                         variant="bodyEmphasis"
                         align="center"
                         adjustsFontSizeToFit
-                        minimumFontScale={0.9}
+                        minimumFontScale={0.72}
                         numberOfLines={1}
                         style={styles.playerName}>
                         {player.name}
@@ -602,40 +629,6 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        <Card variant="flat" style={[styles.setupBox, styles.languageSummaryBox]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Change language, current language ${selectedLanguage.name}`}
-            onPress={() => router.push('/choose-language')}
-            style={({ pressed }) => [
-              styles.languageSummaryRow,
-              pressed && styles.languageSummaryPressed,
-            ]}>
-            <View style={styles.languageInlineText}>
-              <Text
-                variant="heading"
-                color="primary"
-                numberOfLines={1}
-                style={styles.languageTitle}>
-                Language
-              </Text>
-            </View>
-            <View style={styles.languageActionGroup}>
-              <Text
-                variant="bodyEmphasis"
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-                numberOfLines={1}
-                style={styles.selectedLanguageText}>
-                {selectedLanguage.name}
-              </Text>
-              <View style={styles.languageIconButton}>
-                <MaterialIcons name={LANGUAGE_ICON} size={22} color={Colors.text} />
-              </View>
-            </View>
-          </Pressable>
-        </Card>
-
         <View style={styles.startActions}>
           {roundGenerationError ? (
             <Text
@@ -687,9 +680,22 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxxl,
     gap: Spacing.xl,
   },
-  brand: {
+  topBar: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  topBarSide: {
+    width: 44,
+    height: 44,
+  },
+  brand: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     letterSpacing: 0,
@@ -702,6 +708,7 @@ const styles = StyleSheet.create({
   },
   playersBox: {
     gap: Spacing.md,
+    padding: PLAYERS_SECTION_PADDING,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -723,25 +730,26 @@ const styles = StyleSheet.create({
   playersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: PLAYER_GRID_GAP,
+    marginHorizontal: -PLAYERS_GRID_EDGE_OFFSET,
   },
   playerTile: {
-    width: '47.9%',
+    width: '31.4%',
     minHeight: 128,
-    minWidth: 132,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs + 2,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
     backgroundColor: 'rgba(250, 247, 242, 0.05)',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.sm,
   },
   personBadge: {
-    width: 58,
-    height: 58,
+    width: 50,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
@@ -749,10 +757,10 @@ const styles = StyleSheet.create({
   },
   playerNameRow: {
     alignSelf: 'stretch',
-    height: 30,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
   playerName: {
     alignSelf: 'stretch',
@@ -764,7 +772,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     height: 24,
     lineHeight: 24,
-    minWidth: 72,
+    minWidth: 0,
     padding: 0,
     margin: 0,
     color: Colors.text,
@@ -922,53 +930,14 @@ const styles = StyleSheet.create({
   categoryLabelSelected: {
     color: Colors.textOnPrimary,
   },
-  languageSummaryBox: {
-    paddingVertical: Spacing.lg,
-  },
-  languageSummaryRow: {
-    width: '100%',
-    minHeight: 44,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.lg,
-  },
-  languageSummaryPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }],
-  },
-  languageInlineText: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-  },
-  languageTitle: {
-    flexShrink: 0,
-    includeFontPadding: false,
-  },
-  languageActionGroup: {
-    flexShrink: 0,
-    maxWidth: '62%',
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  selectedLanguageText: {
-    flexShrink: 1,
-    minWidth: 0,
-    color: Colors.text,
-    includeFontPadding: false,
-  },
   languageIconButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: Radii.pill,
     backgroundColor: 'rgba(250, 247, 242, 0.08)',
   },

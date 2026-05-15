@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
@@ -8,22 +8,37 @@ export type ScreenProps = ViewProps & {
   padded?: boolean;
   /** Apply safe-area insets. Defaults to true. */
   safe?: boolean;
+  /** Safe-area edges to honor. Defaults to top and horizontal edges. */
+  edges?: Edge[];
 };
 
+const DEFAULT_SAFE_EDGES: Edge[] = ['top', 'left', 'right'];
+
 export function Screen({
+  edges = DEFAULT_SAFE_EDGES,
   padded = true,
   safe = true,
   style,
   children,
   ...rest
 }: ScreenProps) {
-  const Container = safe ? SafeAreaView : View;
+  if (safe) {
+    return (
+      <SafeAreaView
+        edges={edges}
+        style={[styles.root, padded && styles.padded, style]}
+        {...rest}>
+        {children}
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <Container
+    <View
       style={[styles.root, padded && styles.padded, style]}
       {...rest}>
       {children}
-    </Container>
+    </View>
   );
 }
 
