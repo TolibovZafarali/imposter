@@ -6,14 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/imposter-icon.png",
     "scheme": "impostergame",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#171717",
+        "backgroundColor": "#F7F8FB",
         "foregroundImage": "./assets/images/imposter-logo.png"
       },
       "edgeToEdgeEnabled": true,
@@ -31,9 +31,9 @@
           "image": "./assets/images/imposter-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#171717",
+          "backgroundColor": "#F7F8FB",
           "dark": {
-            "backgroundColor": "#171717"
+            "backgroundColor": "#F7F8FB"
           }
         }
       ]

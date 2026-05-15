@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
-    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surfacePressed,
   },
   playerNameRow: {
     flex: 1,
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary,
     borderRadius: Radii.sm,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surfaceRaised,
     paddingHorizontal: Spacing.sm,
   },
   playerActions: {
@@ -893,10 +893,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(182, 25, 46, 0.14)',
+    backgroundColor: Colors.redSurface,
   },
   addPlayerButtonDisabled: {
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surface,
     opacity: 0.64,
   },
   editButton: {
@@ -905,7 +905,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(182, 25, 46, 0.14)',
+    backgroundColor: Colors.redSurface,
   },
   removeButton: {
     width: 36,
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surface,
   },
   iconButtonPressed: {
     opacity: 0.72,
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs + 2,
     borderWidth: 1,
-    borderColor: 'rgba(250, 247, 242, 0.28)',
+    borderColor: Colors.border,
     borderStyle: 'dashed',
     borderRadius: Radii.pill,
     backgroundColor: 'transparent',
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
   randomCategoryButtonSelected: {
     borderColor: Colors.primary,
     borderStyle: 'solid',
-    backgroundColor: 'rgba(182, 25, 46, 0.16)',
+    backgroundColor: Colors.redSurfaceStrong,
   },
   randomCategoryButtonPressed: {
     opacity: 0.86,
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -2 }],
   },
   randomCategoryLabelSelected: {
-    color: Colors.text,
+    color: Colors.primary,
   },
   difficultyToggle: {
     minHeight: 46,
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    backgroundColor: Colors.surface,
     padding: DIFFICULTY_SWITCH_PADDING,
   },
   difficultyIndicator: {
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs + 2,
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    backgroundColor: Colors.surface,
     paddingVertical: Spacing.sm + 1,
     paddingHorizontal: Spacing.sm + 2,
   },
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surface,
   },
   startActions: {
     width: '100%',

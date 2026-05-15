@@ -12,8 +12,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AnimatedImposterLogo } from '@/components/splash/AnimatedImposterLogo';
+import { Colors } from '@/constants/theme';
 
-const SPLASH_BACKGROUND = '#171717';
 const LOGO_SIZE = 220;
 const ENTER_MS = 260;
 const GLANCE_DELAY_MS = 300;
@@ -77,7 +77,7 @@ export function SplashGate() {
 
   return (
     <Animated.View style={[styles.overlay, overlayStyle]}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <AnimatedImposterLogo
         size={LOGO_SIZE}
         introProgress={introProgress}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SPLASH_BACKGROUND,
+    backgroundColor: Colors.background,
     zIndex: 100,
   },
 });

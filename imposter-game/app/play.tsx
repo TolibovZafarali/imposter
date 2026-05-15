@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 2,
     borderColor: Colors.border,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surfaceRaised,
     ...Shadows.lg,
   },
   timerRingDone: {
-    borderColor: 'rgba(255, 116, 132, 0.62)',
-    backgroundColor: 'rgba(182, 25, 46, 0.22)',
+    borderColor: Colors.redBorder,
+    backgroundColor: Colors.redSurfaceStrong,
   },
   timerText: {
     letterSpacing: 0,

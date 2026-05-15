@@ -325,14 +325,14 @@ const styles = StyleSheet.create({
     ...Shadows.lg,
   },
   cardFront: {
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surfaceRaised,
   },
   cardBack: {
-    backgroundColor: 'rgba(250, 247, 242, 0.1)',
+    backgroundColor: Colors.surfaceRaised,
   },
   imposterBack: {
-    backgroundColor: 'rgba(182, 25, 46, 0.28)',
-    borderColor: 'rgba(255, 116, 132, 0.62)',
+    backgroundColor: Colors.redSurfaceStrong,
+    borderColor: Colors.redBorder,
   },
   frontIcon: {
     width: 92,
@@ -340,13 +340,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.1)',
+    backgroundColor: Colors.surface,
   },
   frontTitle: {
     letterSpacing: 0,
   },
   imposterTitle: {
-    color: '#FF7A8A',
+    color: Colors.primary,
     letterSpacing: 0,
   },
   hintWord: {

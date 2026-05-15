@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surface,
   },
   iconButtonPressed: {
     opacity: 0.72,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.06)',
+    backgroundColor: Colors.surfaceRaised,
     paddingLeft: Spacing.lg,
     paddingRight: Spacing.sm,
     marginBottom: Spacing.lg,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(250, 247, 242, 0.08)',
+    backgroundColor: Colors.surface,
   },
   listContent: {
     width: '100%',
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
-    backgroundColor: 'rgba(250, 247, 242, 0.05)',
+    backgroundColor: Colors.surfaceRaised,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
   },
   languageRowSelected: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(182, 25, 46, 0.16)',
+    backgroundColor: Colors.redSurfaceStrong,
   },
   languageRowPressed: {
     opacity: 0.82,

@@ -1,25 +1,31 @@
 import { Platform, StyleSheet } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Colors — locked dark-first palette.
+// Colors — locked bright palette.
 // ---------------------------------------------------------------------------
 
 export const Colors = {
-  background: '#171717',
-  text: '#FAF7F2',
+  background: '#F7F8FB',
+  text: '#1C1B1F',
   primary: '#B6192E',
-  secondary: '#FAF7F2',
+  secondary: '#FFFFFF',
   accent: '#B6192E',
-  card: 'rgba(250, 247, 242, 0.06)',
-  muted: 'rgba(250, 247, 242, 0.68)',
-  border: 'rgba(250, 247, 242, 0.14)',
+  card: '#FFFFFF',
+  surface: '#F0F3F8',
+  surfaceRaised: '#FFFFFF',
+  surfacePressed: '#E4E9F1',
+  redSurface: 'rgba(182, 25, 46, 0.10)',
+  redSurfaceStrong: 'rgba(182, 25, 46, 0.16)',
+  redBorder: 'rgba(182, 25, 46, 0.36)',
+  muted: 'rgba(28, 27, 31, 0.62)',
+  border: 'rgba(28, 27, 31, 0.12)',
 
-  textInverse: '#171717',
-  textOnPrimary: '#FAF7F2',
-  textOnSecondary: '#171717',
-  textOnAccent: '#FAF7F2',
-  shadow: '#000000',
-  overlay: 'rgba(0, 0, 0, 0.58)',
+  textInverse: '#FFFFFF',
+  textOnPrimary: '#FFFFFF',
+  textOnSecondary: '#1C1B1F',
+  textOnAccent: '#FFFFFF',
+  shadow: '#111827',
+  overlay: 'rgba(17, 24, 39, 0.44)',
 } as const;
 
 // Templated screens read `Colors.light` / `Colors.dark`; route both to the

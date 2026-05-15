@@ -8,6 +8,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
@@ -25,7 +26,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const NavigationTheme: Theme = {
   ...DefaultTheme,
-  dark: true,
+  dark: false,
   colors: {
     ...DefaultTheme.colors,
     background: Colors.background,
@@ -50,6 +51,10 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
   const [nativeSplashHidden, setNativeSplashHidden] = useState(false);
+
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(Colors.background).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,7 +89,7 @@ export default function RootLayout() {
               <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
               <Stack.Screen name="play" options={{ gestureEnabled: false }} />
             </Stack>
-            <StatusBar style="light" />
+            <StatusBar style="dark" />
             <SplashGate />
           </View>
         </GameProvider>
