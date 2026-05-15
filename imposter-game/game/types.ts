@@ -6,6 +6,9 @@ export type Player = {
 };
 
 export type Role = 'regular' | 'imposter';
+export type ImposterCount = 1 | 2;
+export type RoundTimerMinutes = 1 | 2 | 3 | 5 | 10;
+export type RoundTimerSetting = RoundTimerMinutes | null;
 
 export type GamePhase = 'setup' | 'reveal' | 'playing';
 
@@ -21,6 +24,8 @@ export type RoundConfig = {
   difficulty: WordDifficulty;
   languageId: string;
   languageName: string;
+  imposterCount: ImposterCount;
+  roundTimerMinutes: RoundTimerSetting;
 };
 
 export type Round = {
@@ -29,6 +34,7 @@ export type Round = {
   cards: RoundCard[];
   secretWord: string;
   imposterHint: string;
+  imposterPlayerIds: string[];
   imposterPlayerId: string;
   firstSpeakerId: string;
   config: RoundConfig;

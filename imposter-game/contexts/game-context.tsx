@@ -1,13 +1,20 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
 
 import type { WordDifficulty } from '@/data/wordBank';
-import type { GamePhase, Player, Round } from '@/game/types';
+import {
+  clampImposterCount,
+  DEFAULT_IMPOSTER_COUNT,
+  DEFAULT_ROUND_TIMER_MINUTES,
+} from '@/game/setupRules';
+import type { GamePhase, ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
 
 type GameSetupPreferences = {
   players: Player[];
   selectedCategoryIds: string[];
   isRandomCategoryMode: boolean;
   selectedDifficulty: WordDifficulty;
+  imposterCount: ImposterCount;
+  roundTimerMinutes: RoundTimerSetting;
 };
 
 type GameState = {
@@ -49,6 +56,8 @@ const initialState: GameState = {
     selectedCategoryIds: [],
     isRandomCategoryMode: true,
     selectedDifficulty: 'easy',
+    imposterCount: DEFAULT_IMPOSTER_COUNT,
+    roundTimerMinutes: DEFAULT_ROUND_TIMER_MINUTES,
   },
 };
 
@@ -92,7 +101,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         setupPreferences: state.setupPreferences,
       };
 
-    case 'updateSetupPreferences':
+    case 'updateSetupPreferences': {
+      const nextPlayers =
+        action.preferences.players === undefined
+          ? state.setupPreferences.players
+          : action.preferences.players.map((player) => ({ ...player }));
+      const nextImposterCount = clampImposterCount(
+        action.preferences.imposterCount ?? state.setupPreferences.imposterCount,
+        nextPlayers.length
+      );
+
       return {
         ...state,
         setupPreferences: {
@@ -102,12 +120,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             action.preferences.selectedCategoryIds === undefined
               ? state.setupPreferences.selectedCategoryIds
               : [...action.preferences.selectedCategoryIds],
-          players:
-            action.preferences.players === undefined
-              ? state.setupPreferences.players
-              : action.preferences.players.map((player) => ({ ...player })),
+          players: nextPlayers,
+          imposterCount: nextImposterCount,
         },
       };
+    }
 
     default:
       return state;

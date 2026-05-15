@@ -1,4 +1,5 @@
-import type { Player, Round } from '@/game/types';
+import { clampImposterCount, DEFAULT_ROUND_TIMER_MINUTES } from '@/game/setupRules';
+import type { ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
 import type { WordDifficulty } from '@/data/wordBank';
 
 type BuildRoundInput = {
@@ -9,11 +10,27 @@ type BuildRoundInput = {
   languageName: string;
   secretWord: string;
   imposterHint: string;
+  imposterCount?: ImposterCount;
+  roundTimerMinutes?: RoundTimerSetting;
   rng?: () => number;
 };
 
 const getRandomIndex = (itemCount: number, rng: () => number) =>
   Math.min(Math.floor(rng() * itemCount), itemCount - 1);
+
+const selectRandomIndices = (itemCount: number, count: number, rng: () => number) => {
+  const availableIndices = Array.from({ length: itemCount }, (_, index) => index);
+  const selectedIndices: number[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const availableIndex = getRandomIndex(availableIndices.length, rng);
+    const [selectedIndex] = availableIndices.splice(availableIndex, 1);
+
+    selectedIndices.push(selectedIndex);
+  }
+
+  return selectedIndices;
+};
 
 export function buildRound({
   players,
@@ -23,18 +40,23 @@ export function buildRound({
   languageName,
   secretWord,
   imposterHint,
+  imposterCount,
+  roundTimerMinutes = DEFAULT_ROUND_TIMER_MINUTES,
   rng = Math.random,
 }: BuildRoundInput): Round {
-  const imposterIndex = getRandomIndex(players.length, rng);
+  const selectedImposterCount = clampImposterCount(imposterCount, players.length);
+  const imposterIndices = selectRandomIndices(players.length, selectedImposterCount, rng);
+  const imposterIndexSet = new Set(imposterIndices);
   const firstSpeakerIndex = getRandomIndex(players.length, rng);
-  const imposterPlayer = players[imposterIndex];
+  const imposterPlayers = imposterIndices.map((index) => players[index]);
   const firstSpeaker = players[firstSpeakerIndex];
+  const imposterPlayerIds = imposterPlayers.map((player) => player.id);
 
   return {
-    id: `${Date.now()}-${imposterPlayer.id}`,
+    id: `${Date.now()}-${imposterPlayerIds.join('-')}`,
     players,
     cards: players.map((player, index) => {
-      const isImposter = index === imposterIndex;
+      const isImposter = imposterIndexSet.has(index);
 
       return {
         playerId: player.id,
@@ -45,13 +67,16 @@ export function buildRound({
     }),
     secretWord,
     imposterHint,
-    imposterPlayerId: imposterPlayer.id,
+    imposterPlayerIds,
+    imposterPlayerId: imposterPlayerIds[0],
     firstSpeakerId: firstSpeaker.id,
     config: {
       categoryIds,
       difficulty,
       languageId,
       languageName,
+      imposterCount: selectedImposterCount,
+      roundTimerMinutes,
     },
   };
 }

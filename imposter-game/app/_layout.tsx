@@ -85,6 +85,7 @@ export default function RootLayout() {
           <View style={styles.root}>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="settings" options={{ animation: 'slide_from_left' }} />
               <Stack.Screen name="choose-language" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
               <Stack.Screen name="play" options={{ gestureEnabled: false }} />

@@ -79,6 +79,7 @@ const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
 const RANDOM_CATEGORY_ICON: MaterialIconName = 'casino';
 const AI_GENERATED_CATEGORY_ICON: MaterialIconName = 'auto-awesome';
+const SETTINGS_ICON: MaterialIconName = 'settings';
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
@@ -247,6 +248,8 @@ export default function HomeScreen() {
     selectedCategoryIds,
     isRandomCategoryMode,
     selectedDifficulty,
+    imposterCount,
+    roundTimerMinutes,
   } = setupPreferences;
 
   const canStartGame =
@@ -451,6 +454,8 @@ export default function HomeScreen() {
         difficulty: selectedDifficulty,
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
+        imposterCount,
+        roundTimerMinutes,
       });
 
       updateSetupPreferences({ players: roundPlayers });
@@ -481,7 +486,17 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}>
         <View style={styles.topBar}>
-          <View style={styles.topBarSide} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+            hitSlop={8}
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [
+              styles.topIconButton,
+              pressed && styles.iconButtonPressed,
+            ]}>
+            <MaterialIcons name={SETTINGS_ICON} size={23} color={Colors.text} />
+          </Pressable>
           <View style={styles.brand}>
             <Text variant="display" align="center" style={styles.title}>
               IMPOSTER
@@ -493,7 +508,7 @@ export default function HomeScreen() {
             hitSlop={8}
             onPress={() => router.push('/choose-language')}
             style={({ pressed }) => [
-              styles.languageIconButton,
+              styles.topIconButton,
               pressed && styles.iconButtonPressed,
             ]}>
             <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
@@ -852,10 +867,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
-  topBarSide: {
-    width: 44,
-    height: 44,
-  },
   brand: {
     flex: 1,
     minWidth: 0,
@@ -1130,7 +1141,7 @@ const styles = StyleSheet.create({
   categoryLabelSelected: {
     color: Colors.textOnPrimary,
   },
-  languageIconButton: {
+  topIconButton: {
     width: 44,
     height: 44,
     flexShrink: 0,

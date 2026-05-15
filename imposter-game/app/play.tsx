@@ -9,8 +9,6 @@ import { Text } from '@/components/ui/text';
 import { Colors, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 
-const GAME_DURATION_SECONDS = 180;
-
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
@@ -21,14 +19,20 @@ const formatTime = (seconds: number) => {
 export default function PlayScreen() {
   const router = useRouter();
   const { state, resetGame } = useGame();
-  const [remainingSeconds, setRemainingSeconds] = useState(GAME_DURATION_SECONDS);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [hasTimerStarted, setHasTimerStarted] = useState(false);
   const round = state.round;
+  const roundDurationSeconds = round?.config.roundTimerMinutes
+    ? round.config.roundTimerMinutes * 60
+    : null;
+  const isTimerEnabled = roundDurationSeconds !== null;
 
   const firstSpeaker = useMemo(
     () => round?.players.find((player) => player.id === round.firstSpeakerId) ?? null,
     [round]
   );
-  const isTimeUp = remainingSeconds === 0;
+  const isTimeUp = isTimerEnabled && hasTimerStarted && remainingSeconds === 0;
+  const timerDisplaySeconds = hasTimerStarted ? remainingSeconds : roundDurationSeconds ?? 0;
 
   useEffect(() => {
     if (!round || state.phase !== 'playing') {
@@ -37,11 +41,14 @@ export default function PlayScreen() {
   }, [round, router, state.phase]);
 
   useEffect(() => {
-    if (!round || state.phase !== 'playing') {
+    if (!round || state.phase !== 'playing' || roundDurationSeconds === null) {
+      setRemainingSeconds(0);
+      setHasTimerStarted(false);
       return;
     }
 
-    setRemainingSeconds(GAME_DURATION_SECONDS);
+    setRemainingSeconds(roundDurationSeconds);
+    setHasTimerStarted(true);
 
     const timerId = setInterval(() => {
       setRemainingSeconds((currentSeconds) => {
@@ -55,7 +62,7 @@ export default function PlayScreen() {
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [round, state.phase]);
+  }, [round, roundDurationSeconds, state.phase]);
 
   const returnToSetup = () => {
     resetGame();
@@ -69,17 +76,19 @@ export default function PlayScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.content}>
-        <View style={[styles.timerRing, isTimeUp && styles.timerRingDone]}>
-          <Text
-            variant="display"
-            align="center"
-            adjustsFontSizeToFit
-            minimumFontScale={0.78}
-            numberOfLines={1}
-            style={styles.timerText}>
-            {formatTime(remainingSeconds)}
-          </Text>
-        </View>
+        {isTimerEnabled ? (
+          <View style={[styles.timerRing, isTimeUp && styles.timerRingDone]}>
+            <Text
+              variant="display"
+              align="center"
+              adjustsFontSizeToFit
+              minimumFontScale={0.78}
+              numberOfLines={1}
+              style={styles.timerText}>
+              {formatTime(timerDisplaySeconds)}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.statusBlock}>
           <Text variant="bodyEmphasis" align="center" color={isTimeUp ? 'primary' : 'muted'}>
@@ -97,7 +106,9 @@ export default function PlayScreen() {
           <Text variant="body" align="center" color="muted" style={styles.statusText}>
             {isTimeUp
               ? 'Move to voting when the next phase is ready.'
-              : 'starts with a similar word.'}
+              : isTimerEnabled
+                ? 'starts with a similar word.'
+                : 'starts with a similar word. Vote when the group is ready.'}
           </Text>
         </View>
       </View>

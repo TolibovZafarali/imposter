@@ -1,5 +1,5 @@
 import { buildRound } from '@/game/round';
-import type { Player, Round } from '@/game/types';
+import type { ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
 import {
   CATEGORY_LABELS,
   hasPlayableCelebrityAnswer,
@@ -25,6 +25,8 @@ export type RoundGeneratorInput = {
   difficulty: WordDifficulty;
   languageId: string;
   languageName: string;
+  imposterCount?: ImposterCount;
+  roundTimerMinutes?: RoundTimerSetting;
   rng?: () => number;
 };
 
@@ -269,6 +271,8 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
     languageName: input.languageName,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
+    imposterCount: input.imposterCount,
+    roundTimerMinutes: input.roundTimerMinutes,
   });
 
   rememberRoundWord(generatedWord.word, {
@@ -321,6 +325,8 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     languageName: input.languageName,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
+    imposterCount: input.imposterCount,
+    roundTimerMinutes: input.roundTimerMinutes,
     rng: input.rng,
   });
 
