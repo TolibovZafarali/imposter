@@ -95,6 +95,58 @@ const PLAYER_TILE_EXIT_DURATION = Transitions.base;
 const PLAYER_TILE_MOTION_OFFSET = 8;
 const PLAYER_TILE_ENTER_SCALE = 0.96;
 const PLAYER_TILE_EXIT_SCALE = 0.97;
+const PLAYER_ICON_SWATCHES = [
+  {
+    foreground: '#0B5CFF',
+    background: 'rgba(11, 92, 255, 0.12)',
+    border: 'rgba(11, 92, 255, 0.24)',
+  },
+  {
+    foreground: '#00A88F',
+    background: 'rgba(0, 168, 143, 0.13)',
+    border: 'rgba(0, 168, 143, 0.24)',
+  },
+  {
+    foreground: '#FF4F31',
+    background: 'rgba(255, 79, 49, 0.13)',
+    border: 'rgba(255, 79, 49, 0.25)',
+  },
+  {
+    foreground: '#7B4DFF',
+    background: 'rgba(123, 77, 255, 0.13)',
+    border: 'rgba(123, 77, 255, 0.24)',
+  },
+  {
+    foreground: '#D61F69',
+    background: 'rgba(214, 31, 105, 0.12)',
+    border: 'rgba(214, 31, 105, 0.23)',
+  },
+  {
+    foreground: '#F97316',
+    background: 'rgba(249, 115, 22, 0.13)',
+    border: 'rgba(249, 115, 22, 0.24)',
+  },
+  {
+    foreground: '#0086C9',
+    background: 'rgba(0, 134, 201, 0.12)',
+    border: 'rgba(0, 134, 201, 0.23)',
+  },
+  {
+    foreground: '#10A34A',
+    background: 'rgba(16, 163, 74, 0.12)',
+    border: 'rgba(16, 163, 74, 0.23)',
+  },
+  {
+    foreground: '#C026D3',
+    background: 'rgba(192, 38, 211, 0.12)',
+    border: 'rgba(192, 38, 211, 0.23)',
+  },
+  {
+    foreground: '#E11D48',
+    background: 'rgba(225, 29, 72, 0.12)',
+    border: 'rgba(225, 29, 72, 0.23)',
+  },
+] as const;
 
 const playerTileEasing = ReanimatedEasing.bezier(...Transitions.easing);
 const playerTileLayoutTransition = LinearTransition.duration(PLAYER_TILE_ENTER_DURATION).easing(
@@ -483,6 +535,7 @@ export default function HomeScreen() {
             {players.map((player, index) => {
               const isEditing = editingPlayerId === player.id;
               const canRemovePlayer = index >= 3;
+              const playerIconSwatch = PLAYER_ICON_SWATCHES[index % PLAYER_ICON_SWATCHES.length];
 
               return (
                 <Animated.View
@@ -491,8 +544,19 @@ export default function HomeScreen() {
                   exiting={playerTileExiting}
                   layout={playerTileLayoutTransition}
                   style={styles.playerTile}>
-                  <View style={styles.personBadge}>
-                    <MaterialIcons name={PLAYER_ICON} size={24} color={Colors.text} />
+                  <View
+                    style={[
+                      styles.personBadge,
+                      {
+                        backgroundColor: playerIconSwatch.background,
+                        borderColor: playerIconSwatch.border,
+                      },
+                    ]}>
+                    <MaterialIcons
+                      name={PLAYER_ICON}
+                      size={24}
+                      color={playerIconSwatch.foreground}
+                    />
                   </View>
 
                   <View style={styles.playerNameRow}>
@@ -851,6 +915,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
     borderRadius: Radii.pill,
     backgroundColor: Colors.surfacePressed,
   },
