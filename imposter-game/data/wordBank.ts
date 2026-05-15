@@ -16,6 +16,7 @@ export type StaticCategoryId =
   | 'sports'
 
 export type DynamicCategoryId = 'movies' | 'celebrities';
+export type CategoryId = StaticCategoryId | DynamicCategoryId;
 
 export type EnglishWordEntry = {
   id: string;
@@ -64,6 +65,9 @@ export const DYNAMIC_CATEGORY_IDS = [
   'movies',
   'celebrities',
 ] as const satisfies readonly DynamicCategoryId[];
+
+const RANDOM_STATIC_CATEGORY_WEIGHT = 2;
+const RANDOM_DYNAMIC_CATEGORY_WEIGHT = 1;
 
 export const CATEGORY_LABELS = {
   activities: 'Activities',
@@ -167,6 +171,54 @@ export const isDynamicCategoryId = (categoryId: string): categoryId is DynamicCa
 
 const getRandomIndex = (itemCount: number, rng: () => number) =>
   Math.min(Math.floor(rng() * itemCount), itemCount - 1);
+
+const getRandomCategoryWeight = (categoryId: string) =>
+  isDynamicCategoryId(categoryId) ? RANDOM_DYNAMIC_CATEGORY_WEIGHT : RANDOM_STATIC_CATEGORY_WEIGHT;
+
+const getWeightedRandomIndex = (weights: readonly number[], rng: () => number) => {
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+
+  if (totalWeight <= 0) {
+    return getRandomIndex(weights.length, rng);
+  }
+
+  let cursor = rng() * totalWeight;
+
+  for (let index = 0; index < weights.length; index += 1) {
+    cursor -= weights[index];
+
+    if (cursor < 0) {
+      return index;
+    }
+  }
+
+  return weights.length - 1;
+};
+
+export function selectRandomCategoryIds({
+  categoryIds,
+  count,
+  rng = Math.random,
+}: {
+  categoryIds: readonly string[];
+  count: number;
+  rng?: () => number;
+}) {
+  const availableCategoryIds = [...categoryIds];
+  const selectedCategoryIds: string[] = [];
+
+  while (selectedCategoryIds.length < count && availableCategoryIds.length > 0) {
+    const selectedIndex = getWeightedRandomIndex(
+      availableCategoryIds.map(getRandomCategoryWeight),
+      rng
+    );
+    const [selectedCategoryId] = availableCategoryIds.splice(selectedIndex, 1);
+
+    selectedCategoryIds.push(selectedCategoryId);
+  }
+
+  return selectedCategoryIds;
+}
 
 const isPlayedEntry = (
   entry: EnglishWordEntry,

@@ -6,10 +6,22 @@ import {
   ENGLISH_WORD_BANK,
   ENGLISH_WORD_BANK_BY_CATEGORY,
   STATIC_CATEGORY_IDS,
+  chooseRoundCategory,
   hasPlayableCelebrityAnswer,
   resolveRoundWordPlan,
+  selectRandomCategoryIds,
   selectStaticWordEntry,
 } from '../data/wordBank.ts';
+
+const createSeededRng = (seed) => {
+  let state = seed >>> 0;
+
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+
+    return state / 0x100000000;
+  };
+};
 
 test('static word bank is populated from replacement categories', () => {
   assert.equal(ENGLISH_WORD_BANK.length, 4324);
@@ -76,6 +88,31 @@ test('round word plan keeps dynamic categories on AI generation', () => {
     assert.equal(plan.source.type, 'ai');
     assert.equal(plan.source.categoryId, categoryId);
   }
+});
+
+test('random category mode downweights movies and celebrities', () => {
+  const categoryIds = [...STATIC_CATEGORY_IDS, ...DYNAMIC_CATEGORY_IDS];
+  const categoryCounts = Object.fromEntries(categoryIds.map((categoryId) => [categoryId, 0]));
+  const rng = createSeededRng(12345);
+  const roundCount = 20000;
+
+  for (let roundIndex = 0; roundIndex < roundCount; roundIndex += 1) {
+    const randomCategoryIds = selectRandomCategoryIds({
+      categoryIds,
+      count: 3,
+      rng,
+    });
+    const selectedCategoryId = chooseRoundCategory(randomCategoryIds, rng);
+
+    categoryCounts[selectedCategoryId] += 1;
+  }
+
+  const averageStaticCount =
+    STATIC_CATEGORY_IDS.reduce((sum, categoryId) => sum + categoryCounts[categoryId], 0) /
+    STATIC_CATEGORY_IDS.length;
+
+  assert.ok(categoryCounts.movies < averageStaticCount * 0.75);
+  assert.ok(categoryCounts.celebrities < averageStaticCount * 0.75);
 });
 
 test('celebrity answer helper rejects incomplete output', () => {

@@ -11,7 +11,7 @@ import { Text } from '@/components/ui/text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
-import type { WordDifficulty } from '@/data/wordBank';
+import { selectRandomCategoryIds, type WordDifficulty } from '@/data/wordBank';
 import type { Player } from '@/game/types';
 import { createRound } from '@/services/roundGenerator';
 
@@ -72,23 +72,11 @@ const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
 const limitPlayerName = (name: string) => name.slice(0, MAX_PLAYER_NAME_LENGTH);
 
 const pickRandomCategoryIds = (rng = Math.random) => {
-  const availableCategoryIds = CATEGORIES.map((category) => category.id);
-  const selectedCategoryIds: string[] = [];
-
-  while (
-    selectedCategoryIds.length < RANDOM_CATEGORY_COUNT &&
-    availableCategoryIds.length > 0
-  ) {
-    const selectedIndex = Math.min(
-      Math.floor(rng() * availableCategoryIds.length),
-      availableCategoryIds.length - 1
-    );
-    const [selectedCategoryId] = availableCategoryIds.splice(selectedIndex, 1);
-
-    selectedCategoryIds.push(selectedCategoryId);
-  }
-
-  return selectedCategoryIds;
+  return selectRandomCategoryIds({
+    categoryIds: CATEGORIES.map((category) => category.id),
+    count: RANDOM_CATEGORY_COUNT,
+    rng,
+  });
 };
 
 export default function HomeScreen() {
