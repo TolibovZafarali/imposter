@@ -2,9 +2,9 @@ import {
   clampImposterCount,
   DEFAULT_IMPOSTER_HINT_ENABLED,
   DEFAULT_ROUND_TIMER_MINUTES,
-} from '@/game/setupRules';
-import type { ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
-import type { WordDifficulty } from '@/data/wordBank';
+} from './setupRules.ts';
+import type { ImposterCount, Player, Round, RoundTimerSetting } from './types.ts';
+import type { WordDifficulty } from '../data/wordBank.ts';
 
 type BuildRoundInput = {
   players: Player[];

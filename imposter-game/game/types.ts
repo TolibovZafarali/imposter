@@ -1,4 +1,4 @@
-import type { WordDifficulty } from '@/data/wordBank';
+import type { WordDifficulty } from '../data/wordBank.ts';
 
 export type Player = {
   id: string;

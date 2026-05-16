@@ -4,11 +4,17 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@4.4.3';
 
 const DEFAULT_MODEL = 'gpt-5.4-mini';
-const GENERATION_ATTEMPTS = 8;
+const MAX_STATIC_PREPARE_ATTEMPTS = 3;
+const MAX_DYNAMIC_GENERATION_ATTEMPTS = 3;
+const MAX_TRANSLATION_ATTEMPTS = 3;
+const MAX_STATIC_FALLBACK_TRANSLATION_ATTEMPTS = 1;
+const CANDIDATE_COUNT = 8;
 const DEFAULT_RATE_LIMIT_PER_HOUR = 60;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 const playedWordSchema = z.string().trim().min(1).max(42);
+
+const createOpenAIClient = (apiKey: string) => new OpenAI({ apiKey });
 
 const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
@@ -55,6 +61,29 @@ const aiWordSchema = z.object({
   clue: z.string(),
 });
 
+const aiWordCandidatesSchema = z.object({
+  word: z.string(),
+  clues: z.array(z.string()).length(CANDIDATE_COUNT),
+});
+
+const clueQualitySchema = z.object({
+  relatedness: z.number().int().min(1).max(5),
+  naturalness: z.number().int().min(1).max(5),
+  revealRisk: z.number().int().min(1).max(5),
+  genericness: z.number().int().min(1).max(5),
+  stretchiness: z.number().int().min(1).max(5),
+  verdict: z.enum(['pass', 'fail']),
+  reason: z.string().trim().min(1).max(160),
+});
+
+const clueQualityJudgmentSchema = clueQualitySchema.extend({
+  clue: z.string().trim().min(1).max(42),
+});
+
+const clueQualityBatchSchema = z.object({
+  judgments: z.array(clueQualityJudgmentSchema).min(1).max(CANDIDATE_COUNT),
+});
+
 const normalizeForCloseness = (value: string) =>
   value
     .normalize('NFD')
@@ -98,7 +127,6 @@ const categoryClueTokens = new Set([
 const genericPlaceClueTokens = new Set([
   'airport',
   'bar',
-  'beach',
   'cafe',
   'class',
   'classroom',
@@ -157,6 +185,45 @@ const blockedGenericClueTokens = new Set([
   ...genericContextClueTokens,
 ]);
 
+const directHypernymClueTokens = new Set([
+  'category',
+  'document',
+  'fruit',
+  'ingredient',
+  'item',
+  'location',
+  'thing',
+]);
+
+const unrelatedFillerClues = new Set([
+  'common',
+  'concept',
+  'edge',
+  'essence',
+  'familiar',
+  'general',
+  'known',
+  'related',
+  'symbol',
+  'talisman',
+]);
+
+const blockedCluePairs = new Set([
+  'banana:fruit',
+  'baby goat:talisman',
+  'desert kangaroo:talisman',
+  'hospital:doctor',
+  'knife:kitchen',
+  'passport:document',
+  'pencil:school',
+  'pizza:cheese',
+  'sunscreen:edge',
+  'sushi:roll',
+]);
+
+const getCluePairKey = (word: string, clue: string) =>
+  `${normalizeForCloseness(word)}:${normalizeForCloseness(clue)}`;
+
 const getClueTokens = (clue: string) =>
   normalizeForCloseness(clue).split(' ').filter(Boolean);
 
@@ -171,8 +238,19 @@ const hasShortPhraseClue = (clue: string) => {
   );
 };
 
-const hasGenericClue = (clue: string) =>
-  getClueTokens(clue).some((token) => blockedGenericClueTokens.has(token));
+const hasGenericClue = (word: string, clue: string) => {
+  const normalizedClue = normalizeForCloseness(clue);
+
+  if (
+    directHypernymClueTokens.has(normalizedClue) ||
+    unrelatedFillerClues.has(normalizedClue) ||
+    blockedCluePairs.has(getCluePairKey(word, clue))
+  ) {
+    return true;
+  }
+
+  return getClueTokens(clue).some((token) => blockedGenericClueTokens.has(token));
+};
 
 const hasLexicallyCloseClue = (word: string, clue: string) => {
   const normalizedWord = normalizeForCloseness(word);
@@ -219,8 +297,8 @@ const responseSchema = z
     message: 'The clue must be one or two clean words',
     path: ['clue'],
   })
-  .refine((value) => !hasGenericClue(value.clue), {
-    message: 'The clue must not be a generic category or common place',
+  .refine((value) => !hasGenericClue(value.word, value.clue), {
+    message: 'The clue must not be generic, unrelated, or an over-direct clue',
     path: ['clue'],
   })
   .refine(
@@ -232,6 +310,9 @@ type RoundWordRequest = z.infer<typeof roundWordRequestSchema>;
 type TranslationWordRequest = z.infer<typeof translationRequestSchema>;
 type StaticWordRequest = z.infer<typeof staticWordRequestSchema>;
 type RoundWordResponse = z.infer<typeof responseSchema>;
+type AiWordCandidatesResponse = z.infer<typeof aiWordCandidatesSchema>;
+type ClueQuality = z.infer<typeof clueQualitySchema>;
+type ClueQualityJudgment = z.infer<typeof clueQualityJudgmentSchema>;
 export type PopularityScope = 'international' | 'local';
 let serverPlayedWordsByContext = new Map<string, string[]>();
 
@@ -340,6 +421,96 @@ const categoryLabel = (categoryId: string) =>
 
 const normalizeGeneratedText = (value: string) => value.trim().replace(/\s+/g, ' ');
 
+// Keep this Deno-safe fallback mirror in sync with imposter-game/services/staticFallback.ts.
+const curatedStaticFallbackClues = new Map([
+  ['sunscreen', 'beach'],
+  ['baby goat', 'bleat'],
+  ['desert kangaroo', 'hopping'],
+  ['passport', 'border'],
+  ['hospital', 'recovery'],
+  ['banana', 'peel'],
+  ['pizza', 'oven'],
+  ['pencil', 'writing'],
+  ['sushi', 'chopsticks'],
+  ['knife', 'sharp'],
+]);
+
+const forbiddenFallbackClues = new Set([
+  'animal',
+  'common',
+  'concept',
+  'document',
+  'edge',
+  'essence',
+  'familiar',
+  'food',
+  'fruit',
+  'general',
+  'item',
+  'known',
+  'object',
+  'place',
+  'related',
+  'symbol',
+  'talisman',
+  'thing',
+]);
+
+const forbiddenFallbackPairs = new Set([
+  'banana:fruit',
+  'hospital:doctor',
+  'knife:kitchen',
+  'passport:document',
+  'pencil:school',
+  'pizza:cheese',
+  'sushi:roll',
+]);
+
+const isSafeStaticFallbackClue = (word: string, clue: string) => {
+  const normalizedWord = normalizeForCloseness(word);
+  const normalizedClue = normalizeForCloseness(clue);
+
+  if (!normalizedWord || !normalizedClue || !hasShortPhraseClue(clue)) {
+    return false;
+  }
+
+  if (normalizedWord === normalizedClue || forbiddenFallbackClues.has(normalizedClue)) {
+    return false;
+  }
+
+  if (forbiddenFallbackPairs.has(`${normalizedWord}:${normalizedClue}`)) {
+    return false;
+  }
+
+  const wordTokens = normalizedWord.split(' ');
+  const clueTokens = normalizedClue.split(' ');
+
+  return !clueTokens.some((clueToken) => clueToken.length >= 4 && wordTokens.includes(clueToken));
+};
+
+const getEnglishStaticFallbackWord = (input: StaticWordRequest): RoundWordResponse | null => {
+  const wordKey = normalizeForCloseness(input.source.word);
+  const curatedClue = curatedStaticFallbackClues.get(wordKey);
+
+  if (curatedClue) {
+    return {
+      word: input.source.word,
+      clue: curatedClue,
+    };
+  }
+
+  const storedClue = normalizeGeneratedText(input.source.storedClue ?? '');
+
+  if (isSafeStaticFallbackClue(input.source.word, storedClue)) {
+    return {
+      word: input.source.word,
+      clue: storedClue,
+    };
+  }
+
+  return null;
+};
+
 const jsonResponse = (body: unknown, status = 200) =>
   Response.json(body, {
     status,
@@ -427,10 +598,11 @@ const difficultyInstructions = {
 
 const distinctiveClueRules = (hasCelebrityCategory = false) => [
   '- The imposter clue must be one or two words.',
-  '- Optimize for a distinctive association, not a generic category or common place.',
-  '- Good clue types include physical properties, uses, behavior, shape or visual links, iconic traits, and cultural associations.',
-  '- Examples of the intended style: globe -> geography, flag -> wind, dough -> elasticity, plate -> moon, Nutella -> spread, knife -> sharp.',
-  '- Avoid weak common-place clues like school, kitchen, office, park, store, restaurant, home, or beach.',
+  '- Optimize for a natural clue that gives the imposter a believable talking angle without directly revealing the answer.',
+  '- Good clues are often cause/effect, use, setting, risk, sensation, material, behavior, or situation related.',
+  '- Good examples: sunscreen -> burn, sunscreen -> beach, flag -> wind, dough -> elasticity, volcano -> pressure, passport -> border, chess -> strategy, desert -> thirst, piano -> rhythm, camera -> memory, library -> silence, hospital -> recovery, detective -> suspicion, umbrella -> forecast, train -> schedule, airport -> departure, jungle -> humidity, diamond -> pressure, prison -> escape, wedding -> promise, castle -> royalty.',
+  '- Bad examples: sunscreen -> edge, baby goat -> talisman, desert kangaroo -> talisman, sushi -> roll, pizza -> cheese, passport -> document, hospital -> doctor, banana -> fruit, pencil -> school, knife -> kitchen.',
+  '- Avoid generic places unless the place is one of the most natural, specific, and useful associations for the exact word; for example, sunscreen -> beach is acceptable, but pencil -> school is too generic.',
   '- Do not use a synonym, translation, direct category, or any meaningful text contained in the answer.',
   '- The clue should help the imposter talk naturally, but should not let regular players guess the answer immediately.',
   hasCelebrityCategory
@@ -462,7 +634,7 @@ export const buildPrompt = (
     `Variety key: ${varietyKey}`,
     `Already played secret words to avoid: ${playedWordList}`,
     '',
-    'Generate one secret word and one imposter clue for this round.',
+    `Generate one secret word and ${CANDIDATE_COUNT} imposter clue candidates for this round.`,
     'Choose a fair, broadly playable answer that casual players can discuss.',
     difficultyInstructions[difficulty],
     '',
@@ -498,7 +670,8 @@ export const buildPrompt = (
     'Output rules:',
     '- Return short answers only.',
     '- Return one secret word or short phrase.',
-    '- Return one clue of one or two words.',
+    `- Return exactly ${CANDIDATE_COUNT} clue candidates in the clues array.`,
+    '- Every clue candidate must be one or two words.',
     '- Both fields must be in the requested language, using the natural script for that language.',
     '- Treat the variety key as a random seed; do not output it.',
     '- Do not output the popularity scope.',
@@ -540,7 +713,7 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
       ? 'If the exact term is uncommon or sounds borrowed, use the closest common everyday term that native speakers recognize, even if it is slightly broader.'
       : null,
     '',
-    'Generate a fresh imposter clue for the selected word.',
+    `Generate ${CANDIDATE_COUNT} fresh imposter clue candidates for the selected word.`,
     'Do not translate, reuse, or lightly rewrite the weak stored clue.',
     'Prefer a clue that feels specific to this word, not a generic place where the word might appear.',
     '',
@@ -552,7 +725,8 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
     shouldTranslateWord
       ? '- Return one translated secret word or short phrase.'
       : '- Return the original source word as the word.',
-    '- Return one fresh clue of one or two words.',
+    `- Return exactly ${CANDIDATE_COUNT} fresh clue candidates in the clues array.`,
+    '- Every clue candidate must be one or two words.',
     '- Both fields must be in the target language, using the natural script for that language.',
     '- Treat the variety key as a random seed; do not output it.',
     '- Do not copy wording from these instructions as the answer.',
@@ -592,6 +766,33 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     .join('\n');
 };
 
+const buildStaticFallbackTranslationPrompt = (
+  input: StaticWordRequest,
+  fallback: RoundWordResponse
+) => {
+  const { languageName, source } = input;
+
+  return [
+    `Target language: ${languageName}`,
+    `English source word: ${source.word}`,
+    `English source category: ${source.categoryLabel}`,
+    source.difficulty ? `English source difficulty: ${source.difficulty}` : null,
+    source.sense ? `English source sense: ${source.sense}` : null,
+    `English fallback clue: ${fallback.clue}`,
+    '',
+    'Translate exactly the English source word and English fallback clue for a pass-and-play Imposter party game.',
+    'Do not generate a new secret word.',
+    'Do not generate a new clue relationship.',
+    'Use the common everyday word a native speaker would naturally say in a casual party game.',
+    'Translate meaning, not spelling, and use the natural script for the target language.',
+    'Never return English text unless it is truly unavoidable in the target language.',
+    'The clue must be one or two simple, common words. No hyphens, slashes, or punctuation-heavy text.',
+    'Return only the translated secret word and translated imposter clue.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+};
+
 export const parseGeneratedWord = (
   value: RoundWordResponse,
   alreadyPlayedWords: readonly string[] = [],
@@ -613,6 +814,240 @@ export const parseGeneratedWord = (
   return parsedWord;
 };
 
+export const isPassingClueQuality = (quality: ClueQuality) =>
+  quality.verdict === 'pass' &&
+  quality.relatedness >= 4 &&
+  quality.naturalness >= 4 &&
+  quality.revealRisk <= 3 &&
+  quality.genericness <= 3 &&
+  quality.stretchiness <= 2;
+
+export const scoreClueQuality = (quality: ClueQuality) =>
+  quality.relatedness * 3 +
+  quality.naturalness * 2 -
+  quality.revealRisk * 2 -
+  quality.genericness -
+  quality.stretchiness * 3;
+
+export const getUniqueClueCandidates = (clues: readonly string[]) => {
+  const seenClues = new Set<string>();
+
+  return clues
+    .map(normalizeGeneratedText)
+    .filter((clue) => {
+      const clueKey = normalizeForCloseness(clue);
+
+      if (!clueKey || seenClues.has(clueKey)) {
+        return false;
+      }
+
+      seenClues.add(clueKey);
+      return true;
+    });
+};
+
+const getClueJudgmentKey = (clue: string) => normalizeForCloseness(clue);
+
+export const parseClueQualityJudgments = (
+  value: unknown,
+  submittedClues: readonly string[]
+): ClueQualityJudgment[] => {
+  const parsed = clueQualityBatchSchema.safeParse(value);
+
+  if (!parsed.success) {
+    throw new Error('OpenAI returned malformed clue quality judgments');
+  }
+
+  if (parsed.data.judgments.length !== submittedClues.length) {
+    throw new Error('OpenAI returned an incomplete clue quality judgment batch');
+  }
+
+  const submittedClueKeys = new Set(submittedClues.map(getClueJudgmentKey).filter(Boolean));
+  const seenJudgmentKeys = new Set<string>();
+
+  for (const judgment of parsed.data.judgments) {
+    const judgmentKey = getClueJudgmentKey(judgment.clue);
+
+    if (!judgmentKey || !submittedClueKeys.has(judgmentKey)) {
+      throw new Error('OpenAI judged a clue that was not submitted');
+    }
+
+    if (seenJudgmentKeys.has(judgmentKey)) {
+      throw new Error('OpenAI returned duplicate clue quality judgments');
+    }
+
+    seenJudgmentKeys.add(judgmentKey);
+  }
+
+  return parsed.data.judgments;
+};
+
+export const buildClueBatchJudgePrompt = ({
+  word,
+  clues,
+  languageName,
+  categoryLabel,
+}: {
+  word: string;
+  clues: readonly string[];
+  languageName: string;
+  categoryLabel: string;
+}) =>
+  [
+    `Language: ${languageName}`,
+    `Category: ${categoryLabel}`,
+    `Secret word: ${word}`,
+    `Candidate clues: ${JSON.stringify(clues)}`,
+    '',
+    'Return one judgment for every submitted candidate clue, using the exact clue string in each judgment.',
+    'Use 1-5 integer scores.',
+    'relatedness: 5 means clearly and naturally connected to the exact word.',
+    'naturalness: 5 means an imposter could easily say something believable from it in the first round.',
+    'revealRisk: 5 means it gives away the answer too directly.',
+    'genericness: 5 means it is only a broad category, generic place, hypernym, ingredient, occupant, or obvious component.',
+    'stretchiness: 5 means the connection needs weird, poetic, niche, or cultural-trivia reasoning.',
+    'Pass only if relatedness >= 4, naturalness >= 4, revealRisk <= 3, genericness <= 3, and stretchiness <= 2.',
+  ].join('\n');
+
+const judgeClueBatchQuality = async ({
+  openai,
+  model,
+  word,
+  clues,
+  languageName,
+  categoryLabel,
+}: {
+  openai: OpenAI;
+  model: string;
+  word: string;
+  clues: readonly string[];
+  languageName: string;
+  categoryLabel: string;
+}): Promise<ClueQualityJudgment[]> => {
+  const response = await openai.responses.parse({
+    model,
+    reasoning: {
+      effort: 'none',
+    },
+    temperature: 0,
+    max_output_tokens: 1200,
+    input: [
+      {
+        role: 'system',
+        content: [
+          'You are a strict clue-quality judge for a pass-and-play Imposter party game.',
+          'Regular players see the secret word. The imposter sees only the clue.',
+          'Score whether the clue is clearly related, natural to talk from, not too revealing, not generic, and not a stretched association.',
+          'Judge all submitted candidates in one batch.',
+          'Return only the requested JSON fields.',
+        ].join(' '),
+      },
+      {
+        role: 'user',
+        content: buildClueBatchJudgePrompt({ word, clues, languageName, categoryLabel }),
+      },
+    ],
+    text: {
+      format: zodTextFormat(clueQualityBatchSchema, 'imposter_clue_quality_batch'),
+    },
+  });
+
+  if (!response.output_parsed) {
+    throw new Error('OpenAI returned no clue quality judgments');
+  }
+
+  return parseClueQualityJudgments(response.output_parsed, clues);
+};
+
+export async function selectBestGeneratedClue({
+  openai,
+  model,
+  candidateWord,
+  alreadyPlayedWords = [],
+  categoryIds = [],
+  languageName,
+  categoryLabel,
+}: {
+  openai: OpenAI;
+  model: string;
+  candidateWord: AiWordCandidatesResponse;
+  alreadyPlayedWords?: readonly string[];
+  categoryIds?: readonly string[];
+  languageName: string;
+  categoryLabel: string;
+}): Promise<RoundWordResponse> {
+  let bestCandidate: { word: string; clue: string; score: number } | null = null;
+  let lastError: unknown;
+  const locallyValidCandidates: RoundWordResponse[] = [];
+
+  for (const clue of getUniqueClueCandidates(candidateWord.clues)) {
+    try {
+      const parsedWord = parseGeneratedWord(
+        {
+          word: candidateWord.word,
+          clue,
+        },
+        alreadyPlayedWords,
+        categoryIds
+      );
+      locallyValidCandidates.push(parsedWord);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!locallyValidCandidates.length) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('OpenAI returned no locally valid clue candidates');
+  }
+
+  const judgments = await judgeClueBatchQuality({
+    openai,
+    model,
+    word: locallyValidCandidates[0].word,
+    clues: locallyValidCandidates.map((candidate) => candidate.clue),
+    languageName,
+    categoryLabel,
+  });
+  const candidatesByClueKey = new Map(
+    locallyValidCandidates.map((candidate) => [getClueJudgmentKey(candidate.clue), candidate])
+  );
+
+  for (const quality of judgments) {
+    if (!isPassingClueQuality(quality)) {
+      lastError = new Error(`Generated clue failed quality judgment: ${quality.reason}`);
+      continue;
+    }
+
+    const parsedWord = candidatesByClueKey.get(getClueJudgmentKey(quality.clue));
+
+    if (!parsedWord) {
+      throw new Error('OpenAI judged a clue that was not submitted');
+    }
+
+    const score = scoreClueQuality(quality);
+
+    if (!bestCandidate || score > bestCandidate.score) {
+      bestCandidate = {
+        ...parsedWord,
+        score,
+      };
+    }
+  }
+
+  if (!bestCandidate) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('OpenAI returned no playable clue candidates');
+  }
+
+  return {
+    word: bestCandidate.word,
+    clue: bestCandidate.clue,
+  };
+}
+
 async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResponse> {
   const openAiApiKey = getEnv('OPENAI_API_KEY');
 
@@ -620,24 +1055,23 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
     throw new Error('OpenAI API key is not configured');
   }
 
-  const openai = new OpenAI({
-    apiKey: openAiApiKey,
-  });
+  const openai = createOpenAIClient(openAiApiKey);
 
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_DYNAMIC_GENERATION_ATTEMPTS; attempt += 1) {
     try {
       const varietyKey = createVarietyKey(attempt);
       const popularityScope = selectPopularityScope(varietyKey);
       const alreadyPlayedWords = getAlreadyPlayedWords(input);
+      const model = getEnv('OPENAI_MODEL') || DEFAULT_MODEL;
       const response = await openai.responses.parse({
-        model: getEnv('OPENAI_MODEL') || DEFAULT_MODEL,
+        model,
         reasoning: {
           effort: 'none',
         },
         temperature: 1,
-        max_output_tokens: 160,
+        max_output_tokens: 260,
         input: [
           {
             role: 'system',
@@ -661,7 +1095,7 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
           },
         ],
         text: {
-          format: zodTextFormat(aiWordSchema, 'imposter_round_word'),
+          format: zodTextFormat(aiWordCandidatesSchema, 'imposter_round_word'),
         },
       });
 
@@ -669,11 +1103,15 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
         throw new Error('OpenAI returned no parsed round word');
       }
 
-      const generatedWord = parseGeneratedWord(
-        response.output_parsed,
-        getAlreadyPlayedWords(input),
-        input.categoryIds
-      );
+      const generatedWord = await selectBestGeneratedClue({
+        openai,
+        model,
+        candidateWord: response.output_parsed,
+        alreadyPlayedWords: getAlreadyPlayedWords(input),
+        categoryIds: input.categoryIds,
+        languageName: input.languageName,
+        categoryLabel: input.categoryIds.map(categoryLabel).join(', '),
+      });
 
       rememberGeneratedWord(input, generatedWord.word);
 
@@ -693,22 +1131,21 @@ async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordRes
     throw new Error('OpenAI API key is not configured');
   }
 
-  const openai = new OpenAI({
-    apiKey: openAiApiKey,
-  });
+  const openai = createOpenAIClient(openAiApiKey);
   const shouldKeepSourceWord = isEnglishLanguage(input);
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_STATIC_PREPARE_ATTEMPTS; attempt += 1) {
     try {
       const varietyKey = createVarietyKey(attempt);
+      const model = getEnv('OPENAI_MODEL') || DEFAULT_MODEL;
       const response = await openai.responses.parse({
-        model: getEnv('OPENAI_MODEL') || DEFAULT_MODEL,
+        model,
         reasoning: {
           effort: 'none',
         },
         temperature: 0.9,
-        max_output_tokens: 160,
+        max_output_tokens: 260,
         input: [
           {
             role: 'system',
@@ -729,7 +1166,7 @@ async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordRes
           },
         ],
         text: {
-          format: zodTextFormat(aiWordSchema, 'imposter_static_word'),
+          format: zodTextFormat(aiWordCandidatesSchema, 'imposter_static_word'),
         },
       });
 
@@ -737,9 +1174,16 @@ async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordRes
         throw new Error('OpenAI returned no parsed static word');
       }
 
-      return parseGeneratedWord({
-        word: shouldKeepSourceWord ? input.source.word : response.output_parsed.word,
-        clue: response.output_parsed.clue,
+      return await selectBestGeneratedClue({
+        openai,
+        model,
+        candidateWord: {
+          word: shouldKeepSourceWord ? input.source.word : response.output_parsed.word,
+          clues: response.output_parsed.clues,
+        },
+        categoryIds: [input.source.categoryId],
+        languageName: input.languageName,
+        categoryLabel: input.source.categoryLabel,
       });
     } catch (error) {
       lastError = error;
@@ -749,6 +1193,120 @@ async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordRes
   throw lastError instanceof Error ? lastError : new Error('OpenAI static word preparation failed');
 }
 
+const withStaticWordMetadata = (input: StaticWordRequest, word: RoundWordResponse, fallback = false) => ({
+  ...word,
+  categoryId: input.source.categoryId,
+  difficulty: input.source.difficulty,
+  fallback,
+});
+
+const validateTranslatedStaticFallback = (
+  value: RoundWordResponse,
+  input: StaticWordRequest,
+  englishFallback: RoundWordResponse
+) => {
+  const translatedWord = parseGeneratedWord(value);
+  const translatedWordKey = normalizeForCloseness(translatedWord.word);
+  const translatedClueKey = normalizeForCloseness(translatedWord.clue);
+  const englishWordKey = normalizeForCloseness(input.source.word);
+  const englishClueKey = normalizeForCloseness(englishFallback.clue);
+
+  if (!translatedWordKey || !translatedClueKey) {
+    throw new Error('Static fallback translation returned empty text');
+  }
+
+  if (translatedWordKey === englishWordKey || translatedClueKey === englishClueKey) {
+    throw new Error('Static fallback translation returned English fallback text');
+  }
+
+  if (translatedClueKey.includes(translatedWordKey)) {
+    throw new Error('Static fallback translation clue contains the translated word');
+  }
+
+  return translatedWord;
+};
+
+async function translateStaticFallbackWord(
+  input: StaticWordRequest,
+  englishFallback: RoundWordResponse
+): Promise<RoundWordResponse> {
+  const openAiApiKey = getEnv('OPENAI_API_KEY');
+
+  if (!openAiApiKey) {
+    throw new Error('OpenAI API key is not configured for static fallback translation');
+  }
+
+  const openai = createOpenAIClient(openAiApiKey);
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_STATIC_FALLBACK_TRANSLATION_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await openai.responses.parse({
+        model: getEnv('OPENAI_MODEL') || DEFAULT_MODEL,
+        reasoning: {
+          effort: 'none',
+        },
+        temperature: 0,
+        max_output_tokens: 120,
+        input: [
+          {
+            role: 'system',
+            content: [
+              'You translate a fallback word and clue for a pass-and-play Imposter party game.',
+              'Return strict JSON only.',
+              'Do not invent a new word or a new clue relationship.',
+              'The output must be in the requested target language and natural script.',
+            ].join(' '),
+          },
+          {
+            role: 'user',
+            content: buildStaticFallbackTranslationPrompt(input, englishFallback),
+          },
+        ],
+        text: {
+          format: zodTextFormat(aiWordSchema, 'imposter_static_fallback_translation'),
+        },
+      });
+
+      if (!response.output_parsed) {
+        throw new Error('OpenAI returned no parsed static fallback translation');
+      }
+
+      return validateTranslatedStaticFallback(response.output_parsed, input, englishFallback);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('OpenAI static fallback translation failed');
+}
+
+export async function prepareStaticWordWithFallback(input: StaticWordRequest) {
+  try {
+    return withStaticWordMetadata(input, await prepareStaticWord(input));
+  } catch {
+    const englishFallback = getEnglishStaticFallbackWord(input);
+
+    if (!englishFallback) {
+      throw new Error('No safe static fallback clue is available');
+    }
+
+    if (isEnglishLanguage(input)) {
+      return withStaticWordMetadata(input, englishFallback, true);
+    }
+
+    try {
+      const translatedFallback = await translateStaticFallbackWord(input, englishFallback);
+
+      return withStaticWordMetadata(input, translatedFallback, true);
+    } catch {
+      throw new Error('Static fallback translation failed');
+    }
+  }
+}
+
 async function translateStaticWord(input: TranslationWordRequest): Promise<RoundWordResponse> {
   const openAiApiKey = getEnv('OPENAI_API_KEY');
 
@@ -756,13 +1314,11 @@ async function translateStaticWord(input: TranslationWordRequest): Promise<Round
     throw new Error('OpenAI API key is not configured');
   }
 
-  const openai = new OpenAI({
-    apiKey: openAiApiKey,
-  });
+  const openai = createOpenAIClient(openAiApiKey);
 
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_TRANSLATION_ATTEMPTS; attempt += 1) {
     try {
       const response = await openai.responses.parse({
         model: getEnv('OPENAI_MODEL') || DEFAULT_MODEL,
@@ -844,7 +1400,16 @@ export default {
       }
 
       if (parsedRequest.data.mode === 'prepare-static-word') {
-        return jsonResponse(await prepareStaticWord(parsedRequest.data));
+        try {
+          return jsonResponse(await prepareStaticWordWithFallback(parsedRequest.data));
+        } catch (error) {
+          return jsonResponse(
+            {
+              error: error instanceof Error ? error.message : 'Static word preparation failed',
+            },
+            502
+          );
+        }
       }
 
       return jsonResponse(await generateRoundWord(parsedRequest.data));

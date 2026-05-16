@@ -1,5 +1,5 @@
-import { buildRound } from '@/game/round';
-import type { ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
+import { buildRound } from '../game/round.ts';
+import type { ImposterCount, Player, Round, RoundTimerSetting } from '../game/types.ts';
 import {
   CATEGORY_LABELS,
   hasPlayableCelebrityAnswer,
@@ -10,7 +10,8 @@ import {
   type RoundWordPlan,
   type StaticCategoryId,
   type WordDifficulty,
-} from '@/data/wordBank';
+} from '../data/wordBank.ts';
+import { getFallbackStaticWord } from './staticFallback.ts';
 
 type GeneratedWord = {
   word: string;
@@ -35,8 +36,8 @@ export type RoundGeneratorInput = {
   rng?: () => number;
 };
 
-const AI_CLIENT_GENERATION_ATTEMPTS = 4;
-const AI_ROUND_REQUEST_TIMEOUT_MS = 6000;
+const AI_CLIENT_GENERATION_ATTEMPTS = 3;
+export const AI_ROUND_REQUEST_TIMEOUT_MS = 12000;
 const DEFAULT_AI_ROUND_API_URL = 'http://localhost:3000/api/generate-round';
 const EMERGENCY_STATIC_CATEGORY_ID: StaticCategoryId = 'objects';
 let playedRoundWordsByContext = new Map<string, string[]>();
@@ -68,65 +69,6 @@ const emergencyDynamicWords: Record<DynamicCategoryId, readonly GeneratedWord[]>
     { word: 'Leonardo DiCaprio', clue: 'oscar' },
   ],
 };
-
-const emergencyAssociationClues = new Map([
-  ['globe', 'geography'],
-  ['flag', 'wind'],
-  ['dough', 'elasticity'],
-  ['plate', 'moon'],
-  ['nutella', 'spread'],
-  ['knife', 'sharp'],
-  ['chair', 'posture'],
-  ['table', 'surface'],
-  ['lamp', 'glow'],
-  ['mirror', 'reflection'],
-  ['clock', 'ticking'],
-  ['phone', 'signal'],
-  ['camera', 'lens'],
-  ['book', 'pages'],
-  ['key', 'security'],
-  ['lock', 'security'],
-  ['fan', 'breeze'],
-  ['pillow', 'softness'],
-  ['blanket', 'warmth'],
-  ['window', 'view'],
-  ['battery', 'charge'],
-  ['magnet', 'attraction'],
-  ['spoon', 'scoop'],
-  ['fork', 'prongs'],
-  ['cup', 'sip'],
-  ['bottle', 'cap'],
-  ['pizza', 'slice'],
-  ['apple', 'crunch'],
-  ['banana', 'peel'],
-  ['coffee', 'caffeine'],
-  ['tea', 'steam'],
-  ['ice cream', 'melting'],
-  ['soccer', 'goal'],
-  ['basketball', 'dribble'],
-  ['tennis', 'rally'],
-  ['chess', 'strategy'],
-  ['swimming', 'splash'],
-  ['library', 'quiet'],
-  ['mountain', 'altitude'],
-  ['island', 'shore'],
-  ['airport', 'runway'],
-  ['museum', 'exhibit'],
-  ['dog', 'loyalty'],
-  ['cat', 'whiskers'],
-  ['bird', 'wings'],
-  ['shark', 'fins'],
-  ['elephant', 'trunk'],
-]);
-
-const emergencyCategoryCluePools = {
-  activities: ['motion', 'practice', 'rhythm', 'focus', 'skill', 'routine'],
-  food: ['flavor', 'texture', 'craving', 'bite', 'steam', 'crunch'],
-  animals: ['instinct', 'tracks', 'claws', 'wings', 'camouflage', 'speed'],
-  objects: ['surface', 'edge', 'weight', 'handle', 'utility', 'reflection'],
-  places: ['map', 'landmark', 'route', 'horizon', 'altitude', 'border'],
-  sports: ['score', 'balance', 'reflexes', 'strategy', 'rivalry', 'sprint'],
-} as const satisfies Record<StaticCategoryId, readonly string[]>;
 
 const normalizeWordKey = (value: string) =>
   value
@@ -172,45 +114,6 @@ const hashText = (value: string) => {
 
 const selectByTextHash = <T,>(items: readonly T[], seed: string) =>
   items[hashText(seed) % items.length];
-
-const getEmergencyAssociationClue = (entry: EnglishWordEntry) => {
-  const wordKey = normalizeWordKey(entry.word);
-  const exactClue = emergencyAssociationClues.get(wordKey);
-
-  if (exactClue) {
-    return exactClue;
-  }
-
-  const tokenRules: readonly [RegExp, string][] = [
-    [/\b(ball|soccer|football|basketball|volleyball|tennis)\b/u, 'bounce'],
-    [/\b(coffee|espresso|latte|tea)\b/u, 'caffeine'],
-    [/\b(ice|freezer|snow|frozen)\b/u, 'cold'],
-    [/\b(fire|flame|heater|stove|oven)\b/u, 'heat'],
-    [/\b(water|pool|river|lake|ocean|swimming)\b/u, 'splash'],
-    [/\b(photo|picture|camera|mirror|glass|window)\b/u, 'reflection'],
-    [/\b(book|paper|notebook|letter|newspaper)\b/u, 'pages'],
-    [/\b(clock|timer|alarm|calendar)\b/u, 'time'],
-    [/\b(key|lock|safe|password)\b/u, 'security'],
-    [/\b(shoe|sock|boot|sneaker|walking|running)\b/u, 'steps'],
-    [/\b(guitar|piano|drum|music|song)\b/u, 'rhythm'],
-    [/\b(knife|razor|blade|scissors|needle)\b/u, 'sharp'],
-    [/\b(pillow|blanket|towel|sweater|cotton)\b/u, 'softness'],
-    [/\b(map|globe|country|city|island|mountain)\b/u, 'geography'],
-    [/\b(cake|cookie|candy|chocolate|honey)\b/u, 'sweetness'],
-  ];
-  const matchedRule = tokenRules.find(([pattern]) => pattern.test(wordKey));
-
-  if (matchedRule) {
-    return matchedRule[1];
-  }
-
-  return selectByTextHash(emergencyCategoryCluePools[entry.categoryId], `${entry.categoryId}:${wordKey}`);
-};
-
-const getEmergencyStaticWord = (entry: EnglishWordEntry): GeneratedWord => ({
-  word: entry.word,
-  clue: getEmergencyAssociationClue(entry),
-});
 
 const getEmergencyDynamicWord = (categoryId: DynamicCategoryId, seed: string) =>
   selectByTextHash(emergencyDynamicWords[categoryId], seed);
@@ -495,15 +398,17 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
       });
       shouldRememberStaticEntry = true;
     } catch {
-      try {
-        generatedWord = await fetchAiGeneratedWord({
-          ...input,
-          categoryIds: [wordPlan.source.categoryId],
-        });
-      } catch {
-        generatedWord = getEmergencyStaticWord(wordPlan.source.entry);
-        shouldRememberStaticEntry = true;
+      const fallbackWord = getFallbackStaticWord(wordPlan.source.entry, {
+        mode: wordPlan.mode,
+        targetLanguage: input.languageName,
+      });
+
+      if (!fallbackWord) {
+        throw new Error('Static word fallback is unavailable for the selected language');
       }
+
+      generatedWord = fallbackWord;
+      shouldRememberStaticEntry = true;
     }
   }
 
