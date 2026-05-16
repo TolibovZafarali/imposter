@@ -2,7 +2,7 @@
 // Category: Sports & Games
 // Hint style: common everyday context / imposter-safe
 // Difficulty split: none yet
-// Rule: each secret is one or two words; each hint is exactly one word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 503 words
 
 export type WordEntry = { secret: string; hint: string };

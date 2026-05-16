@@ -236,7 +236,6 @@ export default function HomeScreen() {
   const [setupViewportHeight, setSetupViewportHeight] = useState(0);
   const [setupContentHeight, setSetupContentHeight] = useState(0);
   const [isStartingGame, setIsStartingGame] = useState(false);
-  const [roundGenerationError, setRoundGenerationError] = useState<string | null>(null);
   const isStartingGameRef = useRef(false);
   const playerInputRefs = useRef(new Map<string, PlayerNameInputRef>());
   const playerFocusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -434,7 +433,6 @@ export default function HomeScreen() {
 
     isStartingGameRef.current = true;
     setIsStartingGame(true);
-    setRoundGenerationError(null);
 
     const roundPlayers = players.map((player, index) => {
       const trimmedName = player.name.trim();
@@ -466,8 +464,6 @@ export default function HomeScreen() {
       clearPlayerNameSelection();
       startRound(round);
       router.push('/reveal');
-    } catch {
-      setRoundGenerationError('Could not create a round. Check the server for translated or AI categories and try again.');
     } finally {
       isStartingGameRef.current = false;
       setIsStartingGame(false);
@@ -811,16 +807,6 @@ export default function HomeScreen() {
         </Card>
 
         <View style={styles.startActions}>
-          {roundGenerationError ? (
-            <Text
-              accessibilityRole="alert"
-              align="center"
-              color="primary"
-              variant="bodySmall"
-              style={styles.startError}>
-              {roundGenerationError}
-            </Text>
-          ) : null}
           <Button
             label={isStartingGame ? 'Starting...' : 'Start Game'}
             size="lg"
@@ -1167,8 +1153,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: Spacing.md,
     paddingBottom: Spacing.md,
-  },
-  startError: {
-    paddingHorizontal: Spacing.md,
   },
 });

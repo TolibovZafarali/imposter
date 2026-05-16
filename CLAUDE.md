@@ -3,7 +3,7 @@
 ## 1. Project Overview
 
 **Imposter** is a mobile party game built with Expo and React Native.
-Players pass one phone around the table. Most players receive a secret word. One player is the Imposter — they receive no word, or a vague related clue. Players give hints in turn, then vote on who they think the Imposter is.
+Players pass one phone around the table. Most players receive a secret word. One player is the Imposter — they receive no word, or a short association clue. Players give hints in turn, then vote on who they think the Imposter is.
 
 The Expo app lives in the `imposter-game/` subdirectory of this repo.
 All `npm` / `expo` commands must be run from `imposter-game/`.
@@ -147,7 +147,7 @@ Home Screen
 ### Imposter Assignment Rules
 - Exactly one player is the Imposter per round.
 - All other players receive the **same** secret word.
-- The Imposter receives either: no word at all, or a vague related clue (configurable).
+- The Imposter receives either: no word at all, or a short association clue (configurable).
 - The Imposter assignment is random and must not be predictable from reveal order.
 
 ### Reveal Screen Rules
@@ -162,7 +162,7 @@ Home Screen
 
 - **AI calls happen server-side only.** The Expo app never calls an AI API directly.
 - Stable English categories are selected from `imposter-game/data/wordBank.ts` once static word data exists.
-- For non-English stable categories, the backend translates the selected English word and one-word clue once static word data exists.
+- For stable categories, the backend keeps or translates the selected English word and generates a fresh one- or two-word clue.
 - For movies and celebrities, the backend generates the word and clue directly in the selected language.
 - The backend returns a validated object: `{ word: string, clue: string }`.
 - Validate all AI output against a strict Zod schema before returning it to the client.

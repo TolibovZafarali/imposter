@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildPrompt,
+  buildStaticWordPrompt,
   hasPlayableCelebrityAnswer,
   parseGeneratedWord,
   selectPopularityScope,
@@ -15,6 +16,20 @@ const buildRoundRequest = (overrides = {}) => ({
   languageName: 'English',
   playerCount: 5,
   playedWords: [],
+  ...overrides,
+});
+
+const buildStaticWordRequest = (overrides = {}) => ({
+  mode: 'prepare-static-word',
+  languageId: 'english',
+  languageName: 'English',
+  source: {
+    word: 'knife',
+    categoryId: 'objects',
+    categoryLabel: 'Objects',
+    difficulty: 'easy',
+    storedClue: 'kitchen',
+  },
   ...overrides,
 });
 
@@ -38,6 +53,14 @@ test('celebrity prompt applies complete public name rules to every language', ()
   assert.match(prompt, /complete public name with at least two words/);
   assert.match(prompt, /never return a first name, nickname, or partial name by itself/);
   assert.match(prompt, /These rules apply to every language/);
+});
+
+test('celebrity prompt prefers iconic traits over famous works for clues', () => {
+  const prompt = buildPrompt(buildRoundRequest(), 'celebrity-trait-seed', [], 'local');
+
+  assert.match(prompt, /recognizable traits, visual trademarks, symbols, or public persona clues/);
+  assert.match(prompt, /Leo Tolstoy -> beard/);
+  assert.match(prompt, /avoid using the person's most famous work/);
 });
 
 test('celebrity prompt does not include Uzbek-specific instructions', () => {
@@ -86,6 +109,77 @@ test('prompt injects already played words instead of recent words', () => {
   assert.match(prompt, /Already played secret words to avoid: Movie 0, Movie 1/);
   assert.match(prompt, /Movie 44/);
   assert.doesNotMatch(prompt, /Recent secret words/i);
+});
+
+test('prompt asks for distinctive one- or two-word association clues', () => {
+  const prompt = buildPrompt(
+    buildRoundRequest({
+      categoryIds: ['movies'],
+    }),
+    'association-clue-seed',
+    [],
+    'international'
+  );
+
+  assert.match(prompt, /one or two words/);
+  assert.match(prompt, /physical properties, uses, behavior, shape or visual links/);
+  assert.match(prompt, /Avoid weak common-place clues/);
+  assert.doesNotMatch(prompt, /exactly one/i);
+  assert.doesNotMatch(prompt, /obvious trait/i);
+});
+
+test('static word prompt keeps English words and avoids stored clues', () => {
+  const prompt = buildStaticWordPrompt(buildStaticWordRequest(), 'static-word-seed');
+
+  assert.match(prompt, /Keep the source word exactly as the returned word/);
+  assert.match(prompt, /Weak stored clue to avoid copying: kitchen/);
+  assert.match(prompt, /Generate a fresh imposter clue/);
+  assert.match(prompt, /Do not translate, reuse, or lightly rewrite the weak stored clue/);
+  assert.match(prompt, /one or two words/);
+  assert.doesNotMatch(prompt, /exactly one/i);
+});
+
+test('static word prompt translates non-English words and generates fresh clues', () => {
+  const prompt = buildStaticWordPrompt(
+    buildStaticWordRequest({
+      languageId: 'russian',
+      languageName: 'Russian',
+    }),
+    'translated-static-seed'
+  );
+
+  assert.match(prompt, /Translate the source word naturally/);
+  assert.match(prompt, /Generate a fresh imposter clue/);
+  assert.match(prompt, /Both fields must be in the target language/);
+});
+
+test('generated clue validation accepts one- or two-word association clues', () => {
+  assert.deepEqual(parseGeneratedWord({ word: 'knife', clue: 'sharp edge' }), {
+    word: 'knife',
+    clue: 'sharp edge',
+  });
+  assert.deepEqual(parseGeneratedWord({ word: 'dough', clue: 'elasticity' }), {
+    word: 'dough',
+    clue: 'elasticity',
+  });
+});
+
+test('generated clue validation rejects long, punctuated, and generic clues', () => {
+  assert.throws(
+    () => parseGeneratedWord({ word: 'knife', clue: 'very sharp edge' }),
+    /one or two clean words/
+  );
+  assert.throws(
+    () => parseGeneratedWord({ word: 'knife', clue: 'sharp/edge' }),
+    /one or two clean words/
+  );
+
+  for (const clue of ['school', 'kitchen', 'food', 'animal', 'object', 'store', 'restaurant']) {
+    assert.throws(
+      () => parseGeneratedWord({ word: 'knife', clue }),
+      /generic category or common place/
+    );
+  }
 });
 
 test('generated words are rejected when they match played words after normalization', () => {

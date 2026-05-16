@@ -2,7 +2,7 @@
 // Category: Food & Drink
 // Hint style: natural / common / indirect
 // Difficulty split: popularity / recognizability
-// Rule: each secret is one or two words; each hint is exactly one simple word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 492 words
 // Easy: 265 | Medium: 143 | Hard: 84
 
@@ -13,7 +13,7 @@ export const foodDrinkWords = {
   version: "1.5.0",
   hintStyle: "natural_common_context",
   hintRules: [
-    "hint is exactly one simple English word",
+    "stored hint is simple English context for AI clue generation",
     "hint should feel like a common situation, place, time, or casual context",
     "hint should not be a direct part, ingredient, shape, sound, or exact food pairing",
     "hint should give the imposter room to bluff without revealing the secret word",

@@ -4,7 +4,11 @@ import {
   CATEGORY_LABELS,
   hasPlayableCelebrityAnswer,
   resolveRoundWordPlan,
+  selectStaticWordEntry,
   type EnglishWordEntry,
+  type DynamicCategoryId,
+  type RoundWordPlan,
+  type StaticCategoryId,
   type WordDifficulty,
 } from '@/data/wordBank';
 
@@ -32,9 +36,97 @@ export type RoundGeneratorInput = {
 };
 
 const AI_CLIENT_GENERATION_ATTEMPTS = 4;
+const AI_ROUND_REQUEST_TIMEOUT_MS = 6000;
 const DEFAULT_AI_ROUND_API_URL = 'http://localhost:3000/api/generate-round';
+const EMERGENCY_STATIC_CATEGORY_ID: StaticCategoryId = 'objects';
 let playedRoundWordsByContext = new Map<string, string[]>();
 let playedRoundEntryIdsByContext = new Map<string, string[]>();
+
+const emergencyDynamicWords: Record<DynamicCategoryId, readonly GeneratedWord[]> = {
+  movies: [
+    { word: 'Titanic', clue: 'iceberg' },
+    { word: 'Avatar', clue: 'blue' },
+    { word: 'The Matrix', clue: 'simulation' },
+    { word: 'Frozen', clue: 'ice' },
+    { word: 'Jaws', clue: 'shark' },
+    { word: 'Barbie', clue: 'pink' },
+    { word: 'Interstellar', clue: 'gravity' },
+    { word: 'Inception', clue: 'dream' },
+    { word: 'Shrek', clue: 'swamp' },
+    { word: 'Spider-Man', clue: 'web' },
+  ],
+  celebrities: [
+    { word: 'Leo Tolstoy', clue: 'beard' },
+    { word: 'Taylor Swift', clue: 'eras' },
+    { word: 'Cristiano Ronaldo', clue: 'siu' },
+    { word: 'Lionel Messi', clue: 'dribble' },
+    { word: 'Albert Einstein', clue: 'relativity' },
+    { word: 'Michael Jackson', clue: 'moonwalk' },
+    { word: 'Beyonce Knowles', clue: 'queen' },
+    { word: 'Elon Musk', clue: 'rocket' },
+    { word: 'Dwayne Johnson', clue: 'rock' },
+    { word: 'Leonardo DiCaprio', clue: 'oscar' },
+  ],
+};
+
+const emergencyAssociationClues = new Map([
+  ['globe', 'geography'],
+  ['flag', 'wind'],
+  ['dough', 'elasticity'],
+  ['plate', 'moon'],
+  ['nutella', 'spread'],
+  ['knife', 'sharp'],
+  ['chair', 'posture'],
+  ['table', 'surface'],
+  ['lamp', 'glow'],
+  ['mirror', 'reflection'],
+  ['clock', 'ticking'],
+  ['phone', 'signal'],
+  ['camera', 'lens'],
+  ['book', 'pages'],
+  ['key', 'security'],
+  ['lock', 'security'],
+  ['fan', 'breeze'],
+  ['pillow', 'softness'],
+  ['blanket', 'warmth'],
+  ['window', 'view'],
+  ['battery', 'charge'],
+  ['magnet', 'attraction'],
+  ['spoon', 'scoop'],
+  ['fork', 'prongs'],
+  ['cup', 'sip'],
+  ['bottle', 'cap'],
+  ['pizza', 'slice'],
+  ['apple', 'crunch'],
+  ['banana', 'peel'],
+  ['coffee', 'caffeine'],
+  ['tea', 'steam'],
+  ['ice cream', 'melting'],
+  ['soccer', 'goal'],
+  ['basketball', 'dribble'],
+  ['tennis', 'rally'],
+  ['chess', 'strategy'],
+  ['swimming', 'splash'],
+  ['library', 'quiet'],
+  ['mountain', 'altitude'],
+  ['island', 'shore'],
+  ['airport', 'runway'],
+  ['museum', 'exhibit'],
+  ['dog', 'loyalty'],
+  ['cat', 'whiskers'],
+  ['bird', 'wings'],
+  ['shark', 'fins'],
+  ['elephant', 'trunk'],
+]);
+
+const emergencyCategoryCluePools = {
+  activities: ['motion', 'practice', 'rhythm', 'focus', 'skill', 'routine'],
+  food: ['flavor', 'texture', 'craving', 'bite', 'steam', 'crunch'],
+  animals: ['instinct', 'tracks', 'claws', 'wings', 'camouflage', 'speed'],
+  objects: ['surface', 'edge', 'weight', 'handle', 'utility', 'reflection'],
+  places: ['map', 'landmark', 'route', 'horizon', 'altitude', 'border'],
+  sports: ['score', 'balance', 'reflexes', 'strategy', 'rivalry', 'sprint'],
+} as const satisfies Record<StaticCategoryId, readonly string[]>;
 
 const normalizeWordKey = (value: string) =>
   value
@@ -66,6 +158,62 @@ const mergeUniquePlayedWords = (words: readonly string[]) => {
     return true;
   });
 };
+
+const hashText = (value: string) => {
+  let hash = 2166136261;
+
+  for (const character of value) {
+    hash ^= character.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+};
+
+const selectByTextHash = <T,>(items: readonly T[], seed: string) =>
+  items[hashText(seed) % items.length];
+
+const getEmergencyAssociationClue = (entry: EnglishWordEntry) => {
+  const wordKey = normalizeWordKey(entry.word);
+  const exactClue = emergencyAssociationClues.get(wordKey);
+
+  if (exactClue) {
+    return exactClue;
+  }
+
+  const tokenRules: readonly [RegExp, string][] = [
+    [/\b(ball|soccer|football|basketball|volleyball|tennis)\b/u, 'bounce'],
+    [/\b(coffee|espresso|latte|tea)\b/u, 'caffeine'],
+    [/\b(ice|freezer|snow|frozen)\b/u, 'cold'],
+    [/\b(fire|flame|heater|stove|oven)\b/u, 'heat'],
+    [/\b(water|pool|river|lake|ocean|swimming)\b/u, 'splash'],
+    [/\b(photo|picture|camera|mirror|glass|window)\b/u, 'reflection'],
+    [/\b(book|paper|notebook|letter|newspaper)\b/u, 'pages'],
+    [/\b(clock|timer|alarm|calendar)\b/u, 'time'],
+    [/\b(key|lock|safe|password)\b/u, 'security'],
+    [/\b(shoe|sock|boot|sneaker|walking|running)\b/u, 'steps'],
+    [/\b(guitar|piano|drum|music|song)\b/u, 'rhythm'],
+    [/\b(knife|razor|blade|scissors|needle)\b/u, 'sharp'],
+    [/\b(pillow|blanket|towel|sweater|cotton)\b/u, 'softness'],
+    [/\b(map|globe|country|city|island|mountain)\b/u, 'geography'],
+    [/\b(cake|cookie|candy|chocolate|honey)\b/u, 'sweetness'],
+  ];
+  const matchedRule = tokenRules.find(([pattern]) => pattern.test(wordKey));
+
+  if (matchedRule) {
+    return matchedRule[1];
+  }
+
+  return selectByTextHash(emergencyCategoryCluePools[entry.categoryId], `${entry.categoryId}:${wordKey}`);
+};
+
+const getEmergencyStaticWord = (entry: EnglishWordEntry): GeneratedWord => ({
+  word: entry.word,
+  clue: getEmergencyAssociationClue(entry),
+});
+
+const getEmergencyDynamicWord = (categoryId: DynamicCategoryId, seed: string) =>
+  selectByTextHash(emergencyDynamicWords[categoryId], seed);
 
 const getPlayedWordContextKeys = ({ categoryIds, languageId, languageName }: PlayedWordContext) => {
   const languageKey = normalizeWordKey(languageId) || normalizeWordKey(languageName) || 'unknown-language';
@@ -148,7 +296,7 @@ async function fetchAiGeneratedWord({
 
   for (let attempt = 0; attempt < getAiGenerationAttemptLimit(categoryIds); attempt += 1) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), AI_ROUND_REQUEST_TIMEOUT_MS);
 
     try {
       const playedWords = mergeUniquePlayedWords([
@@ -209,7 +357,7 @@ async function fetchAiGeneratedWord({
   throw lastError instanceof Error ? lastError : new Error('AI round generation failed');
 }
 
-async function fetchTranslatedStaticWord({
+async function fetchPreparedStaticWord({
   sourceEntry,
   languageId,
   languageName,
@@ -219,7 +367,7 @@ async function fetchTranslatedStaticWord({
   languageName: string;
 }): Promise<GeneratedWord> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  const timeoutId = setTimeout(() => controller.abort(), AI_ROUND_REQUEST_TIMEOUT_MS);
 
   try {
     const response = await fetch(getAiRoundApiUrl(), {
@@ -228,29 +376,29 @@ async function fetchTranslatedStaticWord({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        mode: 'translate-word',
+        mode: 'prepare-static-word',
         languageId,
         languageName,
         source: {
           word: sourceEntry.word,
-          clue: sourceEntry.hint,
           categoryId: sourceEntry.categoryId,
           categoryLabel: CATEGORY_LABELS[sourceEntry.categoryId],
           difficulty: sourceEntry.difficulty,
           sense: sourceEntry.sense,
+          storedClue: sourceEntry.hint,
         },
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error('Static word translation failed');
+      throw new Error('Static word preparation failed');
     }
 
     const payload: unknown = await response.json();
 
     if (!isGeneratedWord(payload)) {
-      throw new Error('Static word translation returned an invalid payload');
+      throw new Error('Static word preparation returned an invalid payload');
     }
 
     return {
@@ -292,32 +440,72 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     languageId: input.languageId,
     languageName: input.languageName,
   };
-  const wordPlan = resolveRoundWordPlan({
-    categoryIds: input.categoryIds,
-    difficulty: input.difficulty,
-    languageId: input.languageId,
-    languageName: input.languageName,
-    playedWords: getPlayedWordsForContext(playedWordContext),
-    playedEntryIds: getPlayedEntryIdsForContext(playedWordContext),
-    rng: input.rng,
-  });
+  const playedWords = getPlayedWordsForContext(playedWordContext);
+  const playedEntryIds = getPlayedEntryIdsForContext(playedWordContext);
+  let wordPlan: RoundWordPlan;
 
-  const generatedWord =
-    wordPlan.mode === 'ai'
-      ? await fetchAiGeneratedWord({
+  try {
+    wordPlan = resolveRoundWordPlan({
+      categoryIds: input.categoryIds,
+      difficulty: input.difficulty,
+      languageId: input.languageId,
+      languageName: input.languageName,
+      playedWords,
+      playedEntryIds,
+      rng: input.rng,
+    });
+  } catch {
+    wordPlan = {
+      mode: 'local-static',
+      source: {
+        type: 'static',
+        categoryId: EMERGENCY_STATIC_CATEGORY_ID,
+        entry: selectStaticWordEntry({
+          categoryId: EMERGENCY_STATIC_CATEGORY_ID,
+          difficulty: input.difficulty,
+          playedWords,
+          playedEntryIds,
+          rng: input.rng,
+        }),
+      },
+    };
+  }
+
+  let generatedWord: GeneratedWord;
+  let shouldRememberStaticEntry = false;
+
+  if (wordPlan.mode === 'ai') {
+    try {
+      generatedWord = await fetchAiGeneratedWord({
+        ...input,
+        categoryIds: [wordPlan.source.categoryId],
+      });
+    } catch {
+      generatedWord = getEmergencyDynamicWord(
+        wordPlan.source.categoryId,
+        `${wordPlan.source.categoryId}:${input.languageId}:${playedWords.length}:${Date.now()}`
+      );
+    }
+  } else {
+    try {
+      generatedWord = await fetchPreparedStaticWord({
+        sourceEntry: wordPlan.source.entry,
+        languageId: input.languageId,
+        languageName: input.languageName,
+      });
+      shouldRememberStaticEntry = true;
+    } catch {
+      try {
+        generatedWord = await fetchAiGeneratedWord({
           ...input,
           categoryIds: [wordPlan.source.categoryId],
-        })
-      : wordPlan.mode === 'local-static'
-        ? {
-            word: wordPlan.source.entry.word,
-            clue: wordPlan.source.entry.hint,
-          }
-        : await fetchTranslatedStaticWord({
-            sourceEntry: wordPlan.source.entry,
-            languageId: input.languageId,
-            languageName: input.languageName,
-          });
+        });
+      } catch {
+        generatedWord = getEmergencyStaticWord(wordPlan.source.entry);
+        shouldRememberStaticEntry = true;
+      }
+    }
+  }
 
   const round = buildRound({
     players: input.players,
@@ -340,7 +528,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
       languageId: input.languageId,
       languageName: input.languageName,
     },
-    wordPlan.source.type === 'static' ? wordPlan.source.entry.id : undefined
+    wordPlan.source.type === 'static' && shouldRememberStaticEntry ? wordPlan.source.entry.id : undefined
   );
 
   return round;

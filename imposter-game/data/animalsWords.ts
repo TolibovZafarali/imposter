@@ -2,7 +2,7 @@
 // Category: Animals
 // Hint style: simple common context / imposter-safe
 // Difficulty split: easy / medium / hard
-// Rule: each secret is one or two words; each hint is exactly one word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 380 words
 
 export type WordEntry = { secret: string; hint: string };
@@ -11,7 +11,7 @@ export type Difficulty = "easy" | "medium" | "hard";
 export const animalWords = {
   version: "5.0.0",
   hintStyle: "simple_common_context",
-  hintRule: "one common everyday word, broad enough for the imposter to bluff, not a direct part/food/sound/body clue",
+  hintRule: "simple context clue for AI generation, broad enough for the imposter to bluff, not a direct part/food/sound/body clue",
   id: "animals",
   name: "Animals",
   difficultyBasis: "general English popularity and recognizability",

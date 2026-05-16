@@ -2,7 +2,7 @@
 // Category: Places & Geography
 // Hint style: simple common context / imposter-safe
 // Difficulty split: popularity / recognizability
-// Rule: each secret is one or two words; each hint is exactly one common word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 645 words
 // Easy: 298 | Medium: 250 | Hard: 97
 
@@ -12,7 +12,7 @@ export type WordEntry = { secret: string; hint: string };
 export const placesGeographyWords = {
   version: "4.1.0",
   hintStyle: "simple_common_context",
-  hintRule: "one common everyday word, broad enough for the imposter to bluff; not a direct part, shape, or exact giveaway",
+  hintRule: "simple context clue for AI generation, broad enough for the imposter to bluff; not a direct part, shape, or exact giveaway",
   difficultyBasis: "secret word popularity and recognizability for average English speakers",
   id: "places_geography",
   name: "Places & Geography",

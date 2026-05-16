@@ -233,7 +233,7 @@ export default function RevealScreen() {
                       align="center"
                       adjustsFontSizeToFit
                       minimumFontScale={0.76}
-                      numberOfLines={1}
+                      numberOfLines={2}
                       style={styles.hintWord}>
                       {currentCard.hint}
                     </Text>

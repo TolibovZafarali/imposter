@@ -2,7 +2,7 @@
 // Category: Everyday Objects
 // Hint style: simple common context / imposter-safe
 // Difficulty split: popularity / recognizability
-// Rule: each secret is one or two words; each hint is exactly one common word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 600 words
 // Easy: 347 | Medium: 183 | Hard: 70
 
@@ -12,7 +12,7 @@ export type WordEntry = { secret: string; hint: string };
 export const everydayObjectsWords = {
   version: "4.0.0",
   hintStyle: "simple_common_context",
-  hintRule: "one common everyday context word; broad enough for bluffing; not a direct part, shape, material, synonym, or exact giveaway",
+  hintRule: "simple context clue for AI generation; broad enough for bluffing; not a direct part, shape, material, synonym, or exact giveaway",
   difficultyBasis: "secret word popularity and recognizability for average English speakers",
   id: "everyday_objects",
   name: "Everyday Objects",

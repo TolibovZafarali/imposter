@@ -55,7 +55,7 @@ Just pick a language, choose a category, and play.
 - Player name entry
 - One or more imposters
 - Curated or AI-generated secret word
-- Hard one-word imposter hint
+- Short AI-generated imposter hint
 - Private role reveal screen
 - Discussion phase
 - Optional discussion timer
@@ -76,7 +76,7 @@ Just pick a language, choose a category, and play.
 7. The app generates the secret word and imposter hint using AI.
 8. Each player privately reveals their role.
 9. Normal players see the secret word.
-10. The imposter sees that they are the imposter and receives a broad hint.
+10. The imposter sees that they are the imposter and receives a distinctive association hint.
 11. Players discuss the word without saying it directly.
 12. Players vote on who they think the imposter is.
 13. The app reveals whether the vote was correct.
@@ -91,7 +91,7 @@ Normal players know the secret word.
 
 The imposter does not know the secret word.
 
-The imposter receives a broad hint to help them survive the first discussion without making the game too easy.
+The imposter receives a short association hint to help them survive the first discussion without making the game too easy.
 
 Players take turns saying something related to the word. They must be careful not to make the word too obvious.
 
@@ -108,7 +108,7 @@ The imposter should not receive a different similar word.
 The imposter only receives:
 
 1. Their role
-2. A broad hint
+2. A short association hint
 
 Hint examples are intentionally omitted while the static word data is reset.
 
@@ -122,7 +122,7 @@ Production AI generation runs through a Supabase Edge Function so API keys never
 
 Users should never type raw prompts. Users only choose simple options like language, category, player count, and number of imposters.
 
-The hint should help the imposter say something generally related during the first discussion, but it should not make the word obvious.
+The hint should help the imposter say something related during the first discussion, but it should be more distinctive than a generic category or common place.
 
 ## AI Safety Rules
 

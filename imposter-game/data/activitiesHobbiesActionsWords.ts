@@ -2,7 +2,7 @@
 // Category: Activities, Hobbies & Actions
 // Hint style: common everyday context / imposter-safe
 // Difficulty split: popularity / recognizability
-// Rule: each secret is one or two words; each hint is exactly one word.
+// Rule: each secret is one or two words; each stored hint is weak context for AI clue generation.
 // Count: 698 words
 // Easy: 415 | Medium: 237 | Hard: 46
 

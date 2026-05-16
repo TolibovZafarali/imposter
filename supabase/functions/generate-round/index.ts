@@ -34,7 +34,21 @@ const translationRequestSchema = z.object({
   }),
 });
 
-const requestSchema = z.union([translationRequestSchema, roundWordRequestSchema]);
+const staticWordRequestSchema = z.object({
+  mode: z.literal('prepare-static-word'),
+  languageId: z.string().trim().min(1).max(80),
+  languageName: z.string().trim().min(1).max(80),
+  source: z.object({
+    word: z.string().trim().min(1).max(42),
+    categoryId: z.string().trim().min(1).max(40),
+    categoryLabel: z.string().trim().min(1).max(80),
+    difficulty: difficultySchema.optional(),
+    sense: z.string().trim().min(1).max(160).optional(),
+    storedClue: z.string().trim().min(1).max(42).optional(),
+  }),
+});
+
+const requestSchema = z.union([translationRequestSchema, staticWordRequestSchema, roundWordRequestSchema]);
 
 const aiWordSchema = z.object({
   word: z.string(),
@@ -49,46 +63,6 @@ const normalizeForCloseness = (value: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .replace(/\s+/g, ' ');
-
-const descriptiveClueTokens = new Set([
-  'black',
-  'blue',
-  'brown',
-  'cold',
-  'dark',
-  'fast',
-  'fluffy',
-  'furry',
-  'giant',
-  'gold',
-  'golden',
-  'gray',
-  'green',
-  'grey',
-  'hot',
-  'large',
-  'light',
-  'little',
-  'long',
-  'orange',
-  'pink',
-  'purple',
-  'red',
-  'round',
-  'salty',
-  'short',
-  'silver',
-  'slow',
-  'small',
-  'sour',
-  'spicy',
-  'spotted',
-  'striped',
-  'sweet',
-  'tiny',
-  'white',
-  'yellow',
-]);
 
 const categoryClueTokens = new Set([
   'animal',
@@ -121,58 +95,84 @@ const categoryClueTokens = new Set([
   'work',
 ]);
 
-const closeClueTokens = new Set([
-  ...descriptiveClueTokens,
-  ...categoryClueTokens,
-  'breakfast',
+const genericPlaceClueTokens = new Set([
+  'airport',
+  'bar',
+  'beach',
+  'cafe',
+  'class',
   'classroom',
-  'creature',
-  'dessert',
-  'dinner',
+  'college',
+  'court',
+  'desk',
+  'farm',
+  'field',
   'forest',
-  'habitat',
+  'garage',
+  'garden',
+  'gym',
+  'home',
+  'house',
   'jungle',
   'kitchen',
-  'land',
-  'lunch',
-  'mammal',
-  'music',
+  'museum',
   'ocean',
   'office',
-  'pet',
+  'park',
+  'pool',
   'restaurant',
-  'safari',
+  'salon',
+  'school',
   'sea',
-  'space',
+  'shelf',
+  'shop',
+  'sidewalk',
   'stage',
-  'wild',
-  'wildlife',
+  'station',
+  'store',
+  'street',
+  'trail',
+  'workshop',
   'zoo',
 ]);
 
-const hasExactlyOneWordClue = (clue: string) => {
+const genericContextClueTokens = new Set([
+  'breakfast',
+  'creature',
+  'dessert',
+  'dinner',
+  'habitat',
+  'land',
+  'lunch',
+  'mammal',
+  'meal',
+  'pet',
+  'wild',
+  'wildlife',
+]);
+
+const blockedGenericClueTokens = new Set([
+  ...categoryClueTokens,
+  ...genericPlaceClueTokens,
+  ...genericContextClueTokens,
+]);
+
+const getClueTokens = (clue: string) =>
+  normalizeForCloseness(clue).split(' ').filter(Boolean);
+
+const hasShortPhraseClue = (clue: string) => {
   const clueTokens = normalizeForCloseness(clue).split(' ').filter(Boolean);
 
-  return clueTokens.length === 1 && !/[-\u2010-\u2015/]/u.test(clue);
+  return (
+    clueTokens.length >= 1 &&
+    clueTokens.length <= 2 &&
+    !/[-\u2010-\u2015/\\|_]/u.test(clue) &&
+    !/[^\p{L}\p{M}\p{N}\s'’]/u.test(clue)
+  );
 };
 
-const hasOverSpecificClue = (clue: string) => {
-  const clueTokens = normalizeForCloseness(clue).split(' ').filter(Boolean);
-
-  if (!clueTokens.length) {
-    return true;
-  }
-
-  if (!hasExactlyOneWordClue(clue)) {
-    return true;
-  }
-
-  if (clueTokens.some((token) => closeClueTokens.has(token))) {
-    return true;
-  }
-
-  return false;
-};
+const hasGenericClue = (clue: string) =>
+  getClueTokens(clue).some((token) => blockedGenericClueTokens.has(token));
 
 const hasLexicallyCloseClue = (word: string, clue: string) => {
   const normalizedWord = normalizeForCloseness(word);
@@ -207,18 +207,20 @@ export const hasPlayableCelebrityAnswer = (word: string) =>
 
 const isCelebrityRequest = (categoryIds: readonly string[]) => categoryIds.includes('celebrities');
 const isMovieRequest = (categoryIds: readonly string[]) => categoryIds.includes('movies');
+const isEnglishLanguage = ({ languageId, languageName }: Pick<StaticWordRequest, 'languageId' | 'languageName'>) =>
+  languageId === 'english' || languageName.trim().toLocaleLowerCase() === 'english';
 
 const responseSchema = z
   .object({
     word: z.string().trim().min(1).max(42),
     clue: z.string().trim().min(1).max(42),
   })
-  .refine((value) => hasExactlyOneWordClue(value.clue), {
-    message: 'The clue must be exactly one word',
+  .refine((value) => hasShortPhraseClue(value.clue), {
+    message: 'The clue must be one or two clean words',
     path: ['clue'],
   })
-  .refine((value) => !hasOverSpecificClue(value.clue), {
-    message: 'The clue must be indirect, not a category or descriptor',
+  .refine((value) => !hasGenericClue(value.clue), {
+    message: 'The clue must not be a generic category or common place',
     path: ['clue'],
   })
   .refine(
@@ -228,6 +230,7 @@ const responseSchema = z
 
 type RoundWordRequest = z.infer<typeof roundWordRequestSchema>;
 type TranslationWordRequest = z.infer<typeof translationRequestSchema>;
+type StaticWordRequest = z.infer<typeof staticWordRequestSchema>;
 type RoundWordResponse = z.infer<typeof responseSchema>;
 export type PopularityScope = 'international' | 'local';
 let serverPlayedWordsByContext = new Map<string, string[]>();
@@ -422,6 +425,23 @@ const difficultyInstructions = {
   hard: 'Difficulty target: hard. Choose a more specific or less common answer, but avoid obscure trivia.',
 } as const;
 
+const distinctiveClueRules = (hasCelebrityCategory = false) => [
+  '- The imposter clue must be one or two words.',
+  '- Optimize for a distinctive association, not a generic category or common place.',
+  '- Good clue types include physical properties, uses, behavior, shape or visual links, iconic traits, and cultural associations.',
+  '- Examples of the intended style: globe -> geography, flag -> wind, dough -> elasticity, plate -> moon, Nutella -> spread, knife -> sharp.',
+  '- Avoid weak common-place clues like school, kitchen, office, park, store, restaurant, home, or beach.',
+  '- Do not use a synonym, translation, direct category, or any meaningful text contained in the answer.',
+  '- The clue should help the imposter talk naturally, but should not let regular players guess the answer immediately.',
+  hasCelebrityCategory
+    ? '- For Celebrities, prefer recognizable traits, visual trademarks, symbols, or public persona clues, such as Leo Tolstoy -> beard.'
+    : null,
+  hasCelebrityCategory
+    ? "- For Celebrities, avoid using the person's most famous work as the clue unless no better iconic trait exists."
+    : null,
+  '- The clue must not use hyphens, slashes, punctuation-heavy text, or more than two words.',
+];
+
 export const buildPrompt = (
   { categoryIds, difficulty, languageName, playerCount }: RoundWordRequest,
   varietyKey: string,
@@ -473,21 +493,68 @@ export const buildPrompt = (
     '- These rules apply to every language. Do not add special exceptions for any specific language.',
     '',
     'Clue rules:',
-    '- The imposter clue must be exactly one word.',
-    '- The clue should be simple, common, and easy for an imposter to use in conversation.',
-    '- The clue should be indirectly related in vibe, mood, situation, or broad context, but not too obscure.',
-    '- Avoid clues that are so distant, poetic, or abstract that the imposter cannot participate.',
-    '- Do not use the secret word category, class, synonym, usual location, habitat, obvious trait, or direct association as the clue.',
-    '- Do not use synonyms, translations, rhymes, famous associations, ingredients, materials, colors, shapes, sizes, parts, actions, usual locations, habitats, or any text contained in the answer.',
-    '- The clue must have no spaces, hyphens, slashes, punctuation, or short phrases.',
+    ...distinctiveClueRules(hasCelebrityCategory),
     '',
     'Output rules:',
     '- Return short answers only.',
     '- Return one secret word or short phrase.',
-    '- Return exactly one clue word.',
+    '- Return one clue of one or two words.',
     '- Both fields must be in the requested language, using the natural script for that language.',
     '- Treat the variety key as a random seed; do not output it.',
     '- Do not output the popularity scope.',
+    '- Do not copy wording from these instructions as the answer.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+};
+
+export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = createVarietyKey(0)) => {
+  const { languageId, languageName, source } = input;
+  const shouldTranslateWord = !isEnglishLanguage({ languageId, languageName });
+  const storedClue = source.storedClue?.trim() || 'None';
+
+  return [
+    `Target language: ${languageName}`,
+    `English source word: ${source.word}`,
+    `English source category: ${source.categoryLabel}`,
+    source.difficulty ? `English source difficulty: ${source.difficulty}` : null,
+    source.sense ? `English source sense: ${source.sense}` : null,
+    `Weak stored clue to avoid copying: ${storedClue}`,
+    `Variety key: ${varietyKey}`,
+    '',
+    shouldTranslateWord
+      ? 'Translate the source word naturally for native speakers in the target language.'
+      : 'Keep the source word exactly as the returned word.',
+    shouldTranslateWord ? 'Do not replace the source word with a different example.' : null,
+    shouldTranslateWord
+      ? 'Use the common everyday word a native speaker would naturally say in a casual party game.'
+      : null,
+    shouldTranslateWord ? 'Translate meaning, not spelling, and use the natural script for the target language.' : null,
+    shouldTranslateWord
+      ? 'Prefer common native/common-use words over English spellings, loanword-looking forms, scientific names, or raw transliterations.'
+      : null,
+    shouldTranslateWord
+      ? 'Never transliterate the English spelling unless that transliteration is truly the normal everyday word in the target language.'
+      : null,
+    shouldTranslateWord
+      ? 'If the exact term is uncommon or sounds borrowed, use the closest common everyday term that native speakers recognize, even if it is slightly broader.'
+      : null,
+    '',
+    'Generate a fresh imposter clue for the selected word.',
+    'Do not translate, reuse, or lightly rewrite the weak stored clue.',
+    'Prefer a clue that feels specific to this word, not a generic place where the word might appear.',
+    '',
+    'Clue rules:',
+    ...distinctiveClueRules(source.categoryId === 'celebrities'),
+    '',
+    'Output rules:',
+    '- Return short answers only.',
+    shouldTranslateWord
+      ? '- Return one translated secret word or short phrase.'
+      : '- Return the original source word as the word.',
+    '- Return one fresh clue of one or two words.',
+    '- Both fields must be in the target language, using the natural script for that language.',
+    '- Treat the variety key as a random seed; do not output it.',
     '- Do not copy wording from these instructions as the answer.',
   ]
     .filter((line): line is string => line !== null)
@@ -517,9 +584,9 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
       ? 'For animals, prefer natural everyday animal names over scientific or taxonomy-level precision.'
       : null,
     'Return one translated secret word or short phrase, and one translated imposter clue.',
-    'The imposter clue must be exactly one word. No spaces, hyphens, slashes, punctuation, or short phrases.',
-    'The clue must stay indirect, simple, common, and playable like the English source clue.',
-    'If the literal clue translation would be multiple words or too obvious, choose a natural one-word equivalent that keeps the same indirect relationship.',
+    'The imposter clue must be one or two words. No hyphens, slashes, or punctuation-heavy text.',
+    'The clue must stay distinctive, simple, common, and playable like the English source clue.',
+    'If the literal clue translation would be too obvious, choose a natural one- or two-word equivalent that keeps the same relationship.',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
@@ -577,10 +644,10 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
             content: [
               'You generate safe, family-friendly words for a pass-and-play Imposter party game.',
               'Regular players see the secret word. The imposter sees only the clue.',
-              'The imposter clue must be exactly one simple, common word and indirectly related to the secret word.',
-              'Use broad vibe, mood, situation, or context clues that are playable in conversation.',
-              'Never use categories, classes, defining attributes, ingredients, parts, usual locations, habitats, actions, famous associations, or adjacent examples.',
-              'Never make the clue descriptive, category-level, or multi-word, such as "large land animal", "black-and-white", "animal", or "food".',
+              'The imposter clue must be one or two simple, common words and related through a distinctive association.',
+              'Use properties, uses, behavior, shape links, visual traits, iconic traits, or cultural associations that are playable in conversation.',
+              'Never use generic categories, synonyms, translations, common places, or text from the answer.',
+              'Never make the clue category-level or place-level, such as "animal", "food", "school", or "kitchen".',
               'If a typical player could guess the word immediately from the clue, make the clue less direct.',
               'If an imposter could not use the clue in conversation, make the clue simpler and more common.',
               'Avoid adult content, slurs, gore, politics, religion, tragedies, and obscure niche references.',
@@ -619,6 +686,69 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
   throw lastError instanceof Error ? lastError : new Error('OpenAI round generation failed');
 }
 
+async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordResponse> {
+  const openAiApiKey = getEnv('OPENAI_API_KEY');
+
+  if (!openAiApiKey) {
+    throw new Error('OpenAI API key is not configured');
+  }
+
+  const openai = new OpenAI({
+    apiKey: openAiApiKey,
+  });
+  const shouldKeepSourceWord = isEnglishLanguage(input);
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const varietyKey = createVarietyKey(attempt);
+      const response = await openai.responses.parse({
+        model: getEnv('OPENAI_MODEL') || DEFAULT_MODEL,
+        reasoning: {
+          effort: 'none',
+        },
+        temperature: 0.9,
+        max_output_tokens: 160,
+        input: [
+          {
+            role: 'system',
+            content: [
+              'You prepare words and clues for a pass-and-play Imposter party game.',
+              'Regular players see the secret word. The imposter sees only the clue.',
+              'For static English words, keep the word unchanged and generate a fresh clue.',
+              'For non-English languages, translate the word naturally and generate a fresh clue in the target language.',
+              'The clue must be one or two simple, common words and use a distinctive association.',
+              'Prefer properties, uses, behavior, shape links, visual traits, iconic traits, or cultural associations.',
+              'Avoid weak stored clues, generic categories, synonyms, common places, and text from the answer.',
+              'Never return explanations, romanization, punctuation-heavy answers, or multi-sentence output.',
+            ].join(' '),
+          },
+          {
+            role: 'user',
+            content: buildStaticWordPrompt(input, varietyKey),
+          },
+        ],
+        text: {
+          format: zodTextFormat(aiWordSchema, 'imposter_static_word'),
+        },
+      });
+
+      if (!response.output_parsed) {
+        throw new Error('OpenAI returned no parsed static word');
+      }
+
+      return parseGeneratedWord({
+        word: shouldKeepSourceWord ? input.source.word : response.output_parsed.word,
+        clue: response.output_parsed.clue,
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('OpenAI static word preparation failed');
+}
+
 async function translateStaticWord(input: TranslationWordRequest): Promise<RoundWordResponse> {
   const openAiApiKey = getEnv('OPENAI_API_KEY');
 
@@ -648,7 +778,7 @@ async function translateStaticWord(input: TranslationWordRequest): Promise<Round
               'You translate words for a pass-and-play Imposter party game.',
               'Regular players see the secret word. The imposter sees only the clue.',
               'The output must be in the requested target language and natural script.',
-              'The imposter clue must be exactly one simple, common word and stay indirectly related to the secret word.',
+              'The imposter clue must be one or two simple, common words and stay distinctively related to the secret word.',
               'Never return explanations, romanization, punctuation-heavy answers, or multi-sentence output.',
             ].join(' '),
           },
@@ -711,6 +841,10 @@ export default {
     try {
       if (parsedRequest.data.mode === 'translate-word') {
         return jsonResponse(await translateStaticWord(parsedRequest.data));
+      }
+
+      if (parsedRequest.data.mode === 'prepare-static-word') {
+        return jsonResponse(await prepareStaticWord(parsedRequest.data));
       }
 
       return jsonResponse(await generateRoundWord(parsedRequest.data));
