@@ -2,13 +2,9 @@ import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 
-import { getFallbackStaticWord } from '../services/staticFallback.ts';
-
 const DEFAULT_MODEL = 'gpt-5.4-mini';
-export const MAX_STATIC_PREPARE_ATTEMPTS = 3;
 export const MAX_DYNAMIC_GENERATION_ATTEMPTS = 3;
 export const MAX_TRANSLATION_ATTEMPTS = 3;
-export const MAX_STATIC_FALLBACK_TRANSLATION_ATTEMPTS = 1;
 export const CANDIDATE_COUNT = 8;
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 const playedWordSchema = z.string().trim().min(1).max(42);
@@ -516,7 +512,7 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
     `English source category: ${source.categoryLabel}`,
     source.difficulty ? `English source difficulty: ${source.difficulty}` : null,
     source.sense ? `English source sense: ${source.sense}` : null,
-    `Weak stored clue to avoid copying: ${storedClue}`,
+    `English source imposter clue: ${storedClue}`,
     `Variety key: ${varietyKey}`,
     '',
     shouldTranslateWord
@@ -537,20 +533,21 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
       ? 'If the exact term is uncommon or sounds borrowed, use the closest common everyday term that native speakers recognize, even if it is slightly broader.'
       : null,
     '',
-    `Generate ${CANDIDATE_COUNT} fresh imposter clue candidates for the selected word.`,
-    'Do not translate, reuse, or lightly rewrite the weak stored clue.',
-    'Prefer a clue that feels specific to this word, not a generic place where the word might appear.',
-    '',
-    'Clue rules:',
-    ...distinctiveClueRules(source.categoryId === 'celebrities'),
+    shouldTranslateWord
+      ? 'Translate the source imposter clue naturally for native speakers in the target language.'
+      : 'Keep the source imposter clue exactly as the returned clue.',
+    'Do not generate a fresh clue or change the clue relationship.',
+    'The translated clue must preserve the same relationship as the English source clue.',
     '',
     'Output rules:',
     '- Return short answers only.',
     shouldTranslateWord
       ? '- Return one translated secret word or short phrase.'
       : '- Return the original source word as the word.',
-    `- Return exactly ${CANDIDATE_COUNT} fresh clue candidates in the clues array.`,
-    '- Every clue candidate must be one or two words.',
+    shouldTranslateWord
+      ? '- Return one translated imposter clue.'
+      : '- Return the original source imposter clue as the clue.',
+    '- The clue must be one or two words.',
     '- Both fields must be in the target language, using the natural script for that language.',
     '- Treat the variety key as a random seed; do not output it.',
     '- Do not copy wording from these instructions as the answer.',
@@ -581,37 +578,12 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     isAnimalTranslation
       ? 'For animals, prefer natural everyday animal names over scientific or taxonomy-level precision.'
       : null,
+    'Translate the English imposter clue without generating a new clue relationship.',
+    'Do not replace the source clue with a different association.',
     'Return one translated secret word or short phrase, and one translated imposter clue.',
     'The imposter clue must be one or two words. No hyphens, slashes, or punctuation-heavy text.',
     'The clue must stay distinctive, simple, common, and playable like the English source clue.',
-    'If the literal clue translation would be too obvious, choose a natural one- or two-word equivalent that keeps the same relationship.',
-  ]
-    .filter((line): line is string => line !== null)
-    .join('\n');
-};
-
-const buildStaticFallbackTranslationPrompt = (
-  input: StaticWordRequest,
-  fallback: RoundWordResponse
-) => {
-  const { languageName, source } = input;
-
-  return [
-    `Target language: ${languageName}`,
-    `English source word: ${source.word}`,
-    `English source category: ${source.categoryLabel}`,
-    source.difficulty ? `English source difficulty: ${source.difficulty}` : null,
-    source.sense ? `English source sense: ${source.sense}` : null,
-    `English fallback clue: ${fallback.clue}`,
-    '',
-    'Translate exactly the English source word and English fallback clue for a pass-and-play Imposter party game.',
-    'Do not generate a new secret word.',
-    'Do not generate a new clue relationship.',
-    'Use the common everyday word a native speaker would naturally say in a casual party game.',
-    'Translate meaning, not spelling, and use the natural script for the target language.',
-    'Never return English text unless it is truly unavoidable in the target language.',
-    'The clue must be one or two simple, common words. No hyphens, slashes, or punctuation-heavy text.',
-    'Return only the translated secret word and translated imposter clue.',
+    'If a literal clue translation sounds unnatural, choose the closest natural equivalent that preserves the same relationship.',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
@@ -946,73 +918,6 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
   throw lastError instanceof Error ? lastError : new Error('OpenAI round generation failed');
 }
 
-async function prepareStaticWord(input: StaticWordRequest): Promise<RoundWordResponse> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key is not configured');
-  }
-
-  const openai = createOpenAIClient(process.env.OPENAI_API_KEY);
-  const shouldKeepSourceWord = isEnglishLanguage(input);
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < MAX_STATIC_PREPARE_ATTEMPTS; attempt += 1) {
-    try {
-      const varietyKey = createVarietyKey(attempt);
-      const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
-      const response = await openai.responses.parse({
-        model,
-        reasoning: {
-          effort: 'none',
-        },
-        temperature: 0.9,
-        max_output_tokens: 260,
-        input: [
-          {
-            role: 'system',
-            content: [
-              'You prepare words and clues for a pass-and-play Imposter party game.',
-              'Regular players see the secret word. The imposter sees only the clue.',
-              'For static English words, keep the word unchanged and generate a fresh clue.',
-              'For non-English languages, translate the word naturally and generate a fresh clue in the target language.',
-              'The clue must be one or two simple, common words and use a distinctive association.',
-              'Prefer properties, uses, behavior, shape links, visual traits, iconic traits, or cultural associations.',
-              'Avoid weak stored clues, generic categories, synonyms, common places, and text from the answer.',
-              'Never return explanations, romanization, punctuation-heavy answers, or multi-sentence output.',
-            ].join(' '),
-          },
-          {
-            role: 'user',
-            content: buildStaticWordPrompt(input, varietyKey),
-          },
-        ],
-        text: {
-          format: zodTextFormat(aiWordCandidatesSchema, 'imposter_static_word'),
-        },
-      });
-
-      if (!response.output_parsed) {
-        throw new Error('OpenAI returned no parsed static word');
-      }
-
-      return await selectBestGeneratedClue({
-        openai,
-        model,
-        candidateWord: {
-          word: shouldKeepSourceWord ? input.source.word : response.output_parsed.word,
-          clues: response.output_parsed.clues,
-        },
-        categoryIds: [input.source.categoryId],
-        languageName: input.languageName,
-        categoryLabel: input.source.categoryLabel,
-      });
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('OpenAI static word preparation failed');
-}
-
 const withStaticWordMetadata = (input: StaticWordRequest, word: RoundWordResponse, fallback = false) => ({
   ...word,
   categoryId: input.source.categoryId,
@@ -1020,121 +925,44 @@ const withStaticWordMetadata = (input: StaticWordRequest, word: RoundWordRespons
   fallback,
 });
 
-const getEnglishStaticFallbackWord = (input: StaticWordRequest) =>
-  getFallbackStaticWord(
-    {
-      word: input.source.word,
-      hint: input.source.storedClue ?? '',
-    },
-    {
-      mode: 'local-static',
-      targetLanguage: 'English',
-    }
-  );
+const parseStaticSourceWord = (input: StaticWordRequest): RoundWordResponse => {
+  const word = normalizeGeneratedText(input.source.word);
+  const clue = normalizeGeneratedText(input.source.storedClue ?? '');
 
-const validateTranslatedStaticFallback = (
-  value: RoundWordResponse,
-  input: StaticWordRequest,
-  englishFallback: RoundWordResponse
-) => {
-  const translatedWord = parseGeneratedWord(value);
-  const translatedWordKey = normalizeForCloseness(translatedWord.word);
-  const translatedClueKey = normalizeForCloseness(translatedWord.clue);
-  const englishWordKey = normalizeForCloseness(input.source.word);
-  const englishClueKey = normalizeForCloseness(englishFallback.clue);
-
-  if (!translatedWordKey || !translatedClueKey) {
-    throw new Error('Static fallback translation returned empty text');
+  if (!word || !clue) {
+    throw new Error('Static word request is missing a stored clue');
   }
 
-  if (translatedWordKey === englishWordKey || translatedClueKey === englishClueKey) {
-    throw new Error('Static fallback translation returned English fallback text');
+  if (!hasShortPhraseClue(clue) || hasLexicallyCloseClue(word, clue)) {
+    throw new Error('Static word request has an invalid stored clue');
   }
 
-  if (translatedClueKey.includes(translatedWordKey)) {
-    throw new Error('Static fallback translation clue contains the translated word');
-  }
-
-  return translatedWord;
+  return { word, clue };
 };
 
-async function translateStaticFallbackWord(
-  input: StaticWordRequest,
-  englishFallback: RoundWordResponse
-): Promise<RoundWordResponse> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key is not configured for static fallback translation');
-  }
-
-  const openai = createOpenAIClient(process.env.OPENAI_API_KEY);
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < MAX_STATIC_FALLBACK_TRANSLATION_ATTEMPTS; attempt += 1) {
-    try {
-      const response = await openai.responses.parse({
-        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
-        reasoning: {
-          effort: 'none',
-        },
-        temperature: 0,
-        max_output_tokens: 120,
-        input: [
-          {
-            role: 'system',
-            content: [
-              'You translate a fallback word and clue for a pass-and-play Imposter party game.',
-              'Return strict JSON only.',
-              'Do not invent a new word or a new clue relationship.',
-              'The output must be in the requested target language and natural script.',
-            ].join(' '),
-          },
-          {
-            role: 'user',
-            content: buildStaticFallbackTranslationPrompt(input, englishFallback),
-          },
-        ],
-        text: {
-          format: zodTextFormat(aiWordSchema, 'imposter_static_fallback_translation'),
-        },
-      });
-
-      if (!response.output_parsed) {
-        throw new Error('OpenAI returned no parsed static fallback translation');
-      }
-
-      return validateTranslatedStaticFallback(response.output_parsed, input, englishFallback);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('OpenAI static fallback translation failed');
-}
-
 export async function prepareStaticWordWithFallback(input: StaticWordRequest) {
-  try {
-    return withStaticWordMetadata(input, await prepareStaticWord(input));
-  } catch {
-    const englishFallback = getEnglishStaticFallbackWord(input);
+  const sourceWord = parseStaticSourceWord(input);
 
-    if (!englishFallback) {
-      throw new Error('No safe static fallback clue is available');
-    }
-
-    if (isEnglishLanguage(input)) {
-      return withStaticWordMetadata(input, englishFallback, true);
-    }
-
-    try {
-      const translatedFallback = await translateStaticFallbackWord(input, englishFallback);
-
-      return withStaticWordMetadata(input, translatedFallback, true);
-    } catch {
-      throw new Error('Static fallback translation failed');
-    }
+  if (isEnglishLanguage(input)) {
+    return withStaticWordMetadata(input, sourceWord);
   }
+
+  return withStaticWordMetadata(
+    input,
+    await translateStaticWord({
+      mode: 'translate-word',
+      languageId: input.languageId,
+      languageName: input.languageName,
+      source: {
+        word: sourceWord.word,
+        clue: sourceWord.clue,
+        categoryId: input.source.categoryId,
+        categoryLabel: input.source.categoryLabel,
+        difficulty: input.source.difficulty,
+        sense: input.source.sense,
+      },
+    })
+  );
 }
 
 async function translateStaticWord(input: TranslationWordRequest): Promise<RoundWordResponse> {

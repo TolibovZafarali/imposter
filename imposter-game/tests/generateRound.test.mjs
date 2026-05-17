@@ -13,7 +13,6 @@ import {
   getUniqueClueCandidates,
   hasPlayableCelebrityAnswer,
   MAX_DYNAMIC_GENERATION_ATTEMPTS,
-  MAX_STATIC_PREPARE_ATTEMPTS,
   parseClueQualityJudgments,
   parseGeneratedWord,
   prepareStaticWordWithFallback,
@@ -22,7 +21,6 @@ import {
   setOpenAIClientFactoryForTesting,
 } from '../api/generate-round.ts';
 import { selectStaticWordEntry } from '../data/wordBank.ts';
-import { getFallbackStaticWord } from '../services/staticFallback.ts';
 
 const buildRoundRequest = (overrides = {}) => ({
   categoryIds: ['celebrities'],
@@ -187,20 +185,20 @@ test('prompt asks for distinctive one- or two-word association clues', () => {
   assert.doesNotMatch(prompt, /obvious trait/i);
 });
 
-test('static word prompt keeps English words and avoids stored clues', () => {
+test('static word prompt keeps English words and attached stored clues', () => {
   const prompt = buildStaticWordPrompt(buildStaticWordRequest(), 'static-word-seed');
 
   assert.match(prompt, /Keep the source word exactly as the returned word/);
-  assert.match(prompt, /Weak stored clue to avoid copying: kitchen/);
-  assert.match(prompt, /Generate 8 fresh imposter clue candidates/);
-  assert.match(prompt, /Do not translate, reuse, or lightly rewrite the weak stored clue/);
+  assert.match(prompt, /English source imposter clue: kitchen/);
+  assert.match(prompt, /Keep the source imposter clue exactly as the returned clue/);
+  assert.match(prompt, /Do not generate a fresh clue or change the clue relationship/);
   assert.match(prompt, /one or two words/);
-  assert.match(prompt, /sunscreen -> beach is acceptable/);
+  assert.doesNotMatch(prompt, /fresh imposter clue candidates/);
   assert.doesNotMatch(prompt, /exactly one/i);
   assert.doesNotMatch(prompt, /Avoid weak common-place clues/);
 });
 
-test('static word prompt translates non-English words and generates fresh clues', () => {
+test('static word prompt translates non-English words and attached clues', () => {
   const prompt = buildStaticWordPrompt(
     buildStaticWordRequest({
       languageId: 'russian',
@@ -210,7 +208,8 @@ test('static word prompt translates non-English words and generates fresh clues'
   );
 
   assert.match(prompt, /Translate the source word naturally/);
-  assert.match(prompt, /Generate 8 fresh imposter clue candidates/);
+  assert.match(prompt, /Translate the source imposter clue naturally/);
+  assert.match(prompt, /Do not generate a fresh clue or change the clue relationship/);
   assert.match(prompt, /Both fields must be in the target language/);
 });
 
@@ -455,113 +454,12 @@ test('batch judge does not trust verdict alone and fails when all candidates fai
 
 test('retry limits and client timeout are bounded', () => {
   assert.equal(CANDIDATE_COUNT, 8);
-  assert.equal(MAX_STATIC_PREPARE_ATTEMPTS, 3);
   assert.equal(MAX_DYNAMIC_GENERATION_ATTEMPTS, 3);
   assert.equal(AI_ROUND_REQUEST_TIMEOUT_MS, 12000);
   assert.deepEqual(getUniqueClueCandidates(['burn', 'Burn', ' beach ', 'beach']), ['burn', 'beach']);
 });
 
-test('static fallback preserves selected word and stored safe clue', () => {
-  assert.deepEqual(
-    getFallbackStaticWord({
-      id: 'objects-medium-sunscreen',
-      word: 'sunscreen',
-      hint: 'beach',
-      categoryId: 'objects',
-      difficulty: 'medium',
-    }),
-    {
-      word: 'sunscreen',
-      clue: 'beach',
-    }
-  );
-});
-
-test('static fallback no longer returns unrelated hashed or generic clues', () => {
-  const fallbacks = [
-    getFallbackStaticWord({
-      id: 'objects-medium-sunscreen',
-      word: 'sunscreen',
-      hint: 'beach',
-      categoryId: 'objects',
-      difficulty: 'medium',
-    }),
-    getFallbackStaticWord({
-      id: 'animals-medium-baby-goat',
-      word: 'baby goat',
-      hint: 'talisman',
-      categoryId: 'animals',
-      difficulty: 'medium',
-    }),
-    getFallbackStaticWord({
-      id: 'animals-hard-desert-kangaroo',
-      word: 'desert kangaroo',
-      hint: 'talisman',
-      categoryId: 'animals',
-      difficulty: 'hard',
-    }),
-    getFallbackStaticWord({
-      id: 'objects-hard-unknown',
-      word: 'unknown object',
-      hint: 'edge',
-      categoryId: 'objects',
-      difficulty: 'hard',
-    }),
-  ];
-
-  assert.deepEqual(fallbacks, [
-    { word: 'sunscreen', clue: 'beach' },
-    { word: 'baby goat', clue: 'bleat' },
-    { word: 'desert kangaroo', clue: 'hopping' },
-    null,
-  ]);
-
-  const forbiddenFinalFallbackClues = [
-    'familiar',
-    'common',
-    'known',
-    'thing',
-    'object',
-    'place',
-    'item',
-    'concept',
-    'symbol',
-    'edge',
-    'talisman',
-    'essence',
-    'general',
-    'related',
-  ];
-
-  for (const fallback of fallbacks) {
-    if (!fallback) {
-      continue;
-    }
-
-    assert.ok(!forbiddenFinalFallbackClues.includes(fallback.clue));
-  }
-});
-
-test('static fallback refuses non-English translation mode instead of returning English', () => {
-  assert.equal(
-    getFallbackStaticWord(
-      {
-        id: 'objects-medium-sunscreen',
-        word: 'sunscreen',
-        hint: 'beach',
-        categoryId: 'objects',
-        difficulty: 'medium',
-      },
-      {
-        mode: 'translate-static',
-        targetLanguage: 'Spanish',
-      }
-    ),
-    null
-  );
-});
-
-test('server static fallback returns selected English static word without 502', async () => {
+test('server prepare-static-word returns selected English static word without OpenAI', async () => {
   setOpenAIClientFactoryForTesting();
 
   await withEnv({ OPENAI_API_KEY: undefined }, async () => {
@@ -578,7 +476,7 @@ test('server static fallback returns selected English static word without 502', 
               categoryId: 'objects',
               categoryLabel: 'Objects',
               difficulty: 'medium',
-              storedClue: 'edge',
+              storedClue: 'sunburn',
             },
           })
         ),
@@ -588,28 +486,26 @@ test('server static fallback returns selected English static word without 502', 
 
     assert.equal(status, 200);
     assert.equal(body.word, 'sunscreen');
-    assert.equal(body.clue, 'beach');
+    assert.equal(body.clue, 'sunburn');
     assert.equal(body.categoryId, 'objects');
     assert.equal(body.difficulty, 'medium');
-    assert.equal(body.fallback, true);
+    assert.equal(body.fallback, false);
   });
 });
 
-test('client static fallback preserves selected word, category, and difficulty', async () => {
+test('client English static rounds use attached hints without fetch', async () => {
   const previousFetch = globalThis.fetch;
   const expectedEntry = selectStaticWordEntry({
     categoryId: 'objects',
     difficulty: 'medium',
     rng: () => 0,
   });
+  let fetchCallCount = 0;
 
-  globalThis.fetch = async () =>
-    new Response(JSON.stringify({ error: 'Static word preparation failed' }), {
-      status: 502,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    throw new Error('English static rounds should not call fetch');
+  };
 
   try {
     const round = await createRound({
@@ -625,6 +521,50 @@ test('client static fallback preserves selected word, category, and difficulty',
     assert.equal(round.imposterHint, expectedEntry.hint);
     assert.deepEqual(round.config.categoryIds, ['objects']);
     assert.equal(round.config.difficulty, 'medium');
+    assert.equal(fetchCallCount, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test('client non-English static rounds translate attached hints', async () => {
+  const previousFetch = globalThis.fetch;
+  const expectedEntry = selectStaticWordEntry({
+    categoryId: 'objects',
+    difficulty: 'medium',
+    rng: () => 0,
+  });
+  const requests = [];
+
+  globalThis.fetch = async (_url, init) => {
+    requests.push(JSON.parse(init.body));
+
+    return new Response(JSON.stringify({ word: 'edredon', clue: 'capullo' }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  };
+
+  try {
+    const round = await createRound({
+      players: buildPlayers(),
+      categoryIds: ['objects'],
+      difficulty: 'medium',
+      languageId: 'spanish-client-static-translation',
+      languageName: 'Spanish',
+      rng: () => 0,
+    });
+
+    assert.equal(round.secretWord, 'edredon');
+    assert.equal(round.imposterHint, 'capullo');
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].mode, 'translate-word');
+    assert.equal(requests[0].source.word, expectedEntry.word);
+    assert.equal(requests[0].source.clue, expectedEntry.hint);
+    assert.deepEqual(round.config.categoryIds, ['objects']);
+    assert.equal(round.config.difficulty, 'medium');
   } finally {
     globalThis.fetch = previousFetch;
   }
@@ -634,7 +574,7 @@ test('client non-English static failure fails closed instead of showing English 
   const previousFetch = globalThis.fetch;
 
   globalThis.fetch = async () =>
-    new Response(JSON.stringify({ error: 'Static fallback translation failed' }), {
+    new Response(JSON.stringify({ error: 'Static word translation failed' }), {
       status: 502,
       headers: {
         'Content-Type': 'application/json',
@@ -648,48 +588,18 @@ test('client non-English static failure fails closed instead of showing English 
           players: buildPlayers(),
           categoryIds: ['objects'],
           difficulty: 'medium',
-          languageId: 'spanish-client-static-fallback-failure',
+          languageId: 'spanish-client-static-failure',
           languageName: 'Spanish',
           rng: () => 0,
         }),
-      /Static word fallback is unavailable/
+      /Static word translation failed/
     );
   } finally {
     globalThis.fetch = previousFetch;
   }
 });
 
-test('client uses translated server fallback without switching to dynamic content', async () => {
-  const previousFetch = globalThis.fetch;
-
-  globalThis.fetch = async () =>
-    new Response(JSON.stringify({ word: 'protector solar', clue: 'playa' }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-  try {
-    const round = await createRound({
-      players: buildPlayers(),
-      categoryIds: ['objects'],
-      difficulty: 'medium',
-      languageId: 'spanish-client-static-fallback-success',
-      languageName: 'Spanish',
-      rng: () => 0,
-    });
-
-    assert.equal(round.secretWord, 'protector solar');
-    assert.equal(round.imposterHint, 'playa');
-    assert.deepEqual(round.config.categoryIds, ['objects']);
-    assert.equal(round.config.difficulty, 'medium');
-  } finally {
-    globalThis.fetch = previousFetch;
-  }
-});
-
-test('server non-English fallback translates safe English fallback or fails closed', async () => {
+test('server non-English prepare-static-word translates supplied static hint or fails closed', async () => {
   await withEnv({ OPENAI_API_KEY: 'test-key' }, async () => {
     let callCount = 0;
 
@@ -697,14 +607,10 @@ test('server non-English fallback translates safe English fallback or fails clos
       createFakeOpenAi(async () => {
         callCount += 1;
 
-        if (callCount <= MAX_STATIC_PREPARE_ATTEMPTS) {
-          return { output_parsed: null };
-        }
-
         return {
           output_parsed: {
             word: 'protector solar',
-            clue: 'playa',
+            clue: 'quemadura',
           },
         };
       })
@@ -720,19 +626,19 @@ test('server non-English fallback translates safe English fallback or fails clos
             categoryId: 'objects',
             categoryLabel: 'Objects',
             difficulty: 'medium',
-            storedClue: 'edge',
+            storedClue: 'sunburn',
           },
         })
       );
 
       assert.equal(translatedFallback.word, 'protector solar');
-      assert.equal(translatedFallback.clue, 'playa');
+      assert.equal(translatedFallback.clue, 'quemadura');
       assert.equal(translatedFallback.categoryId, 'objects');
       assert.equal(translatedFallback.difficulty, 'medium');
-      assert.equal(translatedFallback.fallback, true);
+      assert.equal(translatedFallback.fallback, false);
       assert.notEqual(translatedFallback.word, 'sunscreen');
-      assert.notEqual(translatedFallback.clue, 'beach');
-      assert.equal(callCount, MAX_STATIC_PREPARE_ATTEMPTS + 1);
+      assert.notEqual(translatedFallback.clue, 'sunburn');
+      assert.equal(callCount, 1);
     } finally {
       setOpenAIClientFactoryForTesting();
     }
@@ -747,23 +653,23 @@ test('server non-English fallback translates safe English fallback or fails clos
         },
         body: JSON.stringify(
           buildStaticWordRequest({
-            languageId: 'spanish',
-            languageName: 'Spanish',
-            source: {
-              word: 'sunscreen',
-              categoryId: 'objects',
-              categoryLabel: 'Objects',
-              difficulty: 'medium',
-              storedClue: 'edge',
-            },
-          })
-        ),
+          languageId: 'spanish',
+          languageName: 'Spanish',
+          source: {
+            word: 'sunscreen',
+            categoryId: 'objects',
+            categoryLabel: 'Objects',
+            difficulty: 'medium',
+            storedClue: 'sunburn',
+          },
+        })
+      ),
       })
     );
     const { status, body } = await parseJsonResponse(response);
 
     assert.equal(status, 502);
-    assert.equal(body.error, 'Static fallback translation failed');
+    assert.equal(body.error, 'OpenAI API key is not configured');
     assert.equal(body.word, undefined);
     assert.equal(body.clue, undefined);
   });

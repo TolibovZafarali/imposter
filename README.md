@@ -31,7 +31,7 @@ Open the app → Choose language → Pick category → Pass the phone → Reveal
 
 Most players receive the same secret word. One or more players are secretly assigned as imposters. The group discusses the word without saying it directly, while the imposter tries to blend in, figure out the word, and avoid getting caught.
 
-The main difference from traditional word-list games is that this app uses AI [Artificial Intelligence] to generate words dynamically based on the selected language and category.
+The main difference from traditional word-list games is that this app combines curated static word packs with AI [Artificial Intelligence] translation and culture-specific dynamic categories.
 
 This allows the game to support many languages without storing a huge database of words.
 
@@ -39,7 +39,7 @@ This allows the game to support many languages without storing a huge database o
 
 A global imposter party game that works in many languages.
 
-Static word bank is currently empty and ready for a future rebuild.
+Curated English word packs with built-in imposter hints.
 AI translation for other languages.
 No complicated setup.
 No accounts required for the first version.
@@ -55,7 +55,7 @@ Just pick a language, choose a category, and play.
 - Player name entry
 - One or more imposters
 - Curated or AI-generated secret word
-- Short AI-generated imposter hint
+- Short static or AI-generated imposter hint
 - Private role reveal screen
 - Discussion phase
 - Optional discussion timer
@@ -73,7 +73,7 @@ Just pick a language, choose a category, and play.
 4. The host enters the number of players.
 5. Players enter their names.
 6. The host chooses the number of imposters.
-7. The app generates the secret word and imposter hint using AI.
+7. The app selects a static word and hint, translates it when needed, or generates dynamic Movies/Celebrities content.
 8. Each player privately reveals their role.
 9. Normal players see the secret word.
 10. The imposter sees that they are the imposter and receives a distinctive association hint.
@@ -99,7 +99,7 @@ After discussion, everyone votes for the player they think is the imposter.
 
 ## Example Round
 
-Example word and hint content is intentionally omitted while the static word data is reset.
+Example word and hint content comes from the curated static packs for static categories.
 
 ## Imposter Hint System
 
@@ -110,13 +110,13 @@ The imposter only receives:
 1. Their role
 2. A short association hint
 
-Hint examples are intentionally omitted while the static word data is reset.
+Static category hints come from the curated word packs. Dynamic Movies/Celebrities hints are generated with the selected word.
 
 ## Word Generation
 
-The static word bank is currently empty. Stable category data should be rebuilt later from a clean source.
+Static categories use curated English word packs. Each static entry includes the secret word and the final English imposter hint.
 
-Movies and celebrities should still call an AI API [Application Programming Interface] once per round so the result can match the selected language and culture.
+Non-English static rounds should call the AI API [Application Programming Interface] only to translate the selected static word and its attached hint. Movies and celebrities should still call the AI API once per round so the result can match the selected language and culture.
 
 Production AI generation runs through a Supabase Edge Function so API keys never ship in the mobile app. See [docs/backend/supabase.md](docs/backend/supabase.md) for setup and deployment.
 

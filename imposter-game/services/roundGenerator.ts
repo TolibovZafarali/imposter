@@ -3,6 +3,7 @@ import type { ImposterCount, Player, Round, RoundTimerSetting } from '../game/ty
 import {
   CATEGORY_LABELS,
   hasPlayableCelebrityAnswer,
+  isEnglishLanguage,
   resolveRoundWordPlan,
   selectStaticWordEntry,
   type EnglishWordEntry,
@@ -11,7 +12,6 @@ import {
   type StaticCategoryId,
   type WordDifficulty,
 } from '../data/wordBank.ts';
-import { getFallbackStaticWord } from './staticFallback.ts';
 
 type GeneratedWord = {
   word: string;
@@ -260,7 +260,12 @@ async function fetchAiGeneratedWord({
   throw lastError instanceof Error ? lastError : new Error('AI round generation failed');
 }
 
-async function fetchPreparedStaticWord({
+const getLocalStaticWord = (sourceEntry: EnglishWordEntry): GeneratedWord => ({
+  word: sourceEntry.word,
+  clue: sourceEntry.hint,
+});
+
+async function fetchTranslatedStaticWord({
   sourceEntry,
   languageId,
   languageName,
@@ -279,29 +284,29 @@ async function fetchPreparedStaticWord({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        mode: 'prepare-static-word',
+        mode: 'translate-word',
         languageId,
         languageName,
         source: {
           word: sourceEntry.word,
+          clue: sourceEntry.hint,
           categoryId: sourceEntry.categoryId,
           categoryLabel: CATEGORY_LABELS[sourceEntry.categoryId],
           difficulty: sourceEntry.difficulty,
           sense: sourceEntry.sense,
-          storedClue: sourceEntry.hint,
         },
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      throw new Error('Static word preparation failed');
+      throw new Error('Static word translation failed');
     }
 
     const payload: unknown = await response.json();
 
     if (!isGeneratedWord(payload)) {
-      throw new Error('Static word preparation returned an invalid payload');
+      throw new Error('Static word translation returned an invalid payload');
     }
 
     return {
@@ -390,26 +395,16 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
       );
     }
   } else {
-    try {
-      generatedWord = await fetchPreparedStaticWord({
+    if (isEnglishLanguage(input)) {
+      generatedWord = getLocalStaticWord(wordPlan.source.entry);
+    } else {
+      generatedWord = await fetchTranslatedStaticWord({
         sourceEntry: wordPlan.source.entry,
         languageId: input.languageId,
         languageName: input.languageName,
       });
-      shouldRememberStaticEntry = true;
-    } catch {
-      const fallbackWord = getFallbackStaticWord(wordPlan.source.entry, {
-        mode: wordPlan.mode,
-        targetLanguage: input.languageName,
-      });
-
-      if (!fallbackWord) {
-        throw new Error('Static word fallback is unavailable for the selected language');
-      }
-
-      generatedWord = fallbackWord;
-      shouldRememberStaticEntry = true;
     }
+    shouldRememberStaticEntry = true;
   }
 
   const round = buildRound({

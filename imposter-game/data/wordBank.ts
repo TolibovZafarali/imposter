@@ -13,7 +13,7 @@ export type StaticCategoryId =
   | 'animals'
   | 'objects'
   | 'places'
-  | 'sports'
+  | 'sports';
 
 export type DynamicCategoryId = 'movies' | 'celebrities';
 export type CategoryId = StaticCategoryId | DynamicCategoryId;
@@ -111,23 +111,6 @@ const buildStaticWordEntries = ({
     }))
   );
 
-const buildUnsplitStaticWordEntries = ({
-  categoryId,
-  words,
-}: {
-  categoryId: StaticCategoryId;
-  words: readonly { secret: string; hint: string }[];
-}): EnglishWordEntry[] =>
-  WORD_DIFFICULTIES.flatMap((difficulty) =>
-    words.map(({ secret, hint }) => ({
-      id: `${categoryId}-${difficulty}-${normalizeWordKey(secret).replace(/\s+/g, '-')}`,
-      word: secret,
-      hint,
-      categoryId,
-      difficulty,
-    }))
-  );
-
 export const ENGLISH_WORD_BANK: EnglishWordEntry[] = [
   ...buildStaticWordEntries({
     categoryId: 'activities',
@@ -149,9 +132,9 @@ export const ENGLISH_WORD_BANK: EnglishWordEntry[] = [
     categoryId: 'places',
     difficulties: placesGeographyWords.difficulties,
   }),
-  ...buildUnsplitStaticWordEntries({
+  ...buildStaticWordEntries({
     categoryId: 'sports',
-    words: sportsGamesWords.words,
+    difficulties: sportsGamesWords.difficulties,
   }),
 ];
 

@@ -24,7 +24,7 @@ const createSeededRng = (seed) => {
 };
 
 test('static word bank is populated from replacement categories', () => {
-  assert.equal(ENGLISH_WORD_BANK.length, 4324);
+  assert.equal(ENGLISH_WORD_BANK.length, 2985);
   assert.deepEqual(STATIC_CATEGORY_IDS, [
     'activities',
     'food',
@@ -34,12 +34,12 @@ test('static word bank is populated from replacement categories', () => {
     'sports',
   ]);
 
-  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.activities.length, 698);
-  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.food.length, 492);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.activities.length, 613);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.food.length, 391);
   assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.animals.length, 380);
-  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.objects.length, 600);
-  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.places.length, 645);
-  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.sports.length, 1509);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.objects.length, 562);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.places.length, 564);
+  assert.equal(ENGLISH_WORD_BANK_BY_CATEGORY.sports.length, 475);
 });
 
 test('static category selection respects difficulty', () => {
@@ -56,7 +56,7 @@ test('static category selection respects difficulty', () => {
 
   assert.equal(foodEntry.word, 'cantaloupe');
   assert.equal(foodEntry.difficulty, 'medium');
-  assert.equal(sportsEntry.word, 'soccer');
+  assert.equal(sportsEntry.word, 'netball');
   assert.equal(sportsEntry.difficulty, 'hard');
 });
 

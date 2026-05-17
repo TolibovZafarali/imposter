@@ -18,7 +18,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Backend
 
-AI-backed categories and translated words use the Supabase Edge Function documented in `../docs/backend/supabase.md`.
+Dynamic Movies/Celebrities categories and translated static words use the Supabase Edge Function documented in `../docs/backend/supabase.md`.
 
 For production builds, set:
 
