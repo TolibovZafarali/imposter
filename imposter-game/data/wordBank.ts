@@ -66,8 +66,17 @@ export const DYNAMIC_CATEGORY_IDS = [
   'celebrities',
 ] as const satisfies readonly DynamicCategoryId[];
 
-const RANDOM_STATIC_CATEGORY_WEIGHT = 2;
-const RANDOM_DYNAMIC_CATEGORY_WEIGHT = 1;
+// A 100-point playability table, not a word-bank-size table.
+export const RANDOM_CATEGORY_WEIGHTS = {
+  objects: 25,
+  animals: 22,
+  activities: 19,
+  places: 11,
+  sports: 10,
+  food: 7,
+  movies: 3,
+  celebrities: 3,
+} as const satisfies Record<CategoryId, number>;
 
 export const CATEGORY_LABELS = {
   activities: 'Activities',
@@ -152,11 +161,14 @@ export const isStaticCategoryId = (categoryId: string): categoryId is StaticCate
 export const isDynamicCategoryId = (categoryId: string): categoryId is DynamicCategoryId =>
   (DYNAMIC_CATEGORY_IDS as readonly string[]).includes(categoryId);
 
+const isCategoryId = (categoryId: string): categoryId is CategoryId =>
+  isStaticCategoryId(categoryId) || isDynamicCategoryId(categoryId);
+
 const getRandomIndex = (itemCount: number, rng: () => number) =>
   Math.min(Math.floor(rng() * itemCount), itemCount - 1);
 
 const getRandomCategoryWeight = (categoryId: string) =>
-  isDynamicCategoryId(categoryId) ? RANDOM_DYNAMIC_CATEGORY_WEIGHT : RANDOM_STATIC_CATEGORY_WEIGHT;
+  isCategoryId(categoryId) ? RANDOM_CATEGORY_WEIGHTS[categoryId] : 1;
 
 const getWeightedRandomIndex = (weights: readonly number[], rng: () => number) => {
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
@@ -251,7 +263,9 @@ export function chooseRoundCategory(categoryIds: readonly string[], rng = Math.r
     throw new Error('At least one category is required');
   }
 
-  return categoryIds[getRandomIndex(categoryIds.length, rng)];
+  const selectedIndex = getWeightedRandomIndex(categoryIds.map(getRandomCategoryWeight), rng);
+
+  return categoryIds[selectedIndex];
 }
 
 export function resolveRoundWordSource({

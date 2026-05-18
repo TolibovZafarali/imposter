@@ -84,7 +84,7 @@ const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
-const RANDOM_CATEGORY_COUNT = MAX_SELECTED_CATEGORIES;
+const RANDOM_CATEGORY_COUNT = 1;
 const PLAYER_LIST_GAP = Spacing.sm;
 const PLAYERS_SECTION_PADDING = Spacing.xl;
 const SETUP_SCROLL_BOTTOM_PADDING = Spacing.xxxl;
@@ -671,7 +671,7 @@ export default function HomeScreen() {
             </Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Choose three random categories each round"
+              accessibilityLabel="Choose a random category each round"
               accessibilityState={{ selected: isRandomCategoryMode }}
               hitSlop={8}
               onPress={selectRandomCategories}

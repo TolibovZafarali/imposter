@@ -5,6 +5,7 @@ import {
   DYNAMIC_CATEGORY_IDS,
   ENGLISH_WORD_BANK,
   ENGLISH_WORD_BANK_BY_CATEGORY,
+  RANDOM_CATEGORY_WEIGHTS,
   STATIC_CATEGORY_IDS,
   chooseRoundCategory,
   hasPlayableCelebrityAnswer,
@@ -12,16 +13,6 @@ import {
   selectRandomCategoryIds,
   selectStaticWordEntry,
 } from '../data/wordBank.ts';
-
-const createSeededRng = (seed) => {
-  let state = seed >>> 0;
-
-  return () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-
-    return state / 0x100000000;
-  };
-};
 
 test('static word bank is populated from replacement categories', () => {
   assert.equal(ENGLISH_WORD_BANK.length, 2985);
@@ -90,29 +81,41 @@ test('round word plan keeps dynamic categories on AI generation', () => {
   }
 });
 
-test('random category mode downweights movies and celebrities', () => {
-  const categoryIds = [...STATIC_CATEGORY_IDS, ...DYNAMIC_CATEGORY_IDS];
-  const categoryCounts = Object.fromEntries(categoryIds.map((categoryId) => [categoryId, 0]));
-  const rng = createSeededRng(12345);
-  const roundCount = 20000;
+test('random category weights are based on playability', () => {
+  assert.deepEqual(RANDOM_CATEGORY_WEIGHTS, {
+    objects: 25,
+    animals: 22,
+    activities: 19,
+    places: 11,
+    sports: 10,
+    food: 7,
+    movies: 3,
+    celebrities: 3,
+  });
+  assert.equal(
+    Object.values(RANDOM_CATEGORY_WEIGHTS).reduce((sum, weight) => sum + weight, 0),
+    100
+  );
+  assert.ok(RANDOM_CATEGORY_WEIGHTS.food > RANDOM_CATEGORY_WEIGHTS.movies);
+  assert.ok(RANDOM_CATEGORY_WEIGHTS.food > RANDOM_CATEGORY_WEIGHTS.celebrities);
+  assert.ok(
+    ENGLISH_WORD_BANK_BY_CATEGORY.animals.length < ENGLISH_WORD_BANK_BY_CATEGORY.places.length
+  );
+  assert.ok(RANDOM_CATEGORY_WEIGHTS.animals > RANDOM_CATEGORY_WEIGHTS.places);
+});
 
-  for (let roundIndex = 0; roundIndex < roundCount; roundIndex += 1) {
-    const randomCategoryIds = selectRandomCategoryIds({
+test('random category selection uses weights instead of equal odds', () => {
+  const categoryIds = ['food', 'movies', 'celebrities'];
+
+  assert.equal(chooseRoundCategory(categoryIds, () => 0.75), 'movies');
+  assert.deepEqual(
+    selectRandomCategoryIds({
       categoryIds,
-      count: 3,
-      rng,
-    });
-    const selectedCategoryId = chooseRoundCategory(randomCategoryIds, rng);
-
-    categoryCounts[selectedCategoryId] += 1;
-  }
-
-  const averageStaticCount =
-    STATIC_CATEGORY_IDS.reduce((sum, categoryId) => sum + categoryCounts[categoryId], 0) /
-    STATIC_CATEGORY_IDS.length;
-
-  assert.ok(categoryCounts.movies < averageStaticCount * 0.75);
-  assert.ok(categoryCounts.celebrities < averageStaticCount * 0.75);
+      count: 1,
+      rng: () => 0.75,
+    }),
+    ['movies']
+  );
 });
 
 test('celebrity answer helper rejects incomplete output', () => {
