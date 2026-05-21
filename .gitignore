@@ -6,3 +6,5 @@ supabase/.temp/
 supabase/functions/.env
 supabase/functions/.env.local
 supabase/functions/.env.production
+.vercel
+.env*.local

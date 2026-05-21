@@ -10,6 +10,8 @@ import {
   buildStaticWordPrompt,
   CANDIDATE_COUNT,
   default as generateRoundHandler,
+  getRoundGenerationModel,
+  getTranslationModel,
   getUniqueClueCandidates,
   hasPlayableCelebrityAnswer,
   MAX_DYNAMIC_GENERATION_ATTEMPTS,
@@ -92,7 +94,30 @@ test('celebrity answers require a complete public name', () => {
   assert.equal(hasPlayableCelebrityAnswer('First Last'), true);
 });
 
-test('celebrity prompt applies complete public name rules to every language', () => {
+test('celebrity answers allow complete CJK names without spaces', () => {
+  assert.equal(
+    hasPlayableCelebrityAnswer('成龙', {
+      languageId: 'chinese-simplified',
+      languageName: 'Chinese (Simplified)',
+    }),
+    true
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: '成龙', clue: '功夫' },
+      {
+        categoryIds: ['celebrities'],
+        language: {
+          languageId: 'chinese-simplified',
+          languageName: 'Chinese (Simplified)',
+        },
+      }
+    ),
+    { word: '成龙', clue: '功夫' }
+  );
+});
+
+test('celebrity prompt applies complete public name rules without requiring spaces in CJK', () => {
   const prompt = buildPrompt(
     buildRoundRequest({
       languageId: 'spanish',
@@ -104,7 +129,8 @@ test('celebrity prompt applies complete public name rules to every language', ()
   );
 
   assert.match(prompt, /For Celebrities, return only widely recognizable public figures/);
-  assert.match(prompt, /complete public name with at least two words/);
+  assert.match(prompt, /complete public name/);
+  assert.match(prompt, /CJK and other no-space scripts/);
   assert.match(prompt, /never return a first name, nickname, or partial name by itself/);
   assert.match(prompt, /These rules apply to every language/);
 });
@@ -203,11 +229,16 @@ test('static word prompt translates non-English words and attached clues', () =>
     buildStaticWordRequest({
       languageId: 'russian',
       languageName: 'Russian',
+      languageNativeName: 'Русский',
     }),
     'translated-static-seed'
   );
 
+  assert.match(prompt, /Language ID: russian/);
+  assert.match(prompt, /Native language name: Русский/);
+  assert.match(prompt, /Expected writing system: Cyrillic script/);
   assert.match(prompt, /Translate the source word naturally/);
+  assert.match(prompt, /Localize naturally, do not directly translate if direct translation sounds weird/);
   assert.match(prompt, /Translate the source imposter clue naturally/);
   assert.match(prompt, /Do not generate a fresh clue or change the clue relationship/);
   assert.match(prompt, /Both fields must be in the target language/);
@@ -222,6 +253,90 @@ test('generated clue validation accepts one- or two-word association clues', () 
     word: 'dough',
     clue: 'elasticity',
   });
+});
+
+test('localized validation accepts accents, non-Latin scripts, and localized punctuation', () => {
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: 'piñata', clue: 'fiesta' },
+      { language: { languageId: 'spanish', languageName: 'Spanish' } }
+    ),
+    { word: 'piñata', clue: 'fiesta' }
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: 'قطة', clue: 'مواء،' },
+      { language: { languageId: 'arabic', languageName: 'Arabic' } }
+    ),
+    { word: 'قطة', clue: 'مواء،' }
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: 'पतंग', clue: 'हवा' },
+      { language: { languageId: 'hindi', languageName: 'Hindi' } }
+    ),
+    { word: 'पतंग', clue: 'हवा' }
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: 'кошка', clue: 'мяу' },
+      { language: { languageId: 'russian', languageName: 'Russian' } }
+    ),
+    { word: 'кошка', clue: 'мяу' }
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: '寿司', clue: '箸' },
+      { language: { languageId: 'japanese', languageName: 'Japanese' } }
+    ),
+    { word: '寿司', clue: '箸' }
+  );
+});
+
+test('localized validation rejects English-only output for non-Latin languages', () => {
+  assert.throws(
+    () =>
+      parseGeneratedWord(
+        { word: 'cat', clue: 'meow' },
+        { language: { languageId: 'arabic', languageName: 'Arabic' } }
+      ),
+    /English\/Latin-only word/
+  );
+  assert.throws(
+    () =>
+      parseGeneratedWord(
+        { word: 'Avatar', clue: 'blue' },
+        {
+          categoryIds: ['movies'],
+          language: { languageId: 'chinese-simplified', languageName: 'Chinese' },
+        }
+      ),
+    /English\/Latin-only clue/
+  );
+  assert.deepEqual(
+    parseGeneratedWord(
+      { word: 'Avatar', clue: '潘多拉' },
+      {
+        categoryIds: ['movies'],
+        language: { languageId: 'chinese-simplified', languageName: 'Chinese' },
+      }
+    ),
+    { word: 'Avatar', clue: '潘多拉' }
+  );
+});
+
+test('localized validation rejects unchanged English static translation output', () => {
+  assert.throws(
+    () =>
+      parseGeneratedWord(
+        { word: 'sunscreen', clue: 'sunburn' },
+        {
+          language: { languageId: 'spanish', languageName: 'Spanish' },
+          source: { word: 'sunscreen', clue: 'sunburn' },
+        }
+      ),
+    /unchanged English source/
+  );
 });
 
 test('generated clue validation rejects long, punctuated, and generic clues', () => {
@@ -459,6 +574,42 @@ test('retry limits and client timeout are bounded', () => {
   assert.deepEqual(getUniqueClueCandidates(['burn', 'Burn', ' beach ', 'beach']), ['burn', 'beach']);
 });
 
+test('localization paths use the stronger configurable default model', async () => {
+  await withEnv(
+    {
+      OPENAI_MODEL: undefined,
+      OPENAI_LOCALIZATION_MODEL: undefined,
+      OPENAI_LOCALIZED_GENERATION_MODEL: undefined,
+      OPENAI_TRANSLATION_MODEL: undefined,
+    },
+    async () => {
+      assert.equal(getTranslationModel(), 'gpt-5.4');
+      assert.equal(
+        getRoundGenerationModel({ languageId: 'spanish', languageName: 'Spanish' }),
+        'gpt-5.4'
+      );
+      assert.equal(
+        getRoundGenerationModel({ languageId: 'english', languageName: 'English' }),
+        'gpt-5.4-mini'
+      );
+    }
+  );
+
+  await withEnv(
+    {
+      OPENAI_LOCALIZATION_MODEL: 'custom-localizer',
+      OPENAI_TRANSLATION_MODEL: 'custom-translator',
+    },
+    async () => {
+      assert.equal(getTranslationModel(), 'custom-translator');
+      assert.equal(
+        getRoundGenerationModel({ languageId: 'spanish', languageName: 'Spanish' }),
+        'custom-localizer'
+      );
+    }
+  );
+});
+
 test('server prepare-static-word returns selected English static word without OpenAI', async () => {
   setOpenAIClientFactoryForTesting();
 
@@ -599,13 +750,130 @@ test('client non-English static failure fails closed instead of showing English 
   }
 });
 
+test('client non-English dynamic categories do not use English emergency fallback', async () => {
+  const previousFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ error: 'Round generation failed' }), {
+      status: 502,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+  try {
+    await assert.rejects(
+      () =>
+        createRound({
+          players: buildPlayers(),
+          categoryIds: ['movies'],
+          difficulty: 'easy',
+          languageId: 'spanish-client-movie-failure',
+          languageName: 'Spanish',
+          rng: () => 0,
+        }),
+      /AI round generation failed/
+    );
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test('client English dynamic categories may still use English emergency fallback', async () => {
+  const previousFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ error: 'Round generation failed' }), {
+      status: 502,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+  try {
+    const round = await createRound({
+      players: buildPlayers(),
+      categoryIds: ['movies'],
+      difficulty: 'easy',
+      languageId: 'english',
+      languageName: 'English',
+      rng: () => 0,
+    });
+
+    assert.ok(round.secretWord);
+    assert.ok(round.imposterHint);
+    assert.deepEqual(round.config.categoryIds, ['movies']);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test('client non-English static rounds retry when translated word was already played', async () => {
+  const previousFetch = globalThis.fetch;
+  const responses = [
+    { word: 'sol', clue: 'calor' },
+    { word: 'sol', clue: 'calor' },
+    { word: 'luna', clue: 'noche' },
+  ];
+  const requests = [];
+
+  globalThis.fetch = async (_url, init) => {
+    requests.push(JSON.parse(init.body));
+    const response = responses.shift();
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  };
+
+  try {
+    await createRound({
+      players: buildPlayers(),
+      categoryIds: ['objects'],
+      difficulty: 'easy',
+      languageId: 'spanish-client-static-retry',
+      languageName: 'Spanish',
+      rng: () => 0,
+    });
+
+    const retriedRound = await createRound({
+      players: buildPlayers(),
+      categoryIds: ['objects'],
+      difficulty: 'easy',
+      languageId: 'spanish-client-static-retry',
+      languageName: 'Spanish',
+      rng: () => 0,
+    });
+
+    assert.equal(retriedRound.secretWord, 'luna');
+    assert.equal(retriedRound.imposterHint, 'noche');
+    assert.equal(requests.length, 3);
+    assert.deepEqual(requests[1].playedWords, ['sol']);
+    assert.notEqual(requests[1].source.word, requests[2].source.word);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
 test('server non-English prepare-static-word translates supplied static hint or fails closed', async () => {
-  await withEnv({ OPENAI_API_KEY: 'test-key' }, async () => {
+  await withEnv(
+    {
+      OPENAI_API_KEY: 'test-key',
+      OPENAI_MODEL: undefined,
+      OPENAI_LOCALIZATION_MODEL: undefined,
+      OPENAI_TRANSLATION_MODEL: undefined,
+    },
+    async () => {
     let callCount = 0;
+    const models = [];
 
     setOpenAIClientFactoryForTesting(() =>
-      createFakeOpenAi(async () => {
+      createFakeOpenAi(async (options) => {
         callCount += 1;
+        models.push(options.model);
 
         return {
           output_parsed: {
@@ -639,6 +907,7 @@ test('server non-English prepare-static-word translates supplied static hint or 
       assert.notEqual(translatedFallback.word, 'sunscreen');
       assert.notEqual(translatedFallback.clue, 'sunburn');
       assert.equal(callCount, 1);
+      assert.deepEqual(models, ['gpt-5.4']);
     } finally {
       setOpenAIClientFactoryForTesting();
     }

@@ -1,4 +1,13 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { DEFAULT_LANGUAGE_ID, LANGUAGES, type LanguageOption } from '@/constants/languages';
 
@@ -9,9 +18,36 @@ type LanguageSettingsContextValue = {
 };
 
 const LanguageSettingsContext = createContext<LanguageSettingsContextValue | null>(null);
+const LANGUAGE_STORAGE_KEY = 'imposter:selected-language-id';
+
+const isSupportedLanguageId = (languageId: string) =>
+  LANGUAGES.some((language) => language.id === languageId);
 
 export function LanguageSettingsProvider({ children }: { children: ReactNode }) {
   const [selectedLanguageId, setSelectedLanguageId] = useState(DEFAULT_LANGUAGE_ID);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    AsyncStorage.getItem(LANGUAGE_STORAGE_KEY)
+      .then((storedLanguageId) => {
+        if (isMounted && storedLanguageId && isSupportedLanguageId(storedLanguageId)) {
+          setSelectedLanguageId(storedLanguageId);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const updateSelectedLanguageId = useCallback((languageId: string) => {
+    const nextLanguageId = isSupportedLanguageId(languageId) ? languageId : DEFAULT_LANGUAGE_ID;
+
+    setSelectedLanguageId(nextLanguageId);
+    AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguageId).catch(() => undefined);
+  }, []);
 
   const selectedLanguage = useMemo(
     () =>
@@ -22,8 +58,12 @@ export function LanguageSettingsProvider({ children }: { children: ReactNode }) 
   );
 
   const value = useMemo(
-    () => ({ selectedLanguage, selectedLanguageId, setSelectedLanguageId }),
-    [selectedLanguage, selectedLanguageId]
+    () => ({
+      selectedLanguage,
+      selectedLanguageId,
+      setSelectedLanguageId: updateSelectedLanguageId,
+    }),
+    [selectedLanguage, selectedLanguageId, updateSelectedLanguageId]
   );
 
   return (

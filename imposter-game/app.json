@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "imposter-game",
+    "name": "IMPOSTER",
     "slug": "imposter-game",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,17 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cnfstudios.imposter",
+      "buildNumber": "3",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,6 +51,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cef249f3-b667-48f8-a009-10987f6d495a"
+      }
+    },
+    "owner": "sw.crxs"
   }
 }

@@ -98,8 +98,38 @@ export const normalizeWordKey = (value: string) =>
     .trim()
     .replace(/\s+/g, ' ');
 
-export const hasPlayableCelebrityAnswer = (word: string) =>
-  normalizeWordKey(word).split(' ').filter(Boolean).length >= 2;
+type CelebrityLanguageContext = {
+  languageId?: string;
+  languageName?: string;
+};
+
+const cjkCelebrityNamePattern =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
+
+const isCjkLanguage = ({ languageId = '', languageName = '' }: CelebrityLanguageContext = {}) => {
+  const languageKey = `${languageId} ${languageName}`.toLocaleLowerCase();
+
+  return (
+    languageKey.includes('chinese') ||
+    languageKey.includes('japanese') ||
+    languageKey.includes('korean')
+  );
+};
+
+export const hasPlayableCelebrityAnswer = (
+  word: string,
+  language: CelebrityLanguageContext = {}
+) => {
+  if (normalizeWordKey(word).split(' ').filter(Boolean).length >= 2) {
+    return true;
+  }
+
+  if (!isCjkLanguage(language)) {
+    return false;
+  }
+
+  return [...word.matchAll(cjkCelebrityNamePattern)].length >= 2;
+};
 
 export const WORD_DIFFICULTIES = ['easy', 'medium', 'hard'] as const satisfies readonly WordDifficulty[];
 

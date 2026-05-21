@@ -39,12 +39,36 @@ const HINT_ICON: MaterialIconName = 'tips-and-updates';
 const TIMER_ICON: MaterialIconName = 'timer';
 const SHARE_ICON: MaterialIconName = 'share';
 const REVIEW_ICON: MaterialIconName = 'rate-review';
+const PRIVACY_ICON: MaterialIconName = 'privacy-tip';
+const TERMS_ICON: MaterialIconName = 'gavel';
+const SUPPORT_ICON: MaterialIconName = 'support-agent';
 const CHECK_ICON: MaterialIconName = 'check';
 const DROPDOWN_OPEN_ICON: MaterialIconName = 'keyboard-arrow-up';
 const DROPDOWN_CLOSED_ICON: MaterialIconName = 'keyboard-arrow-down';
 const APP_NAME = 'IMPOSTER';
 const SHARE_MESSAGE =
   'Play IMPOSTER with friends - a pass-and-play party word game where one player tries to blend in.';
+const LEGAL_BASE_URL = 'https://cnfstudios.com';
+const LEGAL_LINKS = [
+  {
+    icon: PRIVACY_ICON,
+    label: 'Privacy policy',
+    value: 'How IMPOSTER handles data',
+    url: `${LEGAL_BASE_URL}/privacy`,
+  },
+  {
+    icon: TERMS_ICON,
+    label: 'Terms of use',
+    value: 'Rules for using IMPOSTER',
+    url: `${LEGAL_BASE_URL}/terms`,
+  },
+  {
+    icon: SUPPORT_ICON,
+    label: 'Support',
+    value: 'Get help or report an issue',
+    url: `${LEGAL_BASE_URL}/support`,
+  },
+] as const;
 const IMPOSTER_COUNT_OPTIONS: ImposterCount[] = [1, 2];
 const IMPOSTER_COUNT_OPTION_WIDTH = 38;
 const IMPOSTER_COUNT_SWITCH_GAP = Spacing.xs;
@@ -139,6 +163,14 @@ export default function SettingsScreen() {
       );
     } catch {
       Alert.alert('Reviews unavailable', 'Try opening the app store again from this device.');
+    }
+  };
+
+  const openLegalLink = async (label: string, url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(`${label} unavailable`, 'Check your connection and try again.');
     }
   };
 
@@ -404,6 +436,35 @@ export default function SettingsScreen() {
             </View>
             <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
           </Pressable>
+        </View>
+
+        <View style={styles.actionSection}>
+          {LEGAL_LINKS.map((link) => (
+            <Pressable
+              key={link.label}
+              accessibilityRole="button"
+              accessibilityLabel={link.label}
+              onPress={() => openLegalLink(link.label, link.url)}
+              style={({ pressed }) => [styles.settingRow, pressed && styles.settingRowPressed]}>
+              <View style={styles.settingIconBadge}>
+                <MaterialIcons name={link.icon} size={22} color={Colors.primary} />
+              </View>
+              <View style={styles.settingTextGroup}>
+                <Text variant="bodyEmphasis" numberOfLines={1} style={styles.settingLabel}>
+                  {link.label}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  style={styles.settingValue}>
+                  {link.value}
+                </Text>
+              </View>
+              <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
+            </Pressable>
+          ))}
         </View>
       </ScrollView>
     </Screen>

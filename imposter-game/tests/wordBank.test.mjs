@@ -121,4 +121,11 @@ test('random category selection uses weights instead of equal odds', () => {
 test('celebrity answer helper rejects incomplete output', () => {
   assert.equal(hasPlayableCelebrityAnswer('Single'), false);
   assert.equal(hasPlayableCelebrityAnswer('First Last'), true);
+  assert.equal(
+    hasPlayableCelebrityAnswer('成龙', {
+      languageId: 'chinese-simplified',
+      languageName: 'Chinese (Simplified)',
+    }),
+    true
+  );
 });

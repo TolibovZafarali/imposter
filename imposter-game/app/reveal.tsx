@@ -218,8 +218,6 @@ export default function RevealScreen() {
                   <Text
                     variant="display"
                     align="center"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.72}
                     numberOfLines={1}
                     style={styles.imposterTitle}>
                     IMPOSTER
@@ -231,8 +229,6 @@ export default function RevealScreen() {
                     <Text
                       variant="title"
                       align="center"
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.76}
                       numberOfLines={2}
                       style={styles.hintWord}>
                       {currentCard.hint}
@@ -249,9 +245,7 @@ export default function RevealScreen() {
                   <Text
                     variant="display"
                     align="center"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.64}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     style={styles.secretWord}>
                     {currentCard.word}
                   </Text>
@@ -350,14 +344,17 @@ const styles = StyleSheet.create({
   imposterTitle: {
     color: Colors.primary,
     letterSpacing: 0,
+    width: '100%',
   },
   hintWord: {
     color: Colors.text,
     letterSpacing: 0,
+    width: '100%',
   },
   secretWord: {
     color: Colors.text,
     letterSpacing: 0,
+    width: '100%',
   },
   actionSlot: {
     minHeight: 68,

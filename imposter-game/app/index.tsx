@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps, ComponentRef } from 'react';
 import {
+  Alert,
   Animated as RNAnimated,
   Platform,
   Pressable,
@@ -453,6 +454,7 @@ export default function HomeScreen() {
         difficulty: selectedDifficulty,
         languageId: selectedLanguage.id,
         languageName: selectedLanguage.name,
+        languageNativeName: selectedLanguage.nativeName,
         imposterCount,
         isImposterHintEnabled,
         roundTimerMinutes,
@@ -464,6 +466,11 @@ export default function HomeScreen() {
       clearPlayerNameSelection();
       startRound(round);
       router.push('/reveal');
+    } catch {
+      Alert.alert(
+        'Round unavailable',
+        'Could not generate a natural localized round. Try again.'
+      );
     } finally {
       isStartingGameRef.current = false;
       setIsStartingGame(false);

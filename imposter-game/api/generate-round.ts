@@ -3,11 +3,18 @@ import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 
 const DEFAULT_MODEL = 'gpt-5.4-mini';
+const DEFAULT_LOCALIZATION_MODEL = 'gpt-5.4';
 export const MAX_DYNAMIC_GENERATION_ATTEMPTS = 3;
 export const MAX_TRANSLATION_ATTEMPTS = 3;
 export const CANDIDATE_COUNT = 8;
 const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 const playedWordSchema = z.string().trim().min(1).max(42);
+const languageMetadataSchema = {
+  languageId: z.string().trim().min(1).max(80),
+  languageName: z.string().trim().min(1).max(80),
+  languageNativeName: z.string().trim().min(1).max(120).optional(),
+  languageScriptHint: z.string().trim().min(1).max(120).optional(),
+} as const;
 
 const createDefaultOpenAIClient = (apiKey: string) => new OpenAI({ apiKey });
 let createOpenAIClient = createDefaultOpenAIClient;
@@ -20,16 +27,15 @@ const roundWordRequestSchema = z.object({
   mode: z.literal('generate-round').optional(),
   categoryIds: z.array(z.string().trim().min(1).max(40)).min(1).max(3),
   difficulty: difficultySchema.default('easy'),
-  languageId: z.string().trim().min(1).max(80),
-  languageName: z.string().trim().min(1).max(80),
+  ...languageMetadataSchema,
   playerCount: z.number().int().min(3).max(10),
   playedWords: z.array(playedWordSchema).default([]),
 });
 
 const translationRequestSchema = z.object({
   mode: z.literal('translate-word'),
-  languageId: z.string().trim().min(1).max(80),
-  languageName: z.string().trim().min(1).max(80),
+  ...languageMetadataSchema,
+  playedWords: z.array(playedWordSchema).default([]),
   source: z.object({
     word: z.string().trim().min(1).max(42),
     clue: z.string().trim().min(1).max(42),
@@ -42,8 +48,8 @@ const translationRequestSchema = z.object({
 
 const staticWordRequestSchema = z.object({
   mode: z.literal('prepare-static-word'),
-  languageId: z.string().trim().min(1).max(80),
-  languageName: z.string().trim().min(1).max(80),
+  ...languageMetadataSchema,
+  playedWords: z.array(playedWordSchema).default([]),
   source: z.object({
     word: z.string().trim().min(1).max(42),
     categoryId: z.string().trim().min(1).max(40),
@@ -92,6 +98,238 @@ const normalizeForCloseness = (value: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .replace(/\s+/g, ' ');
+
+type LanguageMetadata = {
+  languageId: string;
+  languageName: string;
+  languageNativeName?: string;
+  languageScriptHint?: string;
+};
+
+type ScriptProfile = {
+  label: string;
+  promptHint: string;
+  pattern: RegExp;
+  allowsNoSpaceCelebrityNames?: boolean;
+};
+
+const scriptProfiles = {
+  arabic: {
+    label: 'Arabic script',
+    promptHint: 'Arabic script for normal words and clues',
+    pattern: /\p{Script=Arabic}/u,
+  },
+  armenian: {
+    label: 'Armenian script',
+    promptHint: 'Armenian script for normal words and clues',
+    pattern: /\p{Script=Armenian}/u,
+  },
+  bengali: {
+    label: 'Bengali script',
+    promptHint: 'Bengali script for normal words and clues',
+    pattern: /\p{Script=Bengali}/u,
+  },
+  cjk: {
+    label: 'CJK script',
+    promptHint: 'the natural CJK writing system for this language',
+    pattern: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u,
+    allowsNoSpaceCelebrityNames: true,
+  },
+  cyrillic: {
+    label: 'Cyrillic script',
+    promptHint: 'Cyrillic script for normal words and clues',
+    pattern: /\p{Script=Cyrillic}/u,
+  },
+  devanagari: {
+    label: 'Devanagari script',
+    promptHint: 'Devanagari script for normal words and clues',
+    pattern: /\p{Script=Devanagari}/u,
+  },
+  ethiopic: {
+    label: 'Ethiopic script',
+    promptHint: 'Ethiopic script for normal words and clues',
+    pattern: /\p{Script=Ethiopic}/u,
+  },
+  georgian: {
+    label: 'Georgian script',
+    promptHint: 'Georgian script for normal words and clues',
+    pattern: /\p{Script=Georgian}/u,
+  },
+  greek: {
+    label: 'Greek script',
+    promptHint: 'Greek script for normal words and clues',
+    pattern: /\p{Script=Greek}/u,
+  },
+  gujarati: {
+    label: 'Gujarati script',
+    promptHint: 'Gujarati script for normal words and clues',
+    pattern: /\p{Script=Gujarati}/u,
+  },
+  gurmukhi: {
+    label: 'Gurmukhi script',
+    promptHint: 'Gurmukhi script for normal words and clues',
+    pattern: /\p{Script=Gurmukhi}/u,
+  },
+  hebrew: {
+    label: 'Hebrew script',
+    promptHint: 'Hebrew script for normal words and clues',
+    pattern: /\p{Script=Hebrew}/u,
+  },
+  khmer: {
+    label: 'Khmer script',
+    promptHint: 'Khmer script for normal words and clues',
+    pattern: /\p{Script=Khmer}/u,
+  },
+  lao: {
+    label: 'Lao script',
+    promptHint: 'Lao script for normal words and clues',
+    pattern: /\p{Script=Lao}/u,
+  },
+  myanmar: {
+    label: 'Myanmar script',
+    promptHint: 'Myanmar script for normal words and clues',
+    pattern: /\p{Script=Myanmar}/u,
+  },
+  sinhala: {
+    label: 'Sinhala script',
+    promptHint: 'Sinhala script for normal words and clues',
+    pattern: /\p{Script=Sinhala}/u,
+  },
+  tamil: {
+    label: 'Tamil script',
+    promptHint: 'Tamil script for normal words and clues',
+    pattern: /\p{Script=Tamil}/u,
+  },
+  telugu: {
+    label: 'Telugu script',
+    promptHint: 'Telugu script for normal words and clues',
+    pattern: /\p{Script=Telugu}/u,
+  },
+  thai: {
+    label: 'Thai script',
+    promptHint: 'Thai script for normal words and clues',
+    pattern: /\p{Script=Thai}/u,
+  },
+} as const satisfies Record<string, ScriptProfile>;
+
+const scriptProfileByLanguageId = new Map<string, ScriptProfile>([
+  ['amharic', scriptProfiles.ethiopic],
+  ['arabic', scriptProfiles.arabic],
+  ['armenian', scriptProfiles.armenian],
+  ['assamese', scriptProfiles.bengali],
+  ['belarusian', scriptProfiles.cyrillic],
+  ['bengali', scriptProfiles.bengali],
+  ['bhojpuri', scriptProfiles.devanagari],
+  ['bulgarian', scriptProfiles.cyrillic],
+  ['burmese', scriptProfiles.myanmar],
+  ['chinese-simplified', scriptProfiles.cjk],
+  ['chinese-traditional', scriptProfiles.cjk],
+  ['dhivehi', scriptProfiles.arabic],
+  ['dogri', scriptProfiles.devanagari],
+  ['georgian', scriptProfiles.georgian],
+  ['greek', scriptProfiles.greek],
+  ['gujarati', scriptProfiles.gujarati],
+  ['hebrew', scriptProfiles.hebrew],
+  ['hindi', scriptProfiles.devanagari],
+  ['japanese', scriptProfiles.cjk],
+  ['kannada', {
+    label: 'Kannada script',
+    promptHint: 'Kannada script for normal words and clues',
+    pattern: /\p{Script=Kannada}/u,
+  }],
+  ['kazakh', scriptProfiles.cyrillic],
+  ['khmer', scriptProfiles.khmer],
+  ['konkani', scriptProfiles.devanagari],
+  ['korean', scriptProfiles.cjk],
+  ['kurdish-sorani', scriptProfiles.arabic],
+  ['kyrgyz', scriptProfiles.cyrillic],
+  ['lao', scriptProfiles.lao],
+  ['macedonian', scriptProfiles.cyrillic],
+  ['maithili', scriptProfiles.devanagari],
+  ['malayalam', {
+    label: 'Malayalam script',
+    promptHint: 'Malayalam script for normal words and clues',
+    pattern: /\p{Script=Malayalam}/u,
+  }],
+  ['marathi', scriptProfiles.devanagari],
+  ['mongolian', scriptProfiles.cyrillic],
+  ['nepali', scriptProfiles.devanagari],
+  ['odia', {
+    label: 'Odia script',
+    promptHint: 'Odia script for normal words and clues',
+    pattern: /\p{Script=Oriya}/u,
+  }],
+  ['pashto', scriptProfiles.arabic],
+  ['persian', scriptProfiles.arabic],
+  ['punjabi', scriptProfiles.gurmukhi],
+  ['russian', scriptProfiles.cyrillic],
+  ['sanskrit', scriptProfiles.devanagari],
+  ['serbian', scriptProfiles.cyrillic],
+  ['sindhi', scriptProfiles.arabic],
+  ['sinhala', scriptProfiles.sinhala],
+  ['tajik', scriptProfiles.cyrillic],
+  ['tamil', scriptProfiles.tamil],
+  ['tatar', scriptProfiles.cyrillic],
+  ['telugu', scriptProfiles.telugu],
+  ['thai', scriptProfiles.thai],
+  ['tigrinya', scriptProfiles.ethiopic],
+  ['ukrainian', scriptProfiles.cyrillic],
+  ['urdu', scriptProfiles.arabic],
+  ['uyghur', scriptProfiles.arabic],
+  ['yiddish', scriptProfiles.hebrew],
+]);
+
+const getLanguageScriptProfile = (language: LanguageMetadata): ScriptProfile | null => {
+  const languageId = language.languageId.trim().toLocaleLowerCase();
+  const explicitHint = language.languageScriptHint?.trim().toLocaleLowerCase();
+
+  if (explicitHint) {
+    const hintedProfile = Object.values(scriptProfiles).find((profile) =>
+      explicitHint.includes(profile.label.toLocaleLowerCase().replace(' script', ''))
+    );
+
+    if (hintedProfile) {
+      return hintedProfile;
+    }
+  }
+
+  const mappedProfile = scriptProfileByLanguageId.get(languageId);
+
+  if (mappedProfile) {
+    return mappedProfile;
+  }
+
+  const nativeName = language.languageNativeName?.trim();
+
+  if (nativeName) {
+    return Object.values(scriptProfiles).find((profile) => profile.pattern.test(nativeName)) ?? null;
+  }
+
+  return null;
+};
+
+const getLanguageScriptHint = (language: LanguageMetadata) =>
+  language.languageScriptHint?.trim() ||
+  getLanguageScriptProfile(language)?.promptHint ||
+  'the writing system real native speakers normally use for this language';
+
+const formatLanguageMetadataLines = (language: LanguageMetadata) => [
+  `Language ID: ${language.languageId}`,
+  `Language name: ${language.languageName}`,
+  language.languageNativeName ? `Native language name: ${language.languageNativeName}` : null,
+  `Expected writing system: ${getLanguageScriptHint(language)}`,
+];
+
+const hasLatinLetters = (value: string) => /\p{Script=Latin}/u.test(value);
+
+const countExpectedScriptLetters = (value: string, profile: ScriptProfile) =>
+  Array.from(value).filter((character) => profile.pattern.test(character)).length;
+
+const isLikelyGlobalProperNoun = (value: string) => {
+  const tokens = value.match(/[\p{L}\p{N}]+/gu) ?? [];
+
+  return hasLatinLetters(value) && (tokens.length > 1 || /[A-Z]/.test(value));
+};
 
 const categoryClueTokens = new Set([
   'animal',
@@ -227,14 +465,22 @@ const getCluePairKey = (word: string, clue: string) =>
 const getClueTokens = (clue: string) =>
   normalizeForCloseness(clue).split(' ').filter(Boolean);
 
+const disallowedClueSeparatorPattern = /[-\u2010-\u2015/\\|_]/u;
+
+const hasPunctuationHeavyClue = (clue: string) => {
+  const punctuation = clue.match(/[^\p{L}\p{M}\p{N}\s'’]/gu) ?? [];
+
+  return punctuation.length > 2 || punctuation.join('').length > Math.max(2, Math.floor(clue.length / 4));
+};
+
 const hasShortPhraseClue = (clue: string) => {
   const clueTokens = normalizeForCloseness(clue).split(' ').filter(Boolean);
 
   return (
     clueTokens.length >= 1 &&
     clueTokens.length <= 2 &&
-    !/[-\u2010-\u2015/\\|_]/u.test(clue) &&
-    !/[^\p{L}\p{M}\p{N}\s'’]/u.test(clue)
+    !disallowedClueSeparatorPattern.test(clue) &&
+    !hasPunctuationHeavyClue(clue)
   );
 };
 
@@ -280,13 +526,96 @@ const hasLexicallyCloseClue = (word: string, clue: string) => {
   );
 };
 
-export const hasPlayableCelebrityAnswer = (word: string) =>
-  normalizeForCloseness(word).split(' ').filter(Boolean).length >= 2;
+export const hasPlayableCelebrityAnswer = (word: string, language?: LanguageMetadata) => {
+  if (normalizeForCloseness(word).split(' ').filter(Boolean).length >= 2) {
+    return true;
+  }
+
+  const profile = language ? getLanguageScriptProfile(language) : null;
+
+  return Boolean(
+    profile?.allowsNoSpaceCelebrityNames && countExpectedScriptLetters(word, profile) >= 2
+  );
+};
 
 const isCelebrityRequest = (categoryIds: readonly string[]) => categoryIds.includes('celebrities');
 const isMovieRequest = (categoryIds: readonly string[]) => categoryIds.includes('movies');
-const isEnglishLanguage = ({ languageId, languageName }: Pick<StaticWordRequest, 'languageId' | 'languageName'>) =>
+const isEnglishLanguage = ({ languageId, languageName }: LanguageMetadata) =>
   languageId === 'english' || languageName.trim().toLocaleLowerCase() === 'english';
+
+const getEnv = (name: string) => process.env[name]?.trim() || '';
+
+export const getRoundGenerationModel = (language: LanguageMetadata) =>
+  isEnglishLanguage(language)
+    ? getEnv('OPENAI_MODEL') || DEFAULT_MODEL
+    : getEnv('OPENAI_LOCALIZED_GENERATION_MODEL') ||
+      getEnv('OPENAI_LOCALIZATION_MODEL') ||
+      getEnv('OPENAI_MODEL') ||
+      DEFAULT_LOCALIZATION_MODEL;
+
+export const getTranslationModel = () =>
+  getEnv('OPENAI_TRANSLATION_MODEL') ||
+  getEnv('OPENAI_LOCALIZATION_MODEL') ||
+  getEnv('OPENAI_MODEL') ||
+  DEFAULT_LOCALIZATION_MODEL;
+
+const canUseGlobalLatinTitleOrName = (word: string, categoryIds: readonly string[]) =>
+  (isMovieRequest(categoryIds) || isCelebrityRequest(categoryIds)) && isLikelyGlobalProperNoun(word);
+
+const assertExpectedScriptForField = ({
+  field,
+  value,
+  language,
+  categoryIds,
+}: {
+  field: 'word' | 'clue';
+  value: string;
+  language: LanguageMetadata;
+  categoryIds: readonly string[];
+}) => {
+  const profile = getLanguageScriptProfile(language);
+
+  if (!profile || profile.pattern.test(value)) {
+    return;
+  }
+
+  if (field === 'word' && canUseGlobalLatinTitleOrName(value, categoryIds)) {
+    return;
+  }
+
+  if (hasLatinLetters(value)) {
+    throw new Error(
+      `OpenAI returned English/Latin-only ${field} text for ${language.languageName}; expected ${profile.label}`
+    );
+  }
+
+  throw new Error(
+    `OpenAI returned ${field} text outside the expected ${profile.label} for ${language.languageName}`
+  );
+};
+
+const assertNotUnchangedEnglishSource = ({
+  word,
+  clue,
+  source,
+  language,
+}: {
+  word: string;
+  clue: string;
+  source?: { word?: string; clue?: string };
+  language: LanguageMetadata;
+}) => {
+  if (isEnglishLanguage(language) || !source?.word || !source?.clue) {
+    return;
+  }
+
+  const wordMatchesSource = normalizeForCloseness(word) === normalizeForCloseness(source.word);
+  const clueMatchesSource = normalizeForCloseness(clue) === normalizeForCloseness(source.clue);
+
+  if (wordMatchesSource && clueMatchesSource) {
+    throw new Error('OpenAI returned unchanged English source text for a non-English round');
+  }
+};
 
 const responseSchema = z
   .object({
@@ -435,18 +764,19 @@ const distinctiveClueRules = (hasCelebrityCategory = false) => [
 ];
 
 export const buildPrompt = (
-  { categoryIds, difficulty, languageName, playerCount }: RoundWordRequest,
+  input: RoundWordRequest,
   varietyKey: string,
   alreadyPlayedWords: readonly string[],
   popularityScope: PopularityScope = selectPopularityScope(varietyKey)
 ) => {
+  const { categoryIds, difficulty, languageName, playerCount } = input;
   const categories = categoryIds.map(categoryLabel).join(', ');
   const playedWordList = alreadyPlayedWords.length ? alreadyPlayedWords.join(', ') : 'None';
   const hasCelebrityCategory = isCelebrityRequest(categoryIds);
   const hasMovieCategory = isMovieRequest(categoryIds);
 
   return [
-    `Language: ${languageName}`,
+    ...formatLanguageMetadataLines(input),
     `Categories: ${categories}`,
     `Difficulty: ${difficulty}`,
     `Player count: ${playerCount}`,
@@ -464,6 +794,14 @@ export const buildPrompt = (
     '- Do not choose obscure, niche, old, regional-only, or expert-level answers.',
     '- The answer should feel obvious and playable for a casual party game.',
     '',
+    'Localization rules:',
+    '- Localize naturally for real native speakers; do not directly translate if direct translation sounds weird.',
+    '- The secret word must be what casual players would actually say in the selected language.',
+    '- The clue must be simple, natural, and playable for normal speakers of the selected language.',
+    '- Avoid stiff literal translations, rare dictionary words, overly formal wording, and awkward machine-translation phrasing.',
+    '- If several translations are possible, choose the most common everyday version.',
+    '- For non-English languages, do not silently return English text unless that exact title or public name is commonly used that way by speakers of the selected language.',
+    '',
     'Repeat-prevention rules:',
     '- Never choose any word from the already played secret words list.',
     '- Choose a different valid word each request.',
@@ -477,7 +815,7 @@ export const buildPrompt = (
       ? '- For Celebrities, return only widely recognizable public figures.'
       : null,
     hasCelebrityCategory
-      ? '- For Celebrities, the secret word must be a complete public name with at least two words: first and last name, or a complete multi-word stage/public name.'
+      ? '- For Celebrities, the secret word must be a complete public name. Use first and last name or a complete multi-word stage/public name in languages that separate names with spaces; for CJK and other no-space scripts, a complete commonly recognized written public name is valid.'
       : null,
     hasCelebrityCategory
       ? '- For Celebrities, never return a first name, nickname, or partial name by itself.'
@@ -507,6 +845,7 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
   const storedClue = source.storedClue?.trim() || 'None';
 
   return [
+    ...formatLanguageMetadataLines(input),
     `Target language: ${languageName}`,
     `English source word: ${source.word}`,
     `English source category: ${source.categoryLabel}`,
@@ -520,6 +859,9 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
       : 'Keep the source word exactly as the returned word.',
     shouldTranslateWord ? 'Do not replace the source word with a different example.' : null,
     shouldTranslateWord
+      ? 'Localize naturally, do not directly translate if direct translation sounds weird.'
+      : null,
+    shouldTranslateWord
       ? 'Use the common everyday word a native speaker would naturally say in a casual party game.'
       : null,
     shouldTranslateWord ? 'Translate meaning, not spelling, and use the natural script for the target language.' : null,
@@ -531,6 +873,9 @@ export const buildStaticWordPrompt = (input: StaticWordRequest, varietyKey = cre
       : null,
     shouldTranslateWord
       ? 'If the exact term is uncommon or sounds borrowed, use the closest common everyday term that native speakers recognize, even if it is slightly broader.'
+      : null,
+    shouldTranslateWord
+      ? 'If the source word cannot be localized into a natural playable word, do not force an awkward dictionary translation.'
       : null,
     '',
     shouldTranslateWord
@@ -561,6 +906,7 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
   const isAnimalTranslation = source.categoryId === 'animals';
 
   return [
+    ...formatLanguageMetadataLines(input),
     `Target language: ${languageName}`,
     `English source word: ${source.word}`,
     `English source category: ${source.categoryLabel}`,
@@ -570,6 +916,7 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     '',
     'Translate the source word naturally for native speakers in the target language.',
     'Do not replace the source word with a different example.',
+    'Localize naturally, do not directly translate if direct translation sounds weird.',
     'Use the common everyday word a native speaker would naturally say in a casual party game.',
     'Translate meaning, not spelling, and use the natural script for the target language.',
     'Prefer common native/common-use words over English spellings, loanword-looking forms, scientific names, or raw transliterations.',
@@ -578,6 +925,8 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     isAnimalTranslation
       ? 'For animals, prefer natural everyday animal names over scientific or taxonomy-level precision.'
       : null,
+    'If the exact English concept is awkward or uncommon in the target language, use the closest commonly used playable word in that language.',
+    'If no natural playable localization exists, avoid forcing a rare or literal dictionary term.',
     'Translate the English imposter clue without generating a new clue relationship.',
     'Do not replace the source clue with a different association.',
     'Return one translated secret word or short phrase, and one translated imposter clue.',
@@ -589,21 +938,61 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     .join('\n');
 };
 
+type ParseGeneratedWordOptions = {
+  alreadyPlayedWords?: readonly string[];
+  categoryIds?: readonly string[];
+  language?: LanguageMetadata;
+  source?: { word?: string; clue?: string };
+};
+
+const isPlayedWordsArgument = (
+  value: readonly string[] | ParseGeneratedWordOptions
+): value is readonly string[] => Array.isArray(value);
+
 export const parseGeneratedWord = (
   value: RoundWordResponse,
-  alreadyPlayedWords: readonly string[] = [],
+  alreadyPlayedWordsOrOptions: readonly string[] | ParseGeneratedWordOptions = [],
   categoryIds: readonly string[] = []
 ): RoundWordResponse => {
+  const options: ParseGeneratedWordOptions = isPlayedWordsArgument(alreadyPlayedWordsOrOptions)
+    ? { alreadyPlayedWords: alreadyPlayedWordsOrOptions, categoryIds }
+    : alreadyPlayedWordsOrOptions;
+  const parsedCategoryIds = options.categoryIds ?? [];
+  const parsedAlreadyPlayedWords = options.alreadyPlayedWords ?? [];
   const parsedWord = responseSchema.parse({
     word: normalizeGeneratedText(value.word),
     clue: normalizeGeneratedText(value.clue),
   });
 
-  if (isCelebrityRequest(categoryIds) && !hasPlayableCelebrityAnswer(parsedWord.word)) {
+  if (
+    isCelebrityRequest(parsedCategoryIds) &&
+    !hasPlayableCelebrityAnswer(parsedWord.word, options.language)
+  ) {
     throw new Error('OpenAI returned an incomplete celebrity name');
   }
 
-  if (isAlreadyPlayedWord(parsedWord.word, alreadyPlayedWords)) {
+  if (options.language && !isEnglishLanguage(options.language)) {
+    assertNotUnchangedEnglishSource({
+      word: parsedWord.word,
+      clue: parsedWord.clue,
+      source: options.source,
+      language: options.language,
+    });
+    assertExpectedScriptForField({
+      field: 'word',
+      value: parsedWord.word,
+      language: options.language,
+      categoryIds: parsedCategoryIds,
+    });
+    assertExpectedScriptForField({
+      field: 'clue',
+      value: parsedWord.clue,
+      language: options.language,
+      categoryIds: parsedCategoryIds,
+    });
+  }
+
+  if (isAlreadyPlayedWord(parsedWord.word, parsedAlreadyPlayedWords)) {
     throw new Error('OpenAI returned an already played round word');
   }
 
@@ -761,6 +1150,7 @@ export async function selectBestGeneratedClue({
   candidateWord,
   alreadyPlayedWords = [],
   categoryIds = [],
+  language,
   languageName,
   categoryLabel,
 }: {
@@ -769,6 +1159,7 @@ export async function selectBestGeneratedClue({
   candidateWord: AiWordCandidatesResponse;
   alreadyPlayedWords?: readonly string[];
   categoryIds?: readonly string[];
+  language?: LanguageMetadata;
   languageName: string;
   categoryLabel: string;
 }): Promise<RoundWordResponse> {
@@ -783,8 +1174,11 @@ export async function selectBestGeneratedClue({
           word: candidateWord.word,
           clue,
         },
-        alreadyPlayedWords,
-        categoryIds
+        {
+          alreadyPlayedWords,
+          categoryIds,
+          language,
+        }
       );
       locallyValidCandidates.push(parsedWord);
     } catch (error) {
@@ -845,11 +1239,13 @@ export async function selectBestGeneratedClue({
 }
 
 async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResponse> {
-  if (!process.env.OPENAI_API_KEY) {
+  const openAiApiKey = getEnv('OPENAI_API_KEY');
+
+  if (!openAiApiKey) {
     throw new Error('OpenAI API key is not configured');
   }
 
-  const openai = createOpenAIClient(process.env.OPENAI_API_KEY);
+  const openai = createOpenAIClient(openAiApiKey);
 
   let lastError: unknown;
 
@@ -858,7 +1254,7 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
       const varietyKey = createVarietyKey(attempt);
       const popularityScope = selectPopularityScope(varietyKey);
       const alreadyPlayedWords = getAlreadyPlayedWords(input);
-      const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+      const model = getRoundGenerationModel(input);
       const response = await openai.responses.parse({
         model,
         reasoning: {
@@ -903,6 +1299,7 @@ async function generateRoundWord(input: RoundWordRequest): Promise<RoundWordResp
         candidateWord: response.output_parsed,
         alreadyPlayedWords: getAlreadyPlayedWords(input),
         categoryIds: input.categoryIds,
+        language: input,
         languageName: input.languageName,
         categoryLabel: input.categoryIds.map(categoryLabel).join(', '),
       });
@@ -944,6 +1341,10 @@ export async function prepareStaticWordWithFallback(input: StaticWordRequest) {
   const sourceWord = parseStaticSourceWord(input);
 
   if (isEnglishLanguage(input)) {
+    if (isAlreadyPlayedWord(sourceWord.word, input.playedWords ?? [])) {
+      throw new Error('Static word request selected an already played word');
+    }
+
     return withStaticWordMetadata(input, sourceWord);
   }
 
@@ -953,6 +1354,9 @@ export async function prepareStaticWordWithFallback(input: StaticWordRequest) {
       mode: 'translate-word',
       languageId: input.languageId,
       languageName: input.languageName,
+      languageNativeName: input.languageNativeName,
+      languageScriptHint: input.languageScriptHint,
+      playedWords: input.playedWords ?? [],
       source: {
         word: sourceWord.word,
         clue: sourceWord.clue,
@@ -966,18 +1370,20 @@ export async function prepareStaticWordWithFallback(input: StaticWordRequest) {
 }
 
 async function translateStaticWord(input: TranslationWordRequest): Promise<RoundWordResponse> {
-  if (!process.env.OPENAI_API_KEY) {
+  const openAiApiKey = getEnv('OPENAI_API_KEY');
+
+  if (!openAiApiKey) {
     throw new Error('OpenAI API key is not configured');
   }
 
-  const openai = createOpenAIClient(process.env.OPENAI_API_KEY);
+  const openai = createOpenAIClient(openAiApiKey);
 
   let lastError: unknown;
 
   for (let attempt = 0; attempt < MAX_TRANSLATION_ATTEMPTS; attempt += 1) {
     try {
       const response = await openai.responses.parse({
-        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+        model: getTranslationModel(),
         reasoning: {
           effort: 'none',
         },
@@ -1008,7 +1414,11 @@ async function translateStaticWord(input: TranslationWordRequest): Promise<Round
         throw new Error('OpenAI returned no parsed translation');
       }
 
-      return parseGeneratedWord(response.output_parsed);
+      return parseGeneratedWord(response.output_parsed, {
+        alreadyPlayedWords: input.playedWords ?? [],
+        language: input,
+        source: input.source,
+      });
     } catch (error) {
       lastError = error;
     }
@@ -1046,7 +1456,16 @@ export default {
 
     try {
       if (parsedRequest.data.mode === 'translate-word') {
-        return jsonResponse(await translateStaticWord(parsedRequest.data));
+        try {
+          return jsonResponse(await translateStaticWord(parsedRequest.data));
+        } catch (error) {
+          return jsonResponse(
+            {
+              error: error instanceof Error ? error.message : 'Static word translation failed',
+            },
+            502
+          );
+        }
       }
 
       if (parsedRequest.data.mode === 'prepare-static-word') {
