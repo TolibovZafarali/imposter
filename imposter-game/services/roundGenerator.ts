@@ -1,7 +1,6 @@
 import { buildRound } from '../game/round.ts';
 import type { ImposterCount, Player, Round, RoundTimerSetting } from '../game/types.ts';
 import {
-  CATEGORY_LABELS,
   hasPlayableCelebrityAnswer,
   isEnglishLanguage,
   resolveRoundWordPlan,
@@ -12,6 +11,14 @@ import {
   type StaticCategoryId,
   type WordDifficulty,
 } from '../data/wordBank.ts';
+import {
+  APP_ATTEST_REQUEST_TIMEOUT_MS,
+  fetchWithTransportRetry,
+  invalidateStoredAppAttestKey,
+  prepareRoundRequest,
+  type AppAttestAction,
+  type JsonValue,
+} from './appAttest.ts';
 
 type GeneratedWord = {
   word: string;
@@ -38,14 +45,21 @@ export type RoundGeneratorInput = {
   rng?: () => number;
 };
 
-const AI_CLIENT_GENERATION_ATTEMPTS = 3;
-const STATIC_TRANSLATION_ATTEMPTS = 3;
-export const AI_ROUND_REQUEST_TIMEOUT_MS = 12000;
+export const AI_ROUND_REQUEST_TIMEOUT_MS = APP_ATTEST_REQUEST_TIMEOUT_MS;
+export const MAX_PLAYED_WORD_HISTORY = 50;
+export const MAX_PLAYED_ENTRY_ID_HISTORY = 50;
+export const MAX_PLAYED_WORD_LENGTH = 42;
+export const MAX_PLAYED_WORD_HISTORY_BYTES = 2_048;
 const DEFAULT_AI_ROUND_API_URL =
   'https://wqryrqffcldnpubcgtyh.supabase.co/functions/v1/generate-round';
 const EMERGENCY_STATIC_CATEGORY_ID: StaticCategoryId = 'objects';
 let playedRoundWordsByContext = new Map<string, string[]>();
 let playedRoundEntryIdsByContext = new Map<string, string[]>();
+
+export const resetRoundGeneratorStateForTesting = () => {
+  playedRoundWordsByContext = new Map();
+  playedRoundEntryIdsByContext = new Map();
+};
 
 const emergencyDynamicWords: Record<DynamicCategoryId, readonly GeneratedWord[]> = {
   movies: [
@@ -83,26 +97,74 @@ const normalizeWordKey = (value: string) =>
     .trim()
     .replace(/\s+/g, ' ');
 
+const getUtf8ByteLength = (value: string) => {
+  let byteLength = 0;
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    byteLength += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+  }
+
+  return byteLength;
+};
+
+const sanitizePlayedWord = (value: string) => {
+  if (/[\u0000-\u001f\u007f]/u.test(value)) {
+    return null;
+  }
+
+  const characters = [...value.normalize('NFKC').trim().replace(/\s+/gu, ' ')];
+  const clippedCharacters = characters.slice(0, MAX_PLAYED_WORD_LENGTH);
+
+  while (clippedCharacters.join('').length > MAX_PLAYED_WORD_LENGTH) {
+    clippedCharacters.pop();
+  }
+
+  const sanitized = clippedCharacters.join('');
+  return sanitized.length > 0 ? sanitized : null;
+};
+
+export const sanitizePlayedWordHistory = (words: readonly string[]) => {
+  const sanitizedWords: string[] = [];
+  const seenWordKeys = new Set<string>();
+  let totalByteLength = 0;
+
+  for (const word of words) {
+    const sanitized = sanitizePlayedWord(word);
+
+    if (!sanitized) {
+      continue;
+    }
+
+    const wordKey = normalizeWordKey(sanitized);
+
+    if (!wordKey || seenWordKeys.has(wordKey)) {
+      continue;
+    }
+
+    const sanitizedByteLength = getUtf8ByteLength(sanitized);
+
+    if (totalByteLength + sanitizedByteLength > MAX_PLAYED_WORD_HISTORY_BYTES) {
+      break;
+    }
+
+    sanitizedWords.push(sanitized);
+    seenWordKeys.add(wordKey);
+    totalByteLength += sanitizedByteLength;
+
+    if (sanitizedWords.length >= MAX_PLAYED_WORD_HISTORY) {
+      break;
+    }
+  }
+
+  return sanitizedWords;
+};
+
 const isPlayedWord = (word: string, playedWords: readonly string[]) => {
   const wordKey = normalizeWordKey(word);
   const playedWordKeys = new Set(playedWords.map(normalizeWordKey).filter(Boolean));
 
   return playedWordKeys.has(wordKey);
-};
-
-const mergeUniquePlayedWords = (words: readonly string[]) => {
-  const seenWordKeys = new Set<string>();
-
-  return words.filter((word) => {
-    const wordKey = normalizeWordKey(word);
-
-    if (!wordKey || seenWordKeys.has(wordKey)) {
-      return false;
-    }
-
-    seenWordKeys.add(wordKey);
-    return true;
-  });
 };
 
 const hashText = (value: string) => {
@@ -133,12 +195,18 @@ const getPlayedWordContextKeys = ({ categoryIds, languageId, languageName }: Pla
 };
 
 const getPlayedWordsForContext = (context: PlayedWordContext) =>
-  mergeUniquePlayedWords(
+  sanitizePlayedWordHistory(
     getPlayedWordContextKeys(context).flatMap((contextKey) => playedRoundWordsByContext.get(contextKey) ?? [])
   );
 
 const getPlayedEntryIdsForContext = (context: PlayedWordContext) =>
-  getPlayedWordContextKeys(context).flatMap((contextKey) => playedRoundEntryIdsByContext.get(contextKey) ?? []);
+  [
+    ...new Set(
+      getPlayedWordContextKeys(context).flatMap(
+        (contextKey) => playedRoundEntryIdsByContext.get(contextKey) ?? []
+      )
+    ),
+  ].slice(0, MAX_PLAYED_ENTRY_ID_HISTORY);
 
 const rememberRoundWord = (word: string, context: PlayedWordContext, entryId?: string) => {
   for (const contextKey of getPlayedWordContextKeys(context)) {
@@ -146,7 +214,10 @@ const rememberRoundWord = (word: string, context: PlayedWordContext, entryId?: s
 
     playedRoundWordsByContext.set(
       contextKey,
-      mergeUniquePlayedWords([word, ...playedWords.filter((playedWord) => !isPlayedWord(word, [playedWord]))])
+      sanitizePlayedWordHistory([
+        word,
+        ...playedWords.filter((playedWord) => !isPlayedWord(word, [playedWord])),
+      ])
     );
 
     if (entryId) {
@@ -155,13 +226,53 @@ const rememberRoundWord = (word: string, context: PlayedWordContext, entryId?: s
       playedRoundEntryIdsByContext.set(contextKey, [
         entryId,
         ...playedEntryIds.filter((playedEntryId) => playedEntryId !== entryId),
-      ]);
+      ].slice(0, MAX_PLAYED_ENTRY_ID_HISTORY));
     }
   }
 };
 
 const getAiRoundApiUrl = () =>
   process.env.EXPO_PUBLIC_AI_ROUND_API_URL?.trim() || DEFAULT_AI_ROUND_API_URL;
+
+const postRoundRequest = async (action: AppAttestAction, payload: JsonValue) => {
+  const apiUrl = getAiRoundApiUrl();
+  const preparedRequest = await prepareRoundRequest({
+    apiUrl,
+    action,
+    payload,
+  });
+
+  const response = await fetchWithTransportRetry(
+    fetch,
+    apiUrl,
+    preparedRequest.requestId,
+    preparedRequest.body
+  );
+  let integrityInvalid = response.headers.get('X-Imposter-Integrity') === 'invalid';
+
+  if (!integrityInvalid && !response.ok) {
+    try {
+      const errorBody: unknown = await response.clone().json();
+      integrityInvalid = Boolean(
+        errorBody &&
+        typeof errorBody === 'object' &&
+        (errorBody as Record<string, unknown>).code === 'integrity_invalid'
+      );
+    } catch {
+      // The caller keeps the existing generic error behavior for malformed errors.
+    }
+  }
+
+  if (integrityInvalid) {
+    try {
+      await invalidateStoredAppAttestKey();
+    } catch {
+      // Key cleanup is best effort and must not turn a successful round into an error.
+    }
+  }
+
+  return response;
+};
 
 const isGeneratedWord = (value: unknown): value is GeneratedWord => {
   if (!value || typeof value !== 'object') {
@@ -186,89 +297,58 @@ const isGeneratedWordValidForCategories = (
   language: Pick<RoundGeneratorInput, 'languageId' | 'languageName'>
 ) => !isCelebrityCategory(categoryIds) || hasPlayableCelebrityAnswer(generatedWord.word, language);
 
-const getAiGenerationAttemptLimit = (categoryIds: readonly string[]) =>
-  isCelebrityCategory(categoryIds) ? AI_CLIENT_GENERATION_ATTEMPTS : 1;
-
 async function fetchAiGeneratedWord({
   players,
   categoryIds,
   difficulty,
   languageId,
   languageName,
-  languageNativeName,
-  languageScriptHint,
 }: RoundGeneratorInput): Promise<GeneratedWord> {
-  const rejectedWords: string[] = [];
-  let lastError: unknown;
+  const categoryId = categoryIds[0];
+
+  if (categoryIds.length !== 1 || (categoryId !== 'movies' && categoryId !== 'celebrities')) {
+    throw new Error('AI round generation requires one dynamic category');
+  }
+
   const playedWordContext = {
     categoryIds,
     languageId,
     languageName,
   };
+  const playedWords = getPlayedWordsForContext(playedWordContext).slice(0, MAX_PLAYED_WORD_HISTORY);
+  const requestPayload: JsonValue = {
+    categoryId,
+    difficulty,
+    languageId,
+    playerCount: players.length,
+    playedWords: sanitizePlayedWordHistory(playedWords),
+  };
+  const response = await postRoundRequest('generate-round', requestPayload);
 
-  for (let attempt = 0; attempt < getAiGenerationAttemptLimit(categoryIds); attempt += 1) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), AI_ROUND_REQUEST_TIMEOUT_MS);
-
-    try {
-      const playedWords = mergeUniquePlayedWords([
-        ...rejectedWords,
-        ...getPlayedWordsForContext(playedWordContext),
-      ]);
-      const response = await fetch(getAiRoundApiUrl(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          categoryIds,
-          difficulty,
-          languageId,
-          languageName,
-          languageNativeName,
-          languageScriptHint,
-          playerCount: players.length,
-          playedWords,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('AI round generation failed');
-      }
-
-      const payload: unknown = await response.json();
-
-      if (!isGeneratedWord(payload)) {
-        throw new Error('AI round generation returned an invalid payload');
-      }
-
-      const generatedWord = {
-        word: payload.word.trim(),
-        clue: payload.clue.trim(),
-      };
-
-      if (isPlayedWord(generatedWord.word, playedWords)) {
-        rejectedWords.unshift(generatedWord.word);
-        lastError = new Error('AI round generation returned an already played word');
-        continue;
-      }
-
-      if (!isGeneratedWordValidForCategories(generatedWord, categoryIds, { languageId, languageName })) {
-        rejectedWords.unshift(generatedWord.word);
-        lastError = new Error('AI round generation returned an incomplete celebrity name');
-        continue;
-      }
-
-      return generatedWord;
-    } catch (error) {
-      throw error instanceof Error ? error : new Error('AI round generation failed');
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  if (!response.ok) {
+    throw new Error('AI round generation failed');
   }
 
-  throw lastError instanceof Error ? lastError : new Error('AI round generation failed');
+  const payload: unknown = await response.json();
+
+  if (!isGeneratedWord(payload)) {
+    throw new Error('AI round generation returned an invalid payload');
+  }
+
+  const generatedWord = {
+    word: payload.word.trim(),
+    clue: payload.clue.trim(),
+  };
+
+  if (isPlayedWord(generatedWord.word, playedWords)) {
+    throw new Error('AI round generation returned an already played word');
+  }
+
+  if (!isGeneratedWordValidForCategories(generatedWord, categoryIds, { languageId, languageName })) {
+    throw new Error('AI round generation returned an incomplete celebrity name');
+  }
+
+  return generatedWord;
 }
 
 const getLocalStaticWord = (sourceEntry: EnglishWordEntry): GeneratedWord => ({
@@ -279,120 +359,34 @@ const getLocalStaticWord = (sourceEntry: EnglishWordEntry): GeneratedWord => ({
 async function fetchTranslatedStaticWord({
   sourceEntry,
   languageId,
-  languageName,
-  languageNativeName,
-  languageScriptHint,
   playedWords,
 }: {
   sourceEntry: EnglishWordEntry;
   languageId: string;
-  languageName: string;
-  languageNativeName?: string;
-  languageScriptHint?: string;
   playedWords: readonly string[];
 }): Promise<GeneratedWord> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), AI_ROUND_REQUEST_TIMEOUT_MS);
+  const requestPayload: JsonValue = {
+    mode: 'translate-word',
+    languageId,
+    playedWords: sanitizePlayedWordHistory(playedWords),
+    sourceEntryId: sourceEntry.id,
+  };
+  const response = await postRoundRequest('translate-word', requestPayload);
 
-  try {
-    const response = await fetch(getAiRoundApiUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mode: 'translate-word',
-        languageId,
-        languageName,
-        languageNativeName,
-        languageScriptHint,
-        playedWords,
-        source: {
-          word: sourceEntry.word,
-          clue: sourceEntry.hint,
-          categoryId: sourceEntry.categoryId,
-          categoryLabel: CATEGORY_LABELS[sourceEntry.categoryId],
-          difficulty: sourceEntry.difficulty,
-          sense: sourceEntry.sense,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error('Static word translation failed');
-    }
-
-    const payload: unknown = await response.json();
-
-    if (!isGeneratedWord(payload)) {
-      throw new Error('Static word translation returned an invalid payload');
-    }
-
-    return {
-      word: payload.word.trim(),
-      clue: payload.clue.trim(),
-    };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function fetchTranslatedStaticWordWithRetry({
-  input,
-  categoryId,
-  initialEntry,
-  playedWords,
-  playedEntryIds,
-}: {
-  input: RoundGeneratorInput;
-  categoryId: StaticCategoryId;
-  initialEntry: EnglishWordEntry;
-  playedWords: readonly string[];
-  playedEntryIds: readonly string[];
-}): Promise<{ generatedWord: GeneratedWord; sourceEntry: EnglishWordEntry }> {
-  const rejectedWords: string[] = [];
-  const rejectedEntryIds: string[] = [];
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < STATIC_TRANSLATION_ATTEMPTS; attempt += 1) {
-    const sourceEntry =
-      attempt === 0
-        ? initialEntry
-        : selectStaticWordEntry({
-            categoryId,
-            difficulty: input.difficulty,
-            playedWords: mergeUniquePlayedWords([...playedWords, ...rejectedWords]),
-            playedEntryIds: [...playedEntryIds, ...rejectedEntryIds],
-            rng: input.rng,
-          });
-
-    try {
-      const wordsToAvoid = mergeUniquePlayedWords([...playedWords, ...rejectedWords]);
-      const generatedWord = await fetchTranslatedStaticWord({
-        sourceEntry,
-        languageId: input.languageId,
-        languageName: input.languageName,
-        languageNativeName: input.languageNativeName,
-        languageScriptHint: input.languageScriptHint,
-        playedWords: wordsToAvoid,
-      });
-
-      if (isPlayedWord(generatedWord.word, wordsToAvoid)) {
-        rejectedWords.unshift(generatedWord.word);
-        rejectedEntryIds.unshift(sourceEntry.id);
-        lastError = new Error('Static word translation returned an already played word');
-        continue;
-      }
-
-      return { generatedWord, sourceEntry };
-    } catch (error) {
-      rejectedEntryIds.unshift(sourceEntry.id);
-      lastError = error;
-    }
+  if (!response.ok) {
+    throw new Error('Static word translation failed');
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Static word translation failed');
+  const payload: unknown = await response.json();
+
+  if (!isGeneratedWord(payload)) {
+    throw new Error('Static word translation returned an invalid payload');
+  }
+
+  return {
+    word: payload.word.trim(),
+    clue: payload.clue.trim(),
+  };
 }
 
 export async function createAiRound(input: RoundGeneratorInput): Promise<Round> {
@@ -480,15 +474,17 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     if (isEnglishLanguage(input)) {
       generatedWord = getLocalStaticWord(wordPlan.source.entry);
     } else {
-      const translatedStaticWord = await fetchTranslatedStaticWordWithRetry({
-        input,
-        categoryId: wordPlan.source.categoryId,
-        initialEntry: wordPlan.source.entry,
+      generatedWord = await fetchTranslatedStaticWord({
+        sourceEntry: wordPlan.source.entry,
+        languageId: input.languageId,
         playedWords,
-        playedEntryIds,
       });
-      generatedWord = translatedStaticWord.generatedWord;
-      rememberedStaticEntryId = translatedStaticWord.sourceEntry.id;
+
+      if (isPlayedWord(generatedWord.word, playedWords)) {
+        throw new Error('Static word translation returned an already played word');
+      }
+
+      rememberedStaticEntryId = wordPlan.source.entry.id;
     }
     shouldRememberStaticEntry = true;
   }

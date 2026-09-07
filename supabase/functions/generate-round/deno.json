@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
     "strict": true
+  },
+  "tasks": {
+    "check": "deno check --frozen index.ts",
+    "test": "deno test --frozen --cached-only --deny-net --deny-env *_test.ts"
   }
 }

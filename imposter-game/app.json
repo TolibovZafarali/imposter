@@ -12,6 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.cnfstudios.imposter",
       "buildNumber": "3",
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "production"
+      },
       "config": {
         "usesNonExemptEncryption": false
       },
