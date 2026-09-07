@@ -12,7 +12,7 @@ export type ScreenProps = ViewProps & {
   edges?: Edge[];
 };
 
-const DEFAULT_SAFE_EDGES: Edge[] = ['top', 'left', 'right'];
+const DEFAULT_SAFE_EDGES: Edge[] = ['top', 'bottom', 'left', 'right'];
 
 export function Screen({
   edges = DEFAULT_SAFE_EDGES,

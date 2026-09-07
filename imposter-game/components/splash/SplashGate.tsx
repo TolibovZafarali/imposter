@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AnimatedImposterLogo } from '@/components/splash/AnimatedImposterLogo';
+import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 import { Colors } from '@/constants/theme';
 
 const LOGO_SIZE = 220;
@@ -22,13 +23,14 @@ const GLANCE_BACK_MS = 300;
 const BLINK_DELAY_MS = 520;
 const BLINK_CLOSE_MS = 88;
 const BLINK_OPEN_MS = 150;
-const EXIT_DELAY_MS = 1650;
+const EXIT_DELAY_MS = 820;
 const EXIT_MS = 220;
 
 const premiumEase = Easing.bezier(0.2, 0.8, 0.2, 1);
 const blinkEase = Easing.bezier(0.5, 0, 0.2, 1);
 
 export function SplashGate() {
+  const { reduceMotion } = useAccessibilitySettings();
   const [isVisible, setIsVisible] = useState(true);
   const overlayOpacity = useSharedValue(1);
   const introProgress = useSharedValue(0);
@@ -36,6 +38,10 @@ export function SplashGate() {
   const glanceProgress = useSharedValue(0);
 
   useEffect(() => {
+    if (reduceMotion) {
+      setIsVisible(false);
+      return;
+    }
     introProgress.value = withTiming(1, {
       duration: ENTER_MS,
       easing: premiumEase,
@@ -65,7 +71,7 @@ export function SplashGate() {
         }
       })
     );
-  }, [blinkProgress, glanceProgress, introProgress, overlayOpacity]);
+  }, [blinkProgress, glanceProgress, introProgress, overlayOpacity, reduceMotion]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,

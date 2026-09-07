@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 import { SplashGate } from '@/components/splash/SplashGate';
 import { Colors, FontFamily } from '@/constants/theme';
 import { GameProvider } from '@/contexts/game-context';
@@ -45,7 +46,8 @@ const NavigationTheme: Theme = {
 };
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const { reduceMotion } = useAccessibilitySettings();
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_500Medium,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
@@ -59,7 +61,7 @@ export default function RootLayout() {
   useEffect(() => {
     let isMounted = true;
 
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync()
         .catch(() => {})
         .finally(() => {
@@ -72,9 +74,9 @@ export default function RootLayout() {
     return () => {
       isMounted = false;
     };
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded || !nativeSplashHidden) {
+  if ((!fontsLoaded && !fontError) || !nativeSplashHidden) {
     return null;
   }
 
@@ -83,10 +85,10 @@ export default function RootLayout() {
       <LanguageSettingsProvider>
         <GameProvider>
           <View style={styles.root}>
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'fade' }}>
               <Stack.Screen name="index" />
-              <Stack.Screen name="settings" options={{ animation: 'slide_from_left' }} />
-              <Stack.Screen name="choose-language" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="settings" options={{ animation: reduceMotion ? 'none' : 'slide_from_left' }} />
+              <Stack.Screen name="choose-language" options={{ animation: reduceMotion ? 'none' : 'slide_from_right' }} />
               <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
               <Stack.Screen name="play" options={{ gestureEnabled: false }} />
             </Stack>

@@ -1,37 +1,7 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
 
-import type { WordDifficulty } from '@/data/wordBank';
-import {
-  clampImposterCount,
-  DEFAULT_IMPOSTER_HINT_ENABLED,
-  DEFAULT_IMPOSTER_COUNT,
-  DEFAULT_ROUND_TIMER_MINUTES,
-} from '@/game/setupRules';
-import type { GamePhase, ImposterCount, Player, Round, RoundTimerSetting } from '@/game/types';
-
-type GameSetupPreferences = {
-  players: Player[];
-  selectedCategoryIds: string[];
-  isRandomCategoryMode: boolean;
-  selectedDifficulty: WordDifficulty;
-  imposterCount: ImposterCount;
-  isImposterHintEnabled: boolean;
-  roundTimerMinutes: RoundTimerSetting;
-};
-
-type GameState = {
-  phase: GamePhase;
-  round: Round | null;
-  currentRevealIndex: number;
-  setupPreferences: GameSetupPreferences;
-};
-
-type GameAction =
-  | { type: 'startRound'; round: Round }
-  | { type: 'advanceReveal' }
-  | { type: 'startPlaying' }
-  | { type: 'resetGame' }
-  | { type: 'updateSetupPreferences'; preferences: Partial<GameSetupPreferences> };
+import type { Round } from '@/game/types';
+import { gameReducer, initialState, type GameState, type GameSetupPreferences } from '@/game/state';
 
 type GameContextValue = {
   state: GameState;
@@ -39,100 +9,12 @@ type GameContextValue = {
   startRound: (round: Round) => void;
   advanceReveal: () => void;
   startPlaying: () => void;
+  completeRound: () => void;
   resetGame: () => void;
   updateSetupPreferences: (preferences: Partial<GameSetupPreferences>) => void;
 };
 
-const initialSetupPlayers: Player[] = [
-  { id: 'player-1', name: 'Player 1' },
-  { id: 'player-2', name: 'Player 2' },
-  { id: 'player-3', name: 'Player 3' },
-];
-
-const initialState: GameState = {
-  phase: 'setup',
-  round: null,
-  currentRevealIndex: 0,
-  setupPreferences: {
-    players: initialSetupPlayers,
-    selectedCategoryIds: [],
-    isRandomCategoryMode: true,
-    selectedDifficulty: 'easy',
-    imposterCount: DEFAULT_IMPOSTER_COUNT,
-    isImposterHintEnabled: DEFAULT_IMPOSTER_HINT_ENABLED,
-    roundTimerMinutes: DEFAULT_ROUND_TIMER_MINUTES,
-  },
-};
-
 const GameContext = createContext<GameContextValue | null>(null);
-
-function gameReducer(state: GameState, action: GameAction): GameState {
-  switch (action.type) {
-    case 'startRound':
-      return {
-        ...state,
-        phase: 'reveal',
-        round: action.round,
-        currentRevealIndex: 0,
-      };
-
-    case 'advanceReveal': {
-      if (!state.round) {
-        return state;
-      }
-
-      return {
-        ...state,
-        currentRevealIndex: Math.min(
-          state.currentRevealIndex + 1,
-          state.round.players.length - 1
-        ),
-      };
-    }
-
-    case 'startPlaying':
-      return state.round
-        ? {
-            ...state,
-            phase: 'playing',
-          }
-        : state;
-
-    case 'resetGame':
-      return {
-        ...initialState,
-        setupPreferences: state.setupPreferences,
-      };
-
-    case 'updateSetupPreferences': {
-      const nextPlayers =
-        action.preferences.players === undefined
-          ? state.setupPreferences.players
-          : action.preferences.players.map((player) => ({ ...player }));
-      const nextImposterCount = clampImposterCount(
-        action.preferences.imposterCount ?? state.setupPreferences.imposterCount,
-        nextPlayers.length
-      );
-
-      return {
-        ...state,
-        setupPreferences: {
-          ...state.setupPreferences,
-          ...action.preferences,
-          selectedCategoryIds:
-            action.preferences.selectedCategoryIds === undefined
-              ? state.setupPreferences.selectedCategoryIds
-              : [...action.preferences.selectedCategoryIds],
-          players: nextPlayers,
-          imposterCount: nextImposterCount,
-        },
-      };
-    }
-
-    default:
-      return state;
-  }
-}
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
@@ -143,7 +25,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setupPreferences: state.setupPreferences,
       startRound: (round: Round) => dispatch({ type: 'startRound', round }),
       advanceReveal: () => dispatch({ type: 'advanceReveal' }),
-      startPlaying: () => dispatch({ type: 'startPlaying' }),
+      startPlaying: () => dispatch({ type: 'startPlaying', now: Date.now() }),
+      completeRound: () => dispatch({ type: 'completeRound' }),
       resetGame: () => dispatch({ type: 'resetGame' }),
       updateSetupPreferences: (preferences: Partial<GameSetupPreferences>) =>
         dispatch({ type: 'updateSetupPreferences', preferences }),

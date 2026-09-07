@@ -10,7 +10,7 @@ export type ImposterCount = 1 | 2;
 export type RoundTimerMinutes = 1 | 2 | 3 | 5 | 10;
 export type RoundTimerSetting = RoundTimerMinutes | null;
 
-export type GamePhase = 'setup' | 'reveal' | 'playing';
+export type GamePhase = 'setup' | 'reveal' | 'playing' | 'completed';
 
 export type RoundCard = {
   playerId: string;

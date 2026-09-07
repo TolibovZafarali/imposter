@@ -1,9 +1,9 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentProps, ComponentRef } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   Animated as RNAnimated,
   Platform,
   Pressable,
@@ -31,6 +31,9 @@ import { useLanguageSettings } from '@/contexts/language-settings';
 import { selectRandomCategoryIds, type WordDifficulty } from '@/data/wordBank';
 import type { Player } from '@/game/types';
 import { createRound } from '@/services/roundGenerator';
+import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
+import { engagementStore } from '@/services/engagement';
+import { prepareAdConsentAtSetup, refreshAdConsent } from '@/services/ads';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 type PlayerNameInputRef = ComponentRef<typeof TextInput>;
@@ -87,8 +90,8 @@ const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = 1;
 const PLAYER_LIST_GAP = Spacing.sm;
-const PLAYERS_SECTION_PADDING = Spacing.xl;
-const SETUP_SCROLL_BOTTOM_PADDING = Spacing.xxxl;
+const PLAYERS_SECTION_PADDING = Spacing.lg;
+const SETUP_SCROLL_BOTTOM_PADDING = Spacing.lg;
 const SETUP_SCROLL_OVERFLOW_TOLERANCE = 2;
 const DIFFICULTY_SWITCH_GAP = Spacing.xs;
 const DIFFICULTY_SWITCH_PADDING = Spacing.xs;
@@ -229,6 +232,15 @@ const pickRandomCategoryIds = (rng = Math.random) => {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { reduceMotion } = useAccessibilitySettings();
+  const [roundError, setRoundError] = useState<string | null>(null);
+  const active = useRef(true);
+  useFocusEffect(useCallback(() => {
+    active.current = true;
+    void engagementStore.update().catch(() => {});
+    void refreshAdConsent();
+    return () => { active.current = false; };
+  }, []));
   const { setupPreferences, startRound, updateSetupPreferences } = useGame();
   const { selectedLanguage } = useLanguageSettings();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
@@ -257,7 +269,7 @@ export default function HomeScreen() {
     (isRandomCategoryMode || selectedCategoryIds.length > 0) && !isStartingGame;
   const isSetupScrollEnabled =
     setupViewportHeight > 0 &&
-    Math.max(0, setupContentHeight - SETUP_SCROLL_BOTTOM_PADDING) >
+    setupContentHeight >
       setupViewportHeight + SETUP_SCROLL_OVERFLOW_TOLERANCE;
   const difficultyOptionWidth = Math.max(
     0,
@@ -272,6 +284,10 @@ export default function HomeScreen() {
       0
     );
 
+    if (reduceMotion) {
+      difficultySlideValue.setValue(selectedDifficultyIndex * (difficultyOptionWidth + DIFFICULTY_SWITCH_GAP));
+      return;
+    }
     RNAnimated.spring(difficultySlideValue, {
       toValue: selectedDifficultyIndex * (difficultyOptionWidth + DIFFICULTY_SWITCH_GAP),
       damping: 18,
@@ -279,7 +295,7 @@ export default function HomeScreen() {
       stiffness: 180,
       useNativeDriver: true,
     }).start();
-  }, [difficultyOptionWidth, difficultySlideValue, selectedDifficulty]);
+  }, [difficultyOptionWidth, difficultySlideValue, selectedDifficulty, reduceMotion]);
 
   useEffect(() => {
     return () => {
@@ -434,6 +450,7 @@ export default function HomeScreen() {
 
     isStartingGameRef.current = true;
     setIsStartingGame(true);
+    setRoundError(null);
 
     const roundPlayers = players.map((player, index) => {
       const trimmedName = player.name.trim();
@@ -448,6 +465,8 @@ export default function HomeScreen() {
       : selectedCategoryIds;
 
     try {
+      await prepareAdConsentAtSetup(() => active.current);
+      if (!active.current) return;
       const round = await createRound({
         players: roundPlayers,
         categoryIds: roundCategoryIds,
@@ -460,6 +479,7 @@ export default function HomeScreen() {
         roundTimerMinutes,
       });
 
+      if (!active.current) return;
       updateSetupPreferences({ players: roundPlayers });
       setEditingPlayerId(null);
       playerBlurLockRef.current = null;
@@ -467,10 +487,7 @@ export default function HomeScreen() {
       startRound(round);
       router.push('/reveal');
     } catch {
-      Alert.alert(
-        'Round unavailable',
-        'Could not generate a natural localized round. Try again.'
-      );
+      if (active.current) setRoundError('This round could not load. Check your connection and try again. Your group and settings are still here.');
     } finally {
       isStartingGameRef.current = false;
       setIsStartingGame(false);
@@ -480,6 +497,10 @@ export default function HomeScreen() {
   return (
     <Screen padded={false} style={styles.screen}>
       <ScrollView
+        pointerEvents={isStartingGame ? 'none' : 'auto'}
+        accessibilityElementsHidden={isStartingGame}
+        importantForAccessibility={isStartingGame ? 'no-hide-descendants' : 'auto'}
+        aria-hidden={isStartingGame}
         alwaysBounceVertical={false}
         bounces={isSetupScrollEnabled}
         keyboardShouldPersistTaps="handled"
@@ -560,9 +581,9 @@ export default function HomeScreen() {
               return (
                 <Animated.View
                   key={player.id}
-                  entering={playerTileEntering}
-                  exiting={playerTileExiting}
-                  layout={playerTileLayoutTransition}
+                  entering={reduceMotion ? undefined : playerTileEntering}
+                  exiting={reduceMotion ? undefined : playerTileExiting}
+                  layout={reduceMotion ? undefined : playerTileLayoutTransition}
                   style={styles.playerTile}>
                   <View
                     style={[
@@ -813,30 +834,33 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        <View style={styles.startActions}>
-          <Button
-            label={isStartingGame ? 'Starting...' : 'Start Game'}
-            size="lg"
-            fullWidth
-            disabled={!canStartGame}
-            onPress={handleStartGame}
-            accessibilityLabel={
-              isStartingGame
-                ? 'Starting game'
-                : canStartGame
-                  ? 'Start game'
-                  : 'Select at least one category to start game'
-            }
-            leadingIcon={
-              <MaterialIcons
-                name={isStartingGame ? 'hourglass-top' : PLAY_ICON}
-                size={22}
-                color={Colors.textOnPrimary}
-              />
-            }
-          />
-        </View>
       </ScrollView>
+      <View style={styles.startActions}>
+        <Text variant="bodySmall" color="muted" align="center">One phone. One secret word. Someone is bluffing.</Text>
+        {roundError ? <Text accessibilityRole="alert" variant="bodySmall" color="primary" align="center">{roundError}</Text> : null}
+        <Button
+          label={isStartingGame ? 'Preparing your round…' : roundError ? 'Try again' : 'Start Game'}
+          size="lg"
+          fullWidth
+          disabled={!canStartGame}
+          accessibilityState={{ disabled: !canStartGame, busy: isStartingGame }}
+          onPress={handleStartGame}
+          accessibilityLabel={
+            isStartingGame
+              ? 'Starting game'
+              : canStartGame
+                ? 'Start game'
+                : 'Select at least one category to start game'
+          }
+          leadingIcon={
+            isStartingGame ? <ActivityIndicator color={Colors.textOnPrimary} /> : <MaterialIcons
+              name={PLAY_ICON}
+              size={22}
+              color={Colors.textOnPrimary}
+            />
+          }
+        />
+      </View>
     </Screen>
   );
 }
@@ -872,6 +896,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   setupBox: {
+    padding: Spacing.lg,
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
@@ -902,7 +927,7 @@ const styles = StyleSheet.create({
     gap: PLAYER_LIST_GAP,
   },
   playerTile: {
-    minHeight: 64,
+    minHeight: 60,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1156,7 +1181,9 @@ const styles = StyleSheet.create({
   },
   startActions: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 468,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
     alignSelf: 'center',
     gap: Spacing.md,
     paddingBottom: Spacing.md,

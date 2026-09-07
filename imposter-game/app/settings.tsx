@@ -13,7 +13,9 @@ import {
   Text as RNText,
   View,
 } from 'react-native';
-import * as StoreReview from 'expo-store-review';
+import { APP_STORE_URL } from '@/services/engagement';
+import { adsEnabled, openAdPrivacy } from '@/services/ads';
+import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -82,6 +84,8 @@ const TIMER_DROPDOWN_OPTIONS: RoundTimerSetting[] = [null, ...ROUND_TIMER_MINUTE
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { reduceMotion } = useAccessibilitySettings();
+  const [privacyBusy, setPrivacyBusy] = useState(false);
   const { selectedLanguage } = useLanguageSettings();
   const { setupPreferences, updateSetupPreferences } = useGame();
   const [isTimerDropdownOpen, setIsTimerDropdownOpen] = useState(false);
@@ -99,6 +103,10 @@ export default function SettingsScreen() {
       0
     );
 
+    if (reduceMotion) {
+      imposterCountSlideValue.setValue(selectedImposterCountIndex * (IMPOSTER_COUNT_OPTION_WIDTH + IMPOSTER_COUNT_SWITCH_GAP));
+      return;
+    }
     RNAnimated.spring(imposterCountSlideValue, {
       toValue:
         selectedImposterCountIndex * (IMPOSTER_COUNT_OPTION_WIDTH + IMPOSTER_COUNT_SWITCH_GAP),
@@ -107,9 +115,13 @@ export default function SettingsScreen() {
       stiffness: 180,
       useNativeDriver: true,
     }).start();
-  }, [imposterCount, imposterCountSlideValue]);
+  }, [imposterCount, imposterCountSlideValue, reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) {
+      hintToggleSlideValue.setValue(isImposterHintEnabled ? HINT_TOGGLE_TRAVEL : 0);
+      return;
+    }
     RNAnimated.spring(hintToggleSlideValue, {
       toValue: isImposterHintEnabled ? HINT_TOGGLE_TRAVEL : 0,
       damping: 18,
@@ -117,7 +129,7 @@ export default function SettingsScreen() {
       stiffness: 180,
       useNativeDriver: true,
     }).start();
-  }, [hintToggleSlideValue, isImposterHintEnabled]);
+  }, [hintToggleSlideValue, isImposterHintEnabled, reduceMotion]);
 
   const updateImposterCount = (nextImposterCount: ImposterCount) => {
     updateSetupPreferences({ imposterCount: nextImposterCount });
@@ -136,7 +148,7 @@ export default function SettingsScreen() {
     try {
       await Share.share({
         title: APP_NAME,
-        message: SHARE_MESSAGE,
+        message: `${SHARE_MESSAGE} ${APP_STORE_URL}`,
       });
     } catch {
       Alert.alert('Sharing unavailable', 'Try sharing IMPOSTER again from this device.');
@@ -145,22 +157,7 @@ export default function SettingsScreen() {
 
   const writeReview = async () => {
     try {
-      if (await StoreReview.hasAction()) {
-        await StoreReview.requestReview();
-        return;
-      }
-
-      const storeUrl = StoreReview.storeUrl();
-
-      if (storeUrl) {
-        await Linking.openURL(storeUrl);
-        return;
-      }
-
-      Alert.alert(
-        'Reviews unavailable',
-        'Store review links can be added once IMPOSTER is published.'
-      );
+      await Linking.openURL(`${APP_STORE_URL}?action=write-review`);
     } catch {
       Alert.alert('Reviews unavailable', 'Try opening the app store again from this device.');
     }
@@ -177,6 +174,7 @@ export default function SettingsScreen() {
   return (
     <Screen style={styles.screen}>
       <ScrollView
+        pointerEvents={privacyBusy ? 'none' : 'auto'}
         alwaysBounceVertical={false}
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
@@ -466,6 +464,11 @@ export default function SettingsScreen() {
             </Pressable>
           ))}
         </View>
+        {adsEnabled ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: privacyBusy, busy: privacyBusy }} disabled={privacyBusy} style={styles.settingRow}
+          onPress={() => {
+            setPrivacyBusy(true);
+            void openAdPrivacy().catch(() => Alert.alert('Privacy choices unavailable', 'Check your connection and try again.')).finally(() => setPrivacyBusy(false));
+          }}><Text>{privacyBusy ? 'Opening privacy choices…' : 'Ad privacy choices'}</Text></Pressable> : null}
       </ScrollView>
     </Screen>
   );

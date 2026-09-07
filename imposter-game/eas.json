@@ -15,7 +15,19 @@
     },
     "production": {
       "distribution": "store",
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "IMPOSTER_STORE_BUILD": "true"
+      }
+    },
+    "ads-preview": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "IMPOSTER_ADS_MODE": "test"
+      }
     }
   },
   "submit": {

@@ -56,6 +56,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       onPressIn={handlePressIn}
       disabled={disabled}
@@ -81,6 +82,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -93,6 +95,8 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45, shadowOpacity: 0 },
   iconSlot: { alignItems: 'center', justifyContent: 'center' },
   label: {
+    flexShrink: 1,
+    textAlign: 'center',
     includeFontPadding: false,
     textAlignVertical: 'center',
     transform: [{ translateY: -2 }],
