@@ -836,7 +836,6 @@ export default function HomeScreen() {
 
       </ScrollView>
       <View style={styles.startActions}>
-        <Text variant="bodySmall" color="muted" align="center">One phone. One secret word. Someone is bluffing.</Text>
         {roundError ? <Text accessibilityRole="alert" variant="bodySmall" color="primary" align="center">{roundError}</Text> : null}
         <Button
           label={isStartingGame ? 'Preparing your round…' : roundError ? 'Try again' : 'Start Game'}
