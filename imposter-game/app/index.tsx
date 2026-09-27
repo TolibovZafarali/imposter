@@ -497,10 +497,6 @@ export default function HomeScreen() {
   return (
     <Screen padded={false} style={styles.screen}>
       <ScrollView
-        pointerEvents={isStartingGame ? 'none' : 'auto'}
-        accessibilityElementsHidden={isStartingGame}
-        importantForAccessibility={isStartingGame ? 'no-hide-descendants' : 'auto'}
-        aria-hidden={isStartingGame}
         alwaysBounceVertical={false}
         bounces={isSetupScrollEnabled}
         keyboardShouldPersistTaps="handled"
@@ -511,355 +507,362 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}>
-        <View style={styles.topBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open settings"
-            hitSlop={8}
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [
-              styles.topIconButton,
-              pressed && styles.iconButtonPressed,
-            ]}>
-            <MaterialIcons name={SETTINGS_ICON} size={23} color={Colors.text} />
-          </Pressable>
-          <View style={styles.brand}>
-            <Text variant="display" align="center" style={styles.title}>
-              IMPOSTER
-            </Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Change language, current language ${selectedLanguage.name}`}
-            hitSlop={8}
-            onPress={() => router.push('/choose-language')}
-            style={({ pressed }) => [
-              styles.topIconButton,
-              pressed && styles.iconButtonPressed,
-            ]}>
-            <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
-              {getLanguageFlagEmoji(selectedLanguage)}
-            </RNText>
-          </Pressable>
-        </View>
-
-        <Card variant="flat" style={[styles.setupBox, styles.playersBox]}>
-          <View style={styles.sectionHeader}>
-            <Text variant="heading" color="primary">
-              Players
-            </Text>
+        <View
+          pointerEvents={isStartingGame ? 'none' : 'auto'}
+          accessibilityElementsHidden={isStartingGame}
+          importantForAccessibility={isStartingGame ? 'no-hide-descendants' : 'auto'}
+          aria-hidden={isStartingGame}
+          style={styles.setupContent}>
+          <View style={styles.topBar}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={
-                players.length >= MAX_PLAYERS
-                  ? `Maximum ${MAX_PLAYERS} players reached`
-                  : 'Add player'
-              }
-              accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
-              disabled={players.length >= MAX_PLAYERS}
+              accessibilityLabel="Open settings"
               hitSlop={8}
-              onPress={addPlayer}
+              onPress={() => router.push('/settings')}
               style={({ pressed }) => [
-                styles.addPlayerButton,
-                players.length >= MAX_PLAYERS && styles.addPlayerButtonDisabled,
+                styles.topIconButton,
                 pressed && styles.iconButtonPressed,
               ]}>
-              <MaterialIcons
-                name={ADD_PLAYER_ICON}
-                size={22}
-                color={players.length >= MAX_PLAYERS ? Colors.muted : Colors.primary}
-              />
+              <MaterialIcons name={SETTINGS_ICON} size={23} color={Colors.text} />
             </Pressable>
-          </View>
-
-          <View style={styles.playersGrid}>
-            {players.map((player, index) => {
-              const isEditing = editingPlayerId === player.id;
-              const canRemovePlayer = index >= 3;
-              const playerIconSwatch = PLAYER_ICON_SWATCHES[index % PLAYER_ICON_SWATCHES.length];
-
-              return (
-                <Animated.View
-                  key={player.id}
-                  entering={reduceMotion ? undefined : playerTileEntering}
-                  exiting={reduceMotion ? undefined : playerTileExiting}
-                  layout={reduceMotion ? undefined : playerTileLayoutTransition}
-                  style={styles.playerTile}>
-                  <View
-                    style={[
-                      styles.personBadge,
-                      {
-                        backgroundColor: playerIconSwatch.background,
-                        borderColor: playerIconSwatch.border,
-                      },
-                    ]}>
-                    <MaterialIcons
-                      name={PLAYER_ICON}
-                      size={24}
-                      color={playerIconSwatch.foreground}
-                    />
-                  </View>
-
-                  <View style={styles.playerNameRow}>
-                    {isEditing ? (
-                      <TextInput
-                        ref={(input) => {
-                          if (input) {
-                            playerInputRefs.current.set(player.id, input);
-                          } else {
-                            playerInputRefs.current.delete(player.id);
-                          }
-                        }}
-                        selectTextOnFocus
-                        value={player.name}
-                        onChangeText={(name) => {
-                          clearPlayerNameSelection();
-                          updatePlayerName(player.id, name);
-                        }}
-                        onPressIn={clearPlayerNameSelection}
-                        onBlur={() => {
-                          if (playerBlurLockRef.current === player.id) {
-                            return;
-                          }
-
-                          finishEditing(player.id);
-                        }}
-                        onSubmitEditing={() => finishEditing(player.id)}
-                        returnKeyType="done"
-                        maxLength={MAX_PLAYER_NAME_LENGTH}
-                        placeholder={player.name}
-                        placeholderTextColor={Colors.muted}
-                        selection={
-                          playerNameSelection?.playerId === player.id
-                            ? {
-                                start: playerNameSelection.start,
-                                end: playerNameSelection.end,
-                              }
-                            : undefined
-                        }
-                        textAlign="left"
-                        style={[
-                          styles.playerInput,
-                          Platform.OS === 'ios' && styles.playerInputEditingIos,
-                        ]}
-                      />
-                    ) : (
-                      <Text
-                        variant="bodyEmphasis"
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.72}
-                        numberOfLines={1}
-                        style={styles.playerNameText}>
-                        {player.name}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.playerActions}>
-                    {canRemovePlayer ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${player.name}`}
-                        hitSlop={8}
-                        onPress={() => removePlayer(player.id)}
-                        style={({ pressed }) => [
-                          styles.removeButton,
-                          pressed && styles.iconButtonPressed,
-                        ]}>
-                        <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
-                      </Pressable>
-                    ) : null}
-
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit ${player.name}`}
-                      hitSlop={8}
-                      onPress={() => beginEditingPlayer(player)}
-                      style={({ pressed }) => [
-                        styles.editButton,
-                        pressed && styles.iconButtonPressed,
-                      ]}>
-                      <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
-                    </Pressable>
-                  </View>
-                </Animated.View>
-              );
-            })}
-          </View>
-        </Card>
-
-        <Card variant="flat" style={styles.setupBox}>
-          <View style={styles.categoriesHeader}>
-            <Text
-              variant="heading"
-              color="primary"
-              numberOfLines={1}
-              style={styles.categoriesTitle}>
-              Categories
-            </Text>
+            <View style={styles.brand}>
+              <Text variant="display" align="center" style={styles.title}>
+                IMPOSTER
+              </Text>
+            </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Choose a random category each round"
-              accessibilityState={{ selected: isRandomCategoryMode }}
+              accessibilityLabel={`Change language, current language ${selectedLanguage.name}`}
               hitSlop={8}
-              onPress={selectRandomCategories}
+              onPress={() => router.push('/choose-language')}
               style={({ pressed }) => [
-                styles.randomCategoryButton,
-                isRandomCategoryMode && styles.randomCategoryButtonSelected,
-                pressed && styles.randomCategoryButtonPressed,
+                styles.topIconButton,
+                pressed && styles.iconButtonPressed,
               ]}>
-              <MaterialIcons
-                name={RANDOM_CATEGORY_ICON}
-                size={17}
-                color={isRandomCategoryMode ? Colors.primary : Colors.muted}
-              />
-              <Text
-                variant="bodyEmphasis"
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-                numberOfLines={1}
-                style={[
-                  styles.randomCategoryLabel,
-                  isRandomCategoryMode && styles.randomCategoryLabelSelected,
-                ]}>
-                Random
-              </Text>
+              <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
+                {getLanguageFlagEmoji(selectedLanguage)}
+              </RNText>
             </Pressable>
           </View>
 
-          <View style={styles.categoriesRows}>
-            {CATEGORY_ROWS.map((categoryRow) => (
-              <View key={categoryRow.join('-')} style={styles.categoryRow}>
-                {categoryRow.map((categoryId) => {
-                  const category = CATEGORIES_BY_ID.get(categoryId);
+          <Card variant="flat" style={[styles.setupBox, styles.playersBox]}>
+            <View style={styles.sectionHeader}>
+              <Text variant="heading" color="primary">
+                Players
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  players.length >= MAX_PLAYERS
+                    ? `Maximum ${MAX_PLAYERS} players reached`
+                    : 'Add player'
+                }
+                accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
+                disabled={players.length >= MAX_PLAYERS}
+                hitSlop={8}
+                onPress={addPlayer}
+                style={({ pressed }) => [
+                  styles.addPlayerButton,
+                  players.length >= MAX_PLAYERS && styles.addPlayerButtonDisabled,
+                  pressed && styles.iconButtonPressed,
+                ]}>
+                <MaterialIcons
+                  name={ADD_PLAYER_ICON}
+                  size={22}
+                  color={players.length >= MAX_PLAYERS ? Colors.muted : Colors.primary}
+                />
+              </Pressable>
+            </View>
 
-                  if (!category) {
-                    return null;
-                  }
+            <View style={styles.playersGrid}>
+              {players.map((player, index) => {
+                const isEditing = editingPlayerId === player.id;
+                const canRemovePlayer = index >= 3;
+                const playerIconSwatch = PLAYER_ICON_SWATCHES[index % PLAYER_ICON_SWATCHES.length];
 
-                  const isSelected = selectedCategoryIds.includes(category.id);
-                  const isDisabled =
-                    !isSelected && selectedCategoryIds.length >= MAX_SELECTED_CATEGORIES;
-                  const categoryStatusLabel = category.isAiGenerated ? ', AI generated' : '';
+                return (
+                  <Animated.View
+                    key={player.id}
+                    entering={reduceMotion ? undefined : playerTileEntering}
+                    exiting={reduceMotion ? undefined : playerTileExiting}
+                    layout={reduceMotion ? undefined : playerTileLayoutTransition}
+                    style={styles.playerTile}>
+                    <View
+                      style={[
+                        styles.personBadge,
+                        {
+                          backgroundColor: playerIconSwatch.background,
+                          borderColor: playerIconSwatch.border,
+                        },
+                      ]}>
+                      <MaterialIcons
+                        name={PLAYER_ICON}
+                        size={24}
+                        color={playerIconSwatch.foreground}
+                      />
+                    </View>
+
+                    <View style={styles.playerNameRow}>
+                      {isEditing ? (
+                        <TextInput
+                          ref={(input) => {
+                            if (input) {
+                              playerInputRefs.current.set(player.id, input);
+                            } else {
+                              playerInputRefs.current.delete(player.id);
+                            }
+                          }}
+                          selectTextOnFocus
+                          value={player.name}
+                          onChangeText={(name) => {
+                            clearPlayerNameSelection();
+                            updatePlayerName(player.id, name);
+                          }}
+                          onPressIn={clearPlayerNameSelection}
+                          onBlur={() => {
+                            if (playerBlurLockRef.current === player.id) {
+                              return;
+                            }
+
+                            finishEditing(player.id);
+                          }}
+                          onSubmitEditing={() => finishEditing(player.id)}
+                          returnKeyType="done"
+                          maxLength={MAX_PLAYER_NAME_LENGTH}
+                          placeholder={player.name}
+                          placeholderTextColor={Colors.muted}
+                          selection={
+                            playerNameSelection?.playerId === player.id
+                              ? {
+                                  start: playerNameSelection.start,
+                                  end: playerNameSelection.end,
+                                }
+                              : undefined
+                          }
+                          textAlign="left"
+                          style={[
+                            styles.playerInput,
+                            Platform.OS === 'ios' && styles.playerInputEditingIos,
+                          ]}
+                        />
+                      ) : (
+                        <Text
+                          variant="bodyEmphasis"
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.72}
+                          numberOfLines={1}
+                          style={styles.playerNameText}>
+                          {player.name}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.playerActions}>
+                      {canRemovePlayer ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Remove ${player.name}`}
+                          hitSlop={8}
+                          onPress={() => removePlayer(player.id)}
+                          style={({ pressed }) => [
+                            styles.removeButton,
+                            pressed && styles.iconButtonPressed,
+                          ]}>
+                          <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
+                        </Pressable>
+                      ) : null}
+
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${player.name}`}
+                        hitSlop={8}
+                        onPress={() => beginEditingPlayer(player)}
+                        style={({ pressed }) => [
+                          styles.editButton,
+                          pressed && styles.iconButtonPressed,
+                        ]}>
+                        <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
+                      </Pressable>
+                    </View>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </Card>
+
+          <Card variant="flat" style={styles.setupBox}>
+            <View style={styles.categoriesHeader}>
+              <Text
+                variant="heading"
+                color="primary"
+                numberOfLines={1}
+                style={styles.categoriesTitle}>
+                Categories
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose a random category each round"
+                accessibilityState={{ selected: isRandomCategoryMode }}
+                hitSlop={8}
+                onPress={selectRandomCategories}
+                style={({ pressed }) => [
+                  styles.randomCategoryButton,
+                  isRandomCategoryMode && styles.randomCategoryButtonSelected,
+                  pressed && styles.randomCategoryButtonPressed,
+                ]}>
+                <MaterialIcons
+                  name={RANDOM_CATEGORY_ICON}
+                  size={17}
+                  color={isRandomCategoryMode ? Colors.primary : Colors.muted}
+                />
+                <Text
+                  variant="bodyEmphasis"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.82}
+                  numberOfLines={1}
+                  style={[
+                    styles.randomCategoryLabel,
+                    isRandomCategoryMode && styles.randomCategoryLabelSelected,
+                  ]}>
+                  Random
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.categoriesRows}>
+              {CATEGORY_ROWS.map((categoryRow) => (
+                <View key={categoryRow.join('-')} style={styles.categoryRow}>
+                  {categoryRow.map((categoryId) => {
+                    const category = CATEGORIES_BY_ID.get(categoryId);
+
+                    if (!category) {
+                      return null;
+                    }
+
+                    const isSelected = selectedCategoryIds.includes(category.id);
+                    const isDisabled =
+                      !isSelected && selectedCategoryIds.length >= MAX_SELECTED_CATEGORIES;
+                    const categoryStatusLabel = category.isAiGenerated ? ', AI generated' : '';
+
+                    return (
+                      <Pressable
+                        key={category.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${
+                          category.label
+                        } category${categoryStatusLabel}`}
+                        accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+                        disabled={isDisabled}
+                        onPress={() => toggleCategory(category.id)}
+                        style={({ pressed }) => [
+                          styles.categoryTile,
+                          isSelected && styles.categoryTileSelected,
+                          isDisabled && styles.categoryTileDisabled,
+                          pressed && styles.categoryTilePressed,
+                        ]}>
+                        <MaterialIcons
+                          name={category.icon}
+                          size={18}
+                          color={isSelected ? Colors.textOnPrimary : Colors.muted}
+                        />
+                        <Text
+                          variant="bodyEmphasis"
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.78}
+                          numberOfLines={1}
+                          style={[styles.categoryLabel, isSelected && styles.categoryLabelSelected]}>
+                          {category.label}
+                        </Text>
+                        {category.isAiGenerated ? (
+                          <MaterialIcons
+                            name={AI_GENERATED_CATEGORY_ICON}
+                            size={14}
+                            color={isSelected ? Colors.textOnPrimary : Colors.primary}
+                          />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.categoriesFooter}>
+              <View
+                onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
+                style={styles.difficultyToggle}>
+                <RNAnimated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.difficultyIndicator,
+                    {
+                      opacity: difficultyOptionWidth > 0 ? 1 : 0,
+                      transform: [{ translateX: difficultySlideValue }],
+                      width: difficultyOptionWidth,
+                    },
+                  ]}
+                />
+                {DIFFICULTY_OPTIONS.map((difficultyOption) => {
+                  const isSelected = selectedDifficulty === difficultyOption.id;
 
                   return (
                     <Pressable
-                      key={category.id}
+                      key={difficultyOption.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`${isSelected ? 'Deselect' : 'Select'} ${
-                        category.label
-                      } category${categoryStatusLabel}`}
-                      accessibilityState={{ selected: isSelected, disabled: isDisabled }}
-                      disabled={isDisabled}
-                      onPress={() => toggleCategory(category.id)}
+                      accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() =>
+                        updateSetupPreferences({ selectedDifficulty: difficultyOption.id })
+                      }
                       style={({ pressed }) => [
-                        styles.categoryTile,
-                        isSelected && styles.categoryTileSelected,
-                        isDisabled && styles.categoryTileDisabled,
-                        pressed && styles.categoryTilePressed,
+                        styles.difficultyOption,
+                        pressed && styles.difficultyOptionPressed,
                       ]}>
-                      <MaterialIcons
-                        name={category.icon}
-                        size={18}
-                        color={isSelected ? Colors.textOnPrimary : Colors.muted}
-                      />
                       <Text
                         variant="bodyEmphasis"
                         adjustsFontSizeToFit
-                        minimumFontScale={0.78}
+                        minimumFontScale={0.84}
                         numberOfLines={1}
-                        style={[styles.categoryLabel, isSelected && styles.categoryLabelSelected]}>
-                        {category.label}
+                        style={[
+                          styles.difficultyOptionText,
+                          isSelected && styles.difficultyOptionTextSelected,
+                        ]}>
+                        {difficultyOption.label}
                       </Text>
-                      {category.isAiGenerated ? (
-                        <MaterialIcons
-                          name={AI_GENERATED_CATEGORY_ICON}
-                          size={14}
-                          color={isSelected ? Colors.textOnPrimary : Colors.primary}
-                        />
-                      ) : null}
                     </Pressable>
                   );
                 })}
               </View>
-            ))}
-          </View>
-
-          <View style={styles.categoriesFooter}>
-            <View
-              onLayout={(event) => setDifficultyToggleWidth(event.nativeEvent.layout.width)}
-              style={styles.difficultyToggle}>
-              <RNAnimated.View
-                pointerEvents="none"
-                style={[
-                  styles.difficultyIndicator,
-                  {
-                    opacity: difficultyOptionWidth > 0 ? 1 : 0,
-                    transform: [{ translateX: difficultySlideValue }],
-                    width: difficultyOptionWidth,
-                  },
-                ]}
-              />
-              {DIFFICULTY_OPTIONS.map((difficultyOption) => {
-                const isSelected = selectedDifficulty === difficultyOption.id;
-
-                return (
-                  <Pressable
-                    key={difficultyOption.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Set difficulty to ${difficultyOption.label}`}
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() =>
-                      updateSetupPreferences({ selectedDifficulty: difficultyOption.id })
-                    }
-                    style={({ pressed }) => [
-                      styles.difficultyOption,
-                      pressed && styles.difficultyOptionPressed,
-                    ]}>
-                    <Text
-                      variant="bodyEmphasis"
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.84}
-                      numberOfLines={1}
-                      style={[
-                        styles.difficultyOptionText,
-                        isSelected && styles.difficultyOptionTextSelected,
-                      ]}>
-                      {difficultyOption.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
             </View>
-          </View>
-        </Card>
+          </Card>
 
+        </View>
+        <View style={styles.startActions}>
+          {roundError ? <Text accessibilityRole="alert" variant="bodySmall" color="primary" align="center">{roundError}</Text> : null}
+          <Button
+            label={isStartingGame ? 'Preparing your round…' : roundError ? 'Try again' : 'Start Game'}
+            size="lg"
+            fullWidth
+            disabled={!canStartGame}
+            accessibilityState={{ disabled: !canStartGame, busy: isStartingGame }}
+            onPress={handleStartGame}
+            accessibilityLabel={
+              isStartingGame
+                ? 'Starting game'
+                : canStartGame
+                  ? 'Start game'
+                  : 'Select at least one category to start game'
+            }
+            leadingIcon={
+              isStartingGame ? <ActivityIndicator color={Colors.textOnPrimary} /> : <MaterialIcons
+                name={PLAY_ICON}
+                size={22}
+                color={Colors.textOnPrimary}
+              />
+            }
+          />
+        </View>
       </ScrollView>
-      <View style={styles.startActions}>
-        {roundError ? <Text accessibilityRole="alert" variant="bodySmall" color="primary" align="center">{roundError}</Text> : null}
-        <Button
-          label={isStartingGame ? 'Preparing your round…' : roundError ? 'Try again' : 'Start Game'}
-          size="lg"
-          fullWidth
-          disabled={!canStartGame}
-          accessibilityState={{ disabled: !canStartGame, busy: isStartingGame }}
-          onPress={handleStartGame}
-          accessibilityLabel={
-            isStartingGame
-              ? 'Starting game'
-              : canStartGame
-                ? 'Start game'
-                : 'Select at least one category to start game'
-          }
-          leadingIcon={
-            isStartingGame ? <ActivityIndicator color={Colors.textOnPrimary} /> : <MaterialIcons
-              name={PLAY_ICON}
-              size={22}
-              color={Colors.textOnPrimary}
-            />
-          }
-        />
-      </View>
     </Screen>
   );
 }
@@ -876,6 +879,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
     paddingBottom: SETUP_SCROLL_BOTTOM_PADDING,
+    gap: Spacing.lg,
+  },
+  setupContent: {
     gap: Spacing.lg,
   },
   topBar: {
@@ -1180,8 +1186,8 @@ const styles = StyleSheet.create({
   },
   startActions: {
     width: '100%',
-    maxWidth: 468,
-    paddingHorizontal: Spacing.xl,
+    maxWidth: 420,
+    marginTop: 'auto',
     paddingTop: Spacing.md,
     alignSelf: 'center',
     gap: Spacing.md,
