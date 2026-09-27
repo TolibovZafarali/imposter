@@ -229,9 +229,6 @@ export default function RevealScreen() {
     <Screen style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text variant="bodyEmphasis" color="muted" align="center">
-            Pass to player {state.currentRevealIndex + 1} of {round.players.length}
-          </Text>
           <Text
             variant="title"
             align="center"
