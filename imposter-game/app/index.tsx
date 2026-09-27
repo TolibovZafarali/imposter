@@ -603,6 +603,9 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.playerNameRow}>
+                      {isEditing && Platform.OS === 'ios' ? (
+                        <View pointerEvents="none" style={styles.playerInputEditingIos} />
+                      ) : null}
                       {isEditing ? (
                         <TextInput
                           ref={(input) => {
@@ -640,10 +643,7 @@ export default function HomeScreen() {
                               : undefined
                           }
                           textAlign="left"
-                          style={[
-                            styles.playerInput,
-                            Platform.OS === 'ios' && styles.playerInputEditingIos,
-                          ]}
+                          style={styles.playerInput}
                         />
                       ) : (
                         <Text
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
     ...Typography.bodyEmphasis,
     alignSelf: 'stretch',
     height: 44,
-    lineHeight: 24,
+    lineHeight: undefined,
     minWidth: 0,
     padding: 0,
     paddingVertical: 0,
@@ -987,16 +987,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   playerInputEditingIos: {
-    height: 44,
-    lineHeight: 24,
-    paddingVertical: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
+    ...StyleSheet.absoluteFillObject,
+    left: -Spacing.sm,
+    right: -Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.primary,
     borderRadius: Radii.sm,
     backgroundColor: Colors.surfaceRaised,
-    paddingHorizontal: Spacing.sm,
   },
   playerActions: {
     minWidth: 40,
