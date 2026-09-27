@@ -2,7 +2,7 @@
   "expo": {
     "name": "IMPOSTER",
     "slug": "imposter-game",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/imposter-icon.png",
     "scheme": "impostergame",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cnfstudios.imposter",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
       },

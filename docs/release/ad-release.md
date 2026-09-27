@@ -35,6 +35,8 @@ The EAS `ads-preview` profile extends internal preview and builds an iOS simulat
 
 `plugins/with-ads-ios.js` explicitly excludes the module from the Expo autolinking command in ad-free prebuilds because SDK 54's nested null override merge retains this library's default native configuration. The plugin fails if the expected Podfile insertion point changes. Use Expo autolinking, not `EXPO_USE_COMMUNITY_AUTOLINKING=1`. Android exclusion is fixed in package configuration. The SDK plugin may warn about a missing Android app ID; Android linking is intentionally excluded and no dummy Android ID is shipped.
 
+`react-native.config.js` also disables iOS component generation when ads are off. Both exclusions are required: codegen can run without cached Podfile autolinking output, and registering an excluded native ad class crashes the app at launch. The native registration tests exercise fresh codegen in off, test, and live configurations. Before submitting an ad-free release, verify the generated component provider and final archive have no ad-view registrations, and cold-launch a release build with its bundled JavaScript and Metro stopped.
+
 `config/ad-networks.json` contains the 50 identifiers in Google's official iOS privacy-strategy guide retrieved September 7, 2026. Refresh that list against the official guide when changing ad sources or SDKs.
 
 ## Required before a live ad release

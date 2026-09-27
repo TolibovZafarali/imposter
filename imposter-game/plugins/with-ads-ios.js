@@ -6,7 +6,7 @@ module.exports = (config, { enabled }) => withPodfile(config, (result) => {
   const insertion = '  config = use_native_modules!(config_command)';
   if (!contents.includes(insertion)) throw new Error('Could not configure ad-free iOS autolinking');
   // SDK 54 merges nested null platform overrides into the library defaults.
-  // Exclude through the supported autolinking command instead.
+  // Keep this exclusion alongside react-native.config.js for standalone codegen.
   if (!enabled) contents = contents.replace(insertion, marker + insertion);
   result.modResults.contents = contents;
   return result;
