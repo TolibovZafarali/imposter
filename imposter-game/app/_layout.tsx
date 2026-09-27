@@ -14,6 +14,7 @@ import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
+import { FirstLaunchGate } from '@/components/onboarding/FirstLaunchGate';
 import { SplashGate } from '@/components/splash/SplashGate';
 import { Colors, FontFamily } from '@/constants/theme';
 import { GameProvider } from '@/contexts/game-context';
@@ -85,14 +86,17 @@ export default function RootLayout() {
       <LanguageSettingsProvider>
         <GameProvider>
           <View style={styles.root}>
-            <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'fade' }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="settings" options={{ animation: reduceMotion ? 'none' : 'slide_from_left' }} />
-              <Stack.Screen name="choose-language" options={{ animation: reduceMotion ? 'none' : 'slide_from_right' }} />
-              <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
-              <Stack.Screen name="play" options={{ gestureEnabled: false }} />
-            </Stack>
             <StatusBar style="dark" />
+            <FirstLaunchGate>
+              <Stack screenOptions={{ headerShown: false, animation: reduceMotion ? 'none' : 'fade' }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="settings" options={{ animation: reduceMotion ? 'none' : 'slide_from_left' }} />
+                <Stack.Screen name="how-to-play" options={{ animation: reduceMotion ? 'none' : 'slide_from_right', gestureEnabled: false }} />
+                <Stack.Screen name="choose-language" options={{ animation: reduceMotion ? 'none' : 'slide_from_right' }} />
+                <Stack.Screen name="reveal" options={{ gestureEnabled: false }} />
+                <Stack.Screen name="play" options={{ gestureEnabled: false }} />
+              </Stack>
+            </FirstLaunchGate>
             <SplashGate />
           </View>
         </GameProvider>

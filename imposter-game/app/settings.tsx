@@ -35,6 +35,7 @@ type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
 const BACK_ICON: MaterialIconName = 'arrow-back-ios-new';
 const LANGUAGE_ICON: MaterialIconName = 'language';
+const TUTORIAL_ICON: MaterialIconName = 'school';
 const CHEVRON_ICON: MaterialIconName = 'chevron-right';
 const IMPOSTERS_ICON: MaterialIconName = 'groups';
 const HINT_ICON: MaterialIconName = 'tips-and-updates';
@@ -192,6 +193,25 @@ export default function SettingsScreen() {
             Settings
           </Text>
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="How to play, replay the quick walkthrough"
+          onPress={() => router.push('/how-to-play')}
+          style={({ pressed }) => [styles.settingRow, pressed && styles.settingRowPressed]}>
+          <View style={styles.settingIconBadge}>
+            <MaterialIcons name={TUTORIAL_ICON} size={22} color={Colors.primary} />
+          </View>
+          <View style={styles.settingTextGroup}>
+            <Text variant="bodyEmphasis" style={styles.settingLabel}>
+              How to play
+            </Text>
+            <Text variant="bodySmall" style={styles.settingValue}>
+              Replay the quick walkthrough
+            </Text>
+          </View>
+          <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
