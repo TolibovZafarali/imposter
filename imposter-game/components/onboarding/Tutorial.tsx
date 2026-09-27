@@ -29,6 +29,7 @@ type TutorialProps = {
 };
 
 const PAPER = '#FFF4DC';
+const BACKGROUND = Platform.OS === 'web' ? Colors.accent : '#A62C39';
 const STEPS = [
   {
     title: 'One secret.\nOne imposter.',
@@ -258,7 +259,7 @@ export function Tutorial({ onFinish, replay = false }: TutorialProps) {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: Colors.accent },
+  screen: { backgroundColor: BACKGROUND },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   wordmark: { color: PAPER, fontSize: 13, fontWeight: '800', letterSpacing: 1.5 },
