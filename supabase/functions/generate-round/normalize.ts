@@ -8,6 +8,7 @@ import type {
   TranslatePayload,
   TranslationWordRequest,
 } from "./contracts.ts";
+import { getIllustrationSense } from "./catalog/illustration-senses.ts";
 import { ApiError } from "./http.ts";
 import { getCanonicalLanguageMetadata } from "./languages.ts";
 import {
@@ -59,6 +60,7 @@ export const normalizeTranslatePayload = (
       "The static source entry is not recognized",
     );
   }
+  const sourceSense = getIllustrationSense(entry.id) ?? entry.sense;
 
   return {
     mode: "translate-word",
@@ -69,7 +71,7 @@ export const normalizeTranslatePayload = (
       categoryId: entry.categoryId,
       categoryLabel: entry.categoryLabel,
       difficulty: entry.difficulty,
-      ...(entry.sense ? { sense: entry.sense } : {}),
+      ...(sourceSense ? { sense: sourceSense } : {}),
     },
     ...getLanguage(payload.languageId),
   };

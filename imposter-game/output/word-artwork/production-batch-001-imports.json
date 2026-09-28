@@ -1,0 +1,630 @@
+[
+  {
+    "id": "activities-easy-walking",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-walking",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-walking/ef114c27d6f037e57347319d6d8622f781ddd52081e7155dcefd6b43c6347f9d.png",
+        "sha256": "ef114c27d6f037e57347319d6d8622f781ddd52081e7155dcefd6b43c6347f9d",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-walking/06f9f7341057577f154ace41c607fcdcbb623cda2a94537bb1b5d3c44cb5019c.webp",
+        "sha256": "06f9f7341057577f154ace41c607fcdcbb623cda2a94537bb1b5d3c44cb5019c",
+        "width": 512,
+        "height": 512,
+        "bytes": 39770
+      },
+      "alpha": {
+        "transparentFraction": 0.7416217068697553,
+        "visibleFraction": 0.25610359449442804,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-running",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-running",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-running/9ff8ba658ad0f7179d880e50cc38185f4e7745af560e850a0bb11de9eef7122b.png",
+        "sha256": "9ff8ba658ad0f7179d880e50cc38185f4e7745af560e850a0bb11de9eef7122b",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-running/72abefdba907f43bebbde05d5825010eeda01751d2c33cb2af655993dbe7105b.webp",
+        "sha256": "72abefdba907f43bebbde05d5825010eeda01751d2c33cb2af655993dbe7105b",
+        "width": 512,
+        "height": 512,
+        "bytes": 32220
+      },
+      "alpha": {
+        "transparentFraction": 0.8029972350042861,
+        "visibleFraction": 0.19422695858102557,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-sprinting",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-sprinting",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-sprinting/187e281b2ff0f0d983c252ded8f3301bb0359b5a55b49f59feb6de5fc5f4957b.png",
+        "sha256": "187e281b2ff0f0d983c252ded8f3301bb0359b5a55b49f59feb6de5fc5f4957b",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-sprinting/78150d327adfdc888e3b70bf0de65cad0651ae1d8cd617603f88dae0e595587d.webp",
+        "sha256": "78150d327adfdc888e3b70bf0de65cad0651ae1d8cd617603f88dae0e595587d",
+        "width": 512,
+        "height": 512,
+        "bytes": 34936
+      },
+      "alpha": {
+        "transparentFraction": 0.7480839622617512,
+        "visibleFraction": 0.25041907363740656,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-jumping",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-jumping",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-jumping/7f35bf9a44120f91a5e21e94b919d24d3701fc62c1a1c6aa54435fdaeaa89390.png",
+        "sha256": "7f35bf9a44120f91a5e21e94b919d24d3701fc62c1a1c6aa54435fdaeaa89390",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-jumping/3e0e23c16608885b52e2b06f32ae359ab481e73f5a5fc3b82bd62547da65a7b4.webp",
+        "sha256": "3e0e23c16608885b52e2b06f32ae359ab481e73f5a5fc3b82bd62547da65a7b4",
+        "width": 512,
+        "height": 512,
+        "bytes": 39782
+      },
+      "alpha": {
+        "transparentFraction": 0.7296803339361889,
+        "visibleFraction": 0.26759854907676617,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-crawling",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-crawling",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-crawling/f2c327d5835e5b8c5353c9f297ec77a6c883da186382bf996d631a6589744058.png",
+        "sha256": "f2c327d5835e5b8c5353c9f297ec77a6c883da186382bf996d631a6589744058",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-crawling/5890cd2dbcc28e76a3d67a883ba4481fdc5d46c40dcf34eaaaf59a01e51676a7.webp",
+        "sha256": "5890cd2dbcc28e76a3d67a883ba4481fdc5d46c40dcf34eaaaf59a01e51676a7",
+        "width": 512,
+        "height": 512,
+        "bytes": 33216
+      },
+      "alpha": {
+        "transparentFraction": 0.625570105487003,
+        "visibleFraction": 0.3708668147096755,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-sitting",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-sitting",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-sitting/8a8446750471ffbc269da70076c087f2eacb90cbdca79eb387af297c796ba5a0.png",
+        "sha256": "8a8446750471ffbc269da70076c087f2eacb90cbdca79eb387af297c796ba5a0",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-sitting/d9b0f8f7c39091a7f1984fe1220065692a40dc0d609e56199db577170b26f885.webp",
+        "sha256": "d9b0f8f7c39091a7f1984fe1220065692a40dc0d609e56199db577170b26f885",
+        "width": 512,
+        "height": 512,
+        "bytes": 25856
+      },
+      "alpha": {
+        "transparentFraction": 0.7593506202798572,
+        "visibleFraction": 0.23952633868272247,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-standing",
+    "imported": false,
+    "details": {
+      "message": "Visible pixels touch the image border"
+    }
+  },
+  {
+    "id": "activities-easy-kneeling",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-kneeling",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-kneeling/ac931fd09ca68e7c6fa6d2e1253caa416f500f0444e549ca7d01d70326caa660.png",
+        "sha256": "ac931fd09ca68e7c6fa6d2e1253caa416f500f0444e549ca7d01d70326caa660",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-kneeling/d6a2a38f7cb9d6dd545259b6cc93a9fbb97d69d7b48131d60abb9ce40a8a3a70.webp",
+        "sha256": "d6a2a38f7cb9d6dd545259b6cc93a9fbb97d69d7b48131d60abb9ce40a8a3a70",
+        "width": 512,
+        "height": 512,
+        "bytes": 27678
+      },
+      "alpha": {
+        "transparentFraction": 0.7135736615716469,
+        "visibleFraction": 0.2851926466884916,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-stretching",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-stretching",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-stretching/29599498ed96333a7457f74d3cd6b0eea3b32ec912836547774c34c9690fab07.png",
+        "sha256": "29599498ed96333a7457f74d3cd6b0eea3b32ec912836547774c34c9690fab07",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-stretching/506e85564dad8c27f2b490e69fd2afa0809fc4f6784e1fac479dc6ef879e652c.webp",
+        "sha256": "506e85564dad8c27f2b490e69fd2afa0809fc4f6784e1fac479dc6ef879e652c",
+        "width": 512,
+        "height": 512,
+        "bytes": 32438
+      },
+      "alpha": {
+        "transparentFraction": 0.7233071078450076,
+        "visibleFraction": 0.2745491937760888,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-bending",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-bending",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-bending/293396fb5a52d291225857e87b2ee3d2ff381830e6f53754b626638a08f5d1a2.png",
+        "sha256": "293396fb5a52d291225857e87b2ee3d2ff381830e6f53754b626638a08f5d1a2",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-bending/886a16bd69a0540068e6e07961c9644f866f4477abe17fd784f1f9337c60c485.webp",
+        "sha256": "886a16bd69a0540068e6e07961c9644f866f4477abe17fd784f1f9337c60c485",
+        "width": 512,
+        "height": 512,
+        "bytes": 31006
+      },
+      "alpha": {
+        "transparentFraction": 0.6893189004118241,
+        "visibleFraction": 0.30962355867921215,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-lifting",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-lifting",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-lifting/899822205586dda9ad57d0d48aaab8542be015abda5fad87e2a6e5d0ca2d8299.png",
+        "sha256": "899822205586dda9ad57d0d48aaab8542be015abda5fad87e2a6e5d0ca2d8299",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-lifting/d2184752802e8f9cd12466d22f7060687c672f4590063fdb24b622d8aae1e8f6.webp",
+        "sha256": "d2184752802e8f9cd12466d22f7060687c672f4590063fdb24b622d8aae1e8f6",
+        "width": 512,
+        "height": 512,
+        "bytes": 39904
+      },
+      "alpha": {
+        "transparentFraction": 0.7092754541130265,
+        "visibleFraction": 0.2885414202462805,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-carrying",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-carrying",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-carrying/97f4a0de6472e57865ef8060b01997e4945cbc04772e45c96789cce24ec60554.png",
+        "sha256": "97f4a0de6472e57865ef8060b01997e4945cbc04772e45c96789cce24ec60554",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-carrying/89fb5fe7634ded970f565bdbe607fe8f1a2dfa29483b853fc2534d45bc443fb9.webp",
+        "sha256": "89fb5fe7634ded970f565bdbe607fe8f1a2dfa29483b853fc2534d45bc443fb9",
+        "width": 512,
+        "height": 512,
+        "bytes": 26508
+      },
+      "alpha": {
+        "transparentFraction": 0.7551738742244912,
+        "visibleFraction": 0.24374759938849588,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-pushing",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-pushing",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-pushing/484614e0e076487dd0f2caf7a4ab2a47f790aa1677458693c4dc501fceaa8db1.png",
+        "sha256": "484614e0e076487dd0f2caf7a4ab2a47f790aa1677458693c4dc501fceaa8db1",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-pushing/3e4199653907d5d6a056adfd2766d3c4f5138bb196fd4cb5ffd4ebd19f51fc6a.webp",
+        "sha256": "3e4199653907d5d6a056adfd2766d3c4f5138bb196fd4cb5ffd4ebd19f51fc6a",
+        "width": 512,
+        "height": 512,
+        "bytes": 32280
+      },
+      "alpha": {
+        "transparentFraction": 0.7134464768561973,
+        "visibleFraction": 0.28550806478280666,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-pulling",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-pulling",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-pulling/d2f2495a71e67dae7f10c129743ff2cd62f24fb58593a0fd5fc301eaabbf581a.png",
+        "sha256": "d2f2495a71e67dae7f10c129743ff2cd62f24fb58593a0fd5fc301eaabbf581a",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-pulling/161e08eb198b43d2627b7822ad20e7548cf3028fb192e7127c24f4222841ae61.webp",
+        "sha256": "161e08eb198b43d2627b7822ad20e7548cf3028fb192e7127c24f4222841ae61",
+        "width": 512,
+        "height": 512,
+        "bytes": 34300
+      },
+      "alpha": {
+        "transparentFraction": 0.7597169122603522,
+        "visibleFraction": 0.23867992440140515,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-throwing",
+    "imported": false,
+    "error": "Generation did not return an image; remains unresolved"
+  },
+  {
+    "id": "activities-easy-catching",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-catching",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-catching/c73276544574c0085eea7dd01058085da2d7a155086d1941365e8627a018f09a.png",
+        "sha256": "c73276544574c0085eea7dd01058085da2d7a155086d1941365e8627a018f09a",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-catching/37def38b0ef0dfd37684efaeb51dd601756ca1010a89dae9e8bc5225ee99031f.webp",
+        "sha256": "37def38b0ef0dfd37684efaeb51dd601756ca1010a89dae9e8bc5225ee99031f",
+        "width": 512,
+        "height": 512,
+        "bytes": 31740
+      },
+      "alpha": {
+        "transparentFraction": 0.7826241513599862,
+        "visibleFraction": 0.21618031231478727,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-kicking",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-kicking",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-kicking/cb9ab895bc0976a8b9f0512b20ec8bafb76ed0b4c869159df5adfdd7fac5edfa.png",
+        "sha256": "cb9ab895bc0976a8b9f0512b20ec8bafb76ed0b4c869159df5adfdd7fac5edfa",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-kicking/92d6b84e8de7534936b3588c1e8134ffc850fc21cf4d4e4ab09596b89b16215a.webp",
+        "sha256": "92d6b84e8de7534936b3588c1e8134ffc850fc21cf4d4e4ab09596b89b16215a",
+        "width": 512,
+        "height": 512,
+        "bytes": 34070
+      },
+      "alpha": {
+        "transparentFraction": 0.7735177257337922,
+        "visibleFraction": 0.22483459627755775,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-punching",
+    "imported": false,
+    "details": {
+      "message": "Visible pixels touch the image border"
+    }
+  },
+  {
+    "id": "activities-easy-waving",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-waving",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-waving/b6401929d2e07104bb2c8f3ba068ea8585178e80cf32ae1709a626dda7ebb8ca.png",
+        "sha256": "b6401929d2e07104bb2c8f3ba068ea8585178e80cf32ae1709a626dda7ebb8ca",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-waving/2853ab4db7c5c131046d1b9568747e3691e74bd0eaffe2f48a505a5b782c47c2.webp",
+        "sha256": "2853ab4db7c5c131046d1b9568747e3691e74bd0eaffe2f48a505a5b782c47c2",
+        "width": 512,
+        "height": 512,
+        "bytes": 27496
+      },
+      "alpha": {
+        "transparentFraction": 0.765302229039323,
+        "visibleFraction": 0.23322815157365648,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-pointing",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-pointing",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-pointing/9c21d487fd4c59a11369d2eda72dedfd88e34c662718ee62b88371e6511ab20b.png",
+        "sha256": "9c21d487fd4c59a11369d2eda72dedfd88e34c662718ee62b88371e6511ab20b",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-pointing/69b805ad75420cd518002986a32ac3d84a5ccb178b0cb6b7bf691f22b37d6ffd.webp",
+        "sha256": "69b805ad75420cd518002986a32ac3d84a5ccb178b0cb6b7bf691f22b37d6ffd",
+        "width": 512,
+        "height": 512,
+        "bytes": 36148
+      },
+      "alpha": {
+        "transparentFraction": 0.7526886848846053,
+        "visibleFraction": 0.2438073762047572,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-hugging",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-hugging",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-hugging/6109619b5f9301ff110fde813a25e974cb1205572a7f9c4d3470237a7a58e21d.png",
+        "sha256": "6109619b5f9301ff110fde813a25e974cb1205572a7f9c4d3470237a7a58e21d",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-hugging/6081dbf2e1e013e2f00526bcb76782f070574dd400a3ad3d5bbe13c8d042cc0e.webp",
+        "sha256": "6081dbf2e1e013e2f00526bcb76782f070574dd400a3ad3d5bbe13c8d042cc0e",
+        "width": 512,
+        "height": 512,
+        "bytes": 43168
+      },
+      "alpha": {
+        "transparentFraction": 0.5643872621963782,
+        "visibleFraction": 0.43292850438405717,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-kissing",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-kissing",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-kissing/a86cebacf75e8631cfe81cd25426e8e4302736ea8746eed29091c1b7f0fe69a4.png",
+        "sha256": "a86cebacf75e8631cfe81cd25426e8e4302736ea8746eed29091c1b7f0fe69a4",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-kissing/8a63328564cb7f7a4291d9d24f1612d92b021af100c07829cf50e8fc5b1382a8.webp",
+        "sha256": "8a63328564cb7f7a4291d9d24f1612d92b021af100c07829cf50e8fc5b1382a8",
+        "width": 512,
+        "height": 512,
+        "bytes": 33894
+      },
+      "alpha": {
+        "transparentFraction": 0.5062511287643496,
+        "visibleFraction": 0.492138712738058,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-laughing",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-laughing",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-laughing/b4a2774abad2051902f47d316b2c762db4b52dc136dea04ef088c9e2a2741aa6.png",
+        "sha256": "b4a2774abad2051902f47d316b2c762db4b52dc136dea04ef088c9e2a2741aa6",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-laughing/dd81b62c06233d081e6318946201c4b9a0aea5e223febc49e3c841d0925001cd.webp",
+        "sha256": "dd81b62c06233d081e6318946201c4b9a0aea5e223febc49e3c841d0925001cd",
+        "width": 512,
+        "height": 512,
+        "bytes": 28978
+      },
+      "alpha": {
+        "transparentFraction": 0.5908079790603085,
+        "visibleFraction": 0.40802955264048185,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  },
+  {
+    "id": "activities-easy-crying",
+    "imported": true,
+    "details": {
+      "id": "activities-easy-crying",
+      "status": "generated",
+      "original": {
+        "path": "output/word-artwork/originals/activities-easy-crying/0d878aa379412fe2c9aafc7d83d4dba42017a2c07a05792e86abfd12dd9bf491.png",
+        "sha256": "0d878aa379412fe2c9aafc7d83d4dba42017a2c07a05792e86abfd12dd9bf491",
+        "width": 1254,
+        "height": 1254
+      },
+      "processed": {
+        "path": "output/word-artwork/processed/activities-easy-crying/7cca11919b8e88e42c2778d7a99ce74a9362bef788e1366bf456e4228bbf082e.webp",
+        "sha256": "7cca11919b8e88e42c2778d7a99ce74a9362bef788e1366bf456e4228bbf082e",
+        "width": 512,
+        "height": 512,
+        "bytes": 45988
+      },
+      "alpha": {
+        "transparentFraction": 0.5323704178526641,
+        "visibleFraction": 0.46360164220904587,
+        "opaqueBorder": 0,
+        "errors": []
+      },
+      "promptRecorded": true,
+      "exceedsAssetBudget": false
+    }
+  }
+]

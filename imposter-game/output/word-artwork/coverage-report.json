@@ -1,0 +1,72 @@
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [],
+  "catalogEntries": 2985,
+  "eligibility": {
+    "candidate": 0,
+    "eligible": 2634,
+    "excluded": 351
+  },
+  "status": {
+    "pending": 2961,
+    "generated": 0,
+    "approved": 24,
+    "rejected": 0
+  },
+  "categories": {
+    "activities": {
+      "total": 613,
+      "approved": 4,
+      "excluded": 182,
+      "unresolved": 427
+    },
+    "food": {
+      "total": 391,
+      "approved": 4,
+      "excluded": 22,
+      "unresolved": 365
+    },
+    "animals": {
+      "total": 380,
+      "approved": 4,
+      "excluded": 0,
+      "unresolved": 376
+    },
+    "objects": {
+      "total": 562,
+      "approved": 4,
+      "excluded": 25,
+      "unresolved": 533
+    },
+    "places": {
+      "total": 564,
+      "approved": 4,
+      "excluded": 19,
+      "unresolved": 541
+    },
+    "sports": {
+      "total": 475,
+      "approved": 4,
+      "excluded": 103,
+      "unresolved": 368
+    }
+  },
+  "unresolved": 2610,
+  "pilot": {
+    "approvedArtwork": 24,
+    "requiredArtwork": 24,
+    "qa": {
+      "approved": false
+    }
+  },
+  "bundle": {
+    "uniqueAssets": 24,
+    "totalBytes": 695624,
+    "averageBytes": 28984,
+    "targetAverageBytes": 40960,
+    "maxAssetBytes": 102400,
+    "oversized": []
+  },
+  "releaseReady": false
+}

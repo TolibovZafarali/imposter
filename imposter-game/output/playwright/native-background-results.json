@@ -1,0 +1,43 @@
+{
+  "exit": 0,
+  "actions": [
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-background-1.png"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "launch",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "com.apple.Preferences"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "launch",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "com.cnfstudios.imposter"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-background-resumed.png"
+      ],
+      "code": 0
+    }
+  ]
+}

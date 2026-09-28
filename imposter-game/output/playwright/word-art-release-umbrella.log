@@ -1,0 +1,10 @@
+Running on Imposter Artwork Release - iOS 26.5 - 0E887FC5-DBC6-4958-AB39-D44D6A0179D7
+ > Flow word-art-release-umbrella
+Open impostergame://reveal?fixture=objects-easy-umbrella... COMPLETED
+Tap on (Optional) "Open"... WARNED
+
+
+ Warning: Element not found: Text matching regex: Open
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED

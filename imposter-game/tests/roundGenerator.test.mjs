@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test, { afterEach } from 'node:test';
 
-import { selectStaticWordEntry } from '../data/wordBank.ts';
+import { ENGLISH_WORD_BANK, selectStaticWordEntry } from '../data/wordBank.ts';
+import { isWordIllustrationEligible } from '../data/wordIllustrationIds.ts';
 import {
   AI_ROUND_REQUEST_TIMEOUT_MS,
   createAiRound,
@@ -80,6 +81,10 @@ test('English static rounds make zero fetch and zero App Attest calls', async ()
 
   assert.equal(round.secretWord, expectedEntry.word);
   assert.equal(round.imposterHint, expectedEntry.hint);
+  assert.ok(round.cards.filter((card) => card.role === 'regular')
+    .every((card) => card.illustrationEntryId === expectedEntry.id));
+  assert.ok(round.cards.filter((card) => card.role === 'imposter')
+    .every((card) => card.illustrationEntryId === null));
   assert.equal(fetchCallCount, 0);
   assert.equal(appAttestCallCount, 0);
 });
@@ -106,6 +111,7 @@ test('translated static rounds send only canonical IDs in the v2 payload', async
 
   assert.equal(round.secretWord, 'edredon');
   assert.equal(round.imposterHint, 'capullo');
+  assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
   assert.equal(prepareCalls.length, 1);
   assert.equal(prepareCalls[0].action, 'translate-word');
   assert.deepEqual(Object.keys(prepareCalls[0].payload).sort(), [
@@ -117,6 +123,159 @@ test('translated static rounds send only canonical IDs in the v2 payload', async
   assert.equal(prepareCalls[0].payload.languageId, 'spanish');
   assert.equal(typeof prepareCalls[0].payload.sourceEntryId, 'string');
   assert.equal(requestBodies[0].action, 'translate-word');
+});
+
+test('excluded static words stay playable without image IDs in English and compatible translations', async (t) => {
+  const entries = ENGLISH_WORD_BANK.filter((entry) => entry.categoryId === 'activities' && entry.difficulty === 'easy');
+  const excludedIndex = entries.findIndex((entry) => entry.id === 'activities-easy-thinking');
+  assert.ok(excludedIndex >= 0);
+  assert.equal(isWordIllustrationEligible(entries[excludedIndex].id), false);
+  const rng = () => (excludedIndex + 0.5) / entries.length;
+  assert.equal(selectStaticWordEntry({ categoryId: 'activities', difficulty: 'easy', rng }).id,
+    'activities-easy-thinking');
+
+  for (const languageId of ['english', 'spanish']) {
+    await t.test(languageId, async () => {
+      resetRoundGeneratorStateForTesting();
+      const calls = installObserveOnlyPreparer();
+      let fetchCalls = 0;
+      globalThis.fetch = async () => {
+        fetchCalls += 1;
+        return Response.json({ word: 'pensar', clue: 'cabeza', illustrationCompatible: true });
+      };
+      const round = await createRound({
+        players: buildPlayers(), categoryIds: ['activities'], difficulty: 'easy',
+        languageId, languageName: languageId === 'english' ? 'English' : 'Spanish', rng,
+      });
+      assert.equal(round.secretWord, languageId === 'english' ? 'thinking' : 'pensar');
+      assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
+      assert.equal(fetchCalls, languageId === 'english' ? 0 : 1);
+      assert.equal(calls.length, languageId === 'english' ? 0 : 1);
+    });
+  }
+});
+
+test('compatible translation uses only the locally selected source illustration', async () => {
+  const prepareCalls = installObserveOnlyPreparer();
+  let fetchCallCount = 0;
+  const expectedEntry = selectStaticWordEntry({
+    categoryId: 'objects', difficulty: 'medium', rng: () => 0,
+  });
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    return Response.json({
+      word: 'edredon',
+      clue: 'capullo',
+      illustrationCompatible: true,
+      sourceEntryId: 'objects-easy-chair',
+      illustrationEntryId: 'objects-easy-chair',
+    });
+  };
+
+  const round = await createRound({
+    players: buildPlayers(),
+    categoryIds: ['objects'],
+    difficulty: 'medium',
+    languageId: 'spanish',
+    languageName: 'Spanish',
+    rng: () => 0,
+  });
+
+  assert.equal(round.secretWord, 'edredon');
+  assert.equal(round.imposterHint, 'capullo');
+  assert.ok(round.cards.filter((card) => card.role === 'regular')
+    .every((card) => card.illustrationEntryId === expectedEntry.id));
+  assert.ok(round.cards.filter((card) => card.role === 'imposter')
+    .every((card) => card.illustrationEntryId === null));
+  assert.equal(prepareCalls[0].payload.sourceEntryId, expectedEntry.id);
+  assert.equal(prepareCalls.length, 1);
+  assert.equal(fetchCallCount, 1);
+});
+
+test('unconfirmed translation compatibility keeps valid text playable without artwork', async (t) => {
+  for (const [label, illustrationCompatible] of [
+    ['false', false],
+    ['missing', undefined],
+    ['null', null],
+    ['string', 'true'],
+    ['number', 1],
+    ['object', {}],
+    ['array', []],
+  ]) {
+    await t.test(label, async () => {
+      resetRoundGeneratorStateForTesting();
+      const prepareCalls = installObserveOnlyPreparer();
+      let fetchCallCount = 0;
+      globalThis.fetch = async () => {
+        fetchCallCount += 1;
+        return Response.json({ word: 'edredon', clue: 'capullo', illustrationCompatible });
+      };
+
+      const round = await createRound({
+        players: buildPlayers(),
+        categoryIds: ['objects'],
+        difficulty: 'medium',
+        languageId: 'spanish',
+        languageName: 'Spanish',
+        rng: () => 0,
+      });
+
+      assert.equal(round.secretWord, 'edredon');
+      assert.equal(round.imposterHint, 'capullo');
+      assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
+      assert.equal(prepareCalls.length, 1);
+      assert.equal(fetchCallCount, 1);
+    });
+  }
+});
+
+test('dynamic words remain text-only even when response includes illustration metadata', async (t) => {
+  for (const generate of [createRound, createAiRound]) {
+    await t.test(generate.name, async () => {
+      resetRoundGeneratorStateForTesting();
+      installObserveOnlyPreparer();
+      globalThis.fetch = async () => Response.json({
+        word: 'Arrival',
+        clue: 'language',
+        illustrationCompatible: true,
+        illustrationEntryId: 'objects-easy-chair',
+      });
+
+      const round = await generate({
+        players: buildPlayers(),
+        categoryIds: ['movies'],
+        difficulty: 'easy',
+        languageId: 'english',
+        languageName: 'English',
+        rng: () => 0,
+      });
+
+      assert.equal(round.secretWord, 'Arrival');
+      assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
+    });
+  }
+});
+
+test('emergency dynamic words stay text-only after a failed request', async () => {
+  installObserveOnlyPreparer();
+  let fetchCallCount = 0;
+  globalThis.fetch = async () => {
+    fetchCallCount += 1;
+    return Response.json({ error: 'unavailable' }, { status: 503 });
+  };
+
+  const round = await createRound({
+    players: buildPlayers(),
+    categoryIds: ['movies'],
+    difficulty: 'easy',
+    languageId: 'english',
+    languageName: 'English',
+    rng: () => 0,
+  });
+
+  assert.ok(round.secretWord.length > 0);
+  assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
+  assert.equal(fetchCallCount, 1);
 });
 
 test('dynamic rounds send the strict canonical payload and do not semantically retry', async () => {

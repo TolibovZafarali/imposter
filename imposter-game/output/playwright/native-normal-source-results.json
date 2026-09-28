@@ -1,0 +1,45 @@
+{
+  "exit": 0,
+  "actions": [
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-normal-source-1.png"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-normal-source-2.png"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-normal-source-3.png"
+      ],
+      "code": 0
+    },
+    {
+      "args": [
+        "simctl",
+        "io",
+        "0E887FC5-DBC6-4958-AB39-D44D6A0179D7",
+        "screenshot",
+        "/Users/zafaralitolibov/Documents/imposter/imposter-game/output/playwright/word-art/native-normal-source-4.png"
+      ],
+      "code": 0
+    }
+  ]
+}

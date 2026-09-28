@@ -15,6 +15,25 @@ const aiWordSchema = z.object({
   clue: z.string(),
 });
 
+const sourceConceptMatchSchema = z.enum([
+  "same_concept",
+  "broader_compatible",
+  "different_or_uncertain",
+]);
+
+const translationResponseSchema = aiWordSchema.extend({
+  sourceConceptMatch: sourceConceptMatchSchema,
+});
+
+const playableTranslationSchema = translationResponseSchema.extend({
+  sourceConceptMatch: sourceConceptMatchSchema.catch("different_or_uncertain"),
+});
+
+export type TranslationResponse = z.infer<typeof translationResponseSchema>;
+
+export const parseTranslationOutput = (value: unknown): TranslationResponse =>
+  playableTranslationSchema.parse(value);
+
 const aiWordCandidatesSchema = z.object({
   word: z.string(),
   clues: z.array(z.string()).length(CANDIDATE_COUNT),
@@ -49,7 +68,7 @@ export interface RoundProvider {
     systemPrompt: string;
     userPrompt: string;
     signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordResponse>>;
+  }): Promise<ProviderResult<TranslationResponse>>;
 }
 
 const providerResult = <T>(
@@ -103,7 +122,12 @@ export const buildProviderRequest = (
         { role: "system" as const, content: input.systemPrompt },
         { role: "user" as const, content: input.userPrompt },
       ],
-      text: { format: zodTextFormat(aiWordSchema, "imposter_translated_word") },
+      text: {
+        format: zodTextFormat(
+          translationResponseSchema,
+          "imposter_translated_word",
+        ),
+      },
     };
 
 export class OpenAIRoundProvider implements RoundProvider {
@@ -139,16 +163,16 @@ export class OpenAIRoundProvider implements RoundProvider {
     systemPrompt: string;
     userPrompt: string;
     signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordResponse>> {
-    const response = await this.#client.responses.parse(
+  }): Promise<ProviderResult<TranslationResponse>> {
+    const response = await this.#client.responses.create(
       buildProviderRequest("translation", input),
       { signal: input.signal },
     );
-    return providerResult<AiWordResponse>(
-      response as typeof response & {
-        output_parsed?: AiWordResponse | null;
-      },
-    );
+    return providerResult<TranslationResponse>({
+      _request_id: response._request_id,
+      usage: response.usage,
+      output_parsed: parseTranslationOutput(JSON.parse(response.output_text)),
+    });
   }
 }
 

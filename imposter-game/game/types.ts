@@ -17,6 +17,7 @@ export type RoundCard = {
   role: Role;
   word: string | null;
   hint: string | null;
+  illustrationEntryId: string | null;
 };
 
 export type RoundConfig = {

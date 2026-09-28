@@ -1,0 +1,102 @@
+{
+  "exit": 0,
+  "holds": 24,
+  "captures": [
+    {
+      "id": "objects-easy-umbrella",
+      "screenshotExit": 0
+    },
+    {
+      "id": "objects-easy-keys",
+      "screenshotExit": 0
+    },
+    {
+      "id": "objects-easy-scissors",
+      "screenshotExit": 0
+    },
+    {
+      "id": "objects-easy-camera",
+      "screenshotExit": 0
+    },
+    {
+      "id": "animals-easy-elephant",
+      "screenshotExit": 0
+    },
+    {
+      "id": "animals-easy-penguin",
+      "screenshotExit": 0
+    },
+    {
+      "id": "animals-easy-butterfly",
+      "screenshotExit": 0
+    },
+    {
+      "id": "animals-easy-jellyfish",
+      "screenshotExit": 0
+    },
+    {
+      "id": "food-easy-pizza",
+      "screenshotExit": 0
+    },
+    {
+      "id": "food-easy-apple",
+      "screenshotExit": 0
+    },
+    {
+      "id": "food-medium-croissant",
+      "screenshotExit": 0
+    },
+    {
+      "id": "food-easy-sushi",
+      "screenshotExit": 0
+    },
+    {
+      "id": "activities-easy-hiking",
+      "screenshotExit": 0
+    },
+    {
+      "id": "activities-easy-reading",
+      "screenshotExit": 0
+    },
+    {
+      "id": "activities-easy-jogging",
+      "screenshotExit": 0
+    },
+    {
+      "id": "activities-easy-knitting",
+      "screenshotExit": 0
+    },
+    {
+      "id": "places-easy-island",
+      "screenshotExit": 0
+    },
+    {
+      "id": "places-medium-lighthouse",
+      "screenshotExit": 0
+    },
+    {
+      "id": "places-easy-waterfall",
+      "screenshotExit": 0
+    },
+    {
+      "id": "places-easy-airport",
+      "screenshotExit": 0
+    },
+    {
+      "id": "sports-easy-soccer",
+      "screenshotExit": 0
+    },
+    {
+      "id": "sports-easy-basketball",
+      "screenshotExit": 0
+    },
+    {
+      "id": "sports-easy-tennis",
+      "screenshotExit": 0
+    },
+    {
+      "id": "sports-easy-skiing",
+      "screenshotExit": 0
+    }
+  ]
+}

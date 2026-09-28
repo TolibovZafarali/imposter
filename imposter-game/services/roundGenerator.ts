@@ -1,5 +1,6 @@
 import { buildRound } from '../game/round.ts';
 import type { ImposterCount, Player, Round, RoundTimerSetting } from '../game/types.ts';
+import { isWordIllustrationEligible } from '../data/wordIllustrationIds.ts';
 import {
   hasPlayableCelebrityAnswer,
   isEnglishLanguage,
@@ -364,7 +365,7 @@ async function fetchTranslatedStaticWord({
   sourceEntry: EnglishWordEntry;
   languageId: string;
   playedWords: readonly string[];
-}): Promise<GeneratedWord> {
+}): Promise<GeneratedWord & { illustrationCompatible: boolean }> {
   const requestPayload: JsonValue = {
     mode: 'translate-word',
     languageId,
@@ -386,6 +387,8 @@ async function fetchTranslatedStaticWord({
   return {
     word: payload.word.trim(),
     clue: payload.clue.trim(),
+    illustrationCompatible:
+      'illustrationCompatible' in payload && payload.illustrationCompatible === true,
   };
 }
 
@@ -451,6 +454,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
   }
 
   let generatedWord: GeneratedWord;
+  let illustrationEntryId: string | null = null;
   let shouldRememberStaticEntry = false;
   let rememberedStaticEntryId: string | undefined;
 
@@ -473,12 +477,20 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
   } else {
     if (isEnglishLanguage(input)) {
       generatedWord = getLocalStaticWord(wordPlan.source.entry);
+      illustrationEntryId = isWordIllustrationEligible(wordPlan.source.entry.id)
+        ? wordPlan.source.entry.id
+        : null;
     } else {
-      generatedWord = await fetchTranslatedStaticWord({
+      const translatedWord = await fetchTranslatedStaticWord({
         sourceEntry: wordPlan.source.entry,
         languageId: input.languageId,
         playedWords,
       });
+      generatedWord = translatedWord;
+      illustrationEntryId = translatedWord.illustrationCompatible &&
+        isWordIllustrationEligible(wordPlan.source.entry.id)
+        ? wordPlan.source.entry.id
+        : null;
 
       if (isPlayedWord(generatedWord.word, playedWords)) {
         throw new Error('Static word translation returned an already played word');
@@ -497,6 +509,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     languageName: input.languageName,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
+    illustrationEntryId,
     imposterCount: input.imposterCount,
     isImposterHintEnabled: input.isImposterHintEnabled,
     roundTimerMinutes: input.roundTimerMinutes,

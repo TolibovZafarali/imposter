@@ -1,0 +1,98 @@
+Running on Imposter Artwork Release - iOS 26.5 - 0E887FC5-DBC6-4958-AB39-D44D6A0179D7
+ > Flow word-art-native-pilot
+Open impostergame://reveal?fixture=objects-easy-umbrella... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=objects-easy-keys... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=objects-easy-scissors... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=objects-easy-camera... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=animals-easy-elephant... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=animals-easy-penguin... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=animals-easy-butterfly... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=animals-easy-jellyfish... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=food-easy-pizza... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=food-easy-apple... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=food-medium-croissant... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=food-easy-sushi... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=activities-easy-hiking... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=activities-easy-reading... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=activities-easy-jogging... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=activities-easy-knitting... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=places-easy-island... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=places-medium-lighthouse... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=places-easy-waterfall... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=places-easy-airport... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=sports-easy-soccer... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=sports-easy-basketball... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=sports-easy-tennis... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED
+Open impostergame://reveal?fixture=sports-easy-skiing... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED

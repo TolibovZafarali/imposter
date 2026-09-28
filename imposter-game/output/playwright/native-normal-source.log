@@ -1,0 +1,19 @@
+Running on Imposter Artwork Release - iOS 26.5 - 0E887FC5-DBC6-4958-AB39-D44D6A0179D7
+ > Flow word-art-native-normal
+Assert that "Start game" is visible... COMPLETED
+Tap on "Select Objects category"... COMPLETED
+Tap on "Start game"... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Tap on "Next player"... COMPLETED
+Long press on "Reveal Player 2's card"... COMPLETED
+Tap on "Next player"... COMPLETED
+Long press on "Reveal Player 3's card"... COMPLETED
+Tap on "Start talking"... COMPLETED
+Tap on "Finish round"... COMPLETED
+Tap on "Reveal results"... COMPLETED
+Assert that "Play again" is visible... COMPLETED
+Tap on "Play again"... COMPLETED
+Assert that "Reveal Player 1's card" is visible... COMPLETED
+Long press on "Reveal Player 1's card"... COMPLETED
+Assert that "Next player" is visible... COMPLETED

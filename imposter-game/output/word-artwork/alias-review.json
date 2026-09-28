@@ -1,0 +1,582 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "activities-easy-biking",
+      "sharedWith": "activities-easy-cycling",
+      "equivalenceReason": "Biking and cycling both mean riding a pedal bicycle in these activity/sport entries. They are distinct from motorcycling, mountain biking, bike racing, and a bicycle shown as equipment."
+    },
+    {
+      "id": "activities-easy-climbing",
+      "sharedWith": "sports-easy-climbing",
+      "equivalenceReason": "Both entries refer to the physical act of climbing. Use the sporting climbing depiction as the source so it remains recognizable in both categories; do not merge the more specific rock-climbing entry."
+    },
+    {
+      "id": "activities-easy-hairstyling",
+      "sharedWith": "activities-easy-hair-styling",
+      "equivalenceReason": "These spacing variants mean the same activity of arranging or styling someone’s hair. Barbering and shaving remain separate."
+    },
+    {
+      "id": "activities-easy-photography",
+      "sharedWith": "activities-easy-photographing",
+      "equivalenceReason": "Both activities mean taking photographs with a camera. The different grammatical forms do not change the depicted action."
+    },
+    {
+      "id": "activities-easy-skiing",
+      "sharedWith": "sports-easy-skiing",
+      "equivalenceReason": "Both entries mean skiing on snow with two skis and poles. Reuse the skiing pilot; water skiing, ski jumping, and snowboarding remain separate."
+    },
+    {
+      "id": "activities-hard-aquarium-keeping",
+      "sharedWith": "activities-hard-fishkeeping",
+      "equivalenceReason": "Both reviewed meanings explicitly specify a person tending a domestic fish aquarium, so their pictured activity is the same."
+    },
+    {
+      "id": "activities-medium-birding",
+      "sharedWith": "activities-easy-bird-watching",
+      "equivalenceReason": "Birding and bird watching are equivalent names for observing birds, here with binoculars. Hunting remains separate."
+    },
+    {
+      "id": "activities-medium-sudoku",
+      "sharedWith": "sports-easy-sudoku",
+      "equivalenceReason": "Both reviewed meanings select the same Sudoku grid with a pencil, without text; neither requires a separate person or another puzzle type."
+    },
+    {
+      "id": "animals-easy-bunny",
+      "sharedWith": "animals-easy-rabbit",
+      "equivalenceReason": "Bunny is the informal rabbit name used by this entry, with no age-specific wording. The distinct hare and other mammals remain separate."
+    },
+    {
+      "id": "animals-medium-blowfish",
+      "sharedWith": "animals-medium-pufferfish",
+      "equivalenceReason": "Pufferfish and blowfish are common names for the same pufferfish group; both use the familiar inflated round fish form. Other spiny fish remain separate."
+    },
+    {
+      "id": "animals-medium-killer-whale",
+      "sharedWith": "animals-easy-orca",
+      "equivalenceReason": "Orca and killer whale are two names for the same species and have the same apex clue; no other dolphin or whale is included."
+    },
+    {
+      "id": "animals-medium-mantis",
+      "sharedWith": "animals-easy-praying-mantis",
+      "equivalenceReason": "Both common names refer to the mantis insect with folded grasping forelegs. No separate species or appearance is selected in either entry."
+    },
+    {
+      "id": "animals-medium-mountain-lion",
+      "sharedWith": "animals-medium-cougar",
+      "equivalenceReason": "Cougar, puma, and mountain lion name the same cat species, Puma concolor. Panthers, leopards, and other cat species remain separate."
+    },
+    {
+      "id": "animals-medium-puma",
+      "sharedWith": "animals-medium-cougar",
+      "equivalenceReason": "Cougar, puma, and mountain lion name the same cat species, Puma concolor. Panthers, leopards, and other cat species remain separate."
+    },
+    {
+      "id": "food-easy-fries",
+      "sharedWith": "food-easy-french-fries",
+      "equivalenceReason": "Both entries mean the same fried potato strips. Potato chips and other fried dishes remain separate."
+    },
+    {
+      "id": "food-easy-ice-pop",
+      "sharedWith": "food-easy-popsicle",
+      "equivalenceReason": "Both entries mean the same frozen flavored ice treat on a stick. Ice cream, snow cones, and other frozen desserts remain separate."
+    },
+    {
+      "id": "food-medium-maple",
+      "sharedWith": "food-easy-maple-syrup",
+      "equivalenceReason": "The reviewed food maple sense explicitly selects amber maple syrup, not the tree. Both therefore depict the same syrup serving."
+    },
+    {
+      "id": "objects-easy-bike",
+      "sharedWith": "objects-easy-bicycle",
+      "equivalenceReason": "Both object entries mean the same pedal bicycle. Activity entries depict a rider and remain separate."
+    },
+    {
+      "id": "objects-easy-closet",
+      "sharedWith": "places-easy-closet",
+      "equivalenceReason": "Both entries mean a built-in clothing-storage closet. A compact closet cutaway depicts the same physical space/object; the freestanding wardrobe remains separate."
+    },
+    {
+      "id": "objects-easy-lunchbox",
+      "sharedWith": "food-easy-lunchbox",
+      "equivalenceReason": "Both entries name a portable lunchbox. The food entry already specifies an opened lunchbox with a simple packed meal, which also truthfully depicts the object."
+    },
+    {
+      "id": "objects-easy-map",
+      "sharedWith": "places-easy-map",
+      "equivalenceReason": "Both entries mean a physical folded paper map with unlabeled routes and geography. Neither refers to a software map or a geographic place itself."
+    },
+    {
+      "id": "objects-easy-phone",
+      "sharedWith": "objects-easy-smartphone",
+      "equivalenceReason": "The phone entry’s scrolling clue selects the touchscreen smartphone sense. Reuse the smartphone illustration; no landline or rotary phone is implied."
+    },
+    {
+      "id": "objects-easy-purse",
+      "sharedWith": "objects-medium-handbag",
+      "equivalenceReason": "Both entries use the handbag sense of purse, supported by the identical searching clue. A small coin purse and a wallet remain separate."
+    },
+    {
+      "id": "objects-easy-sharpener",
+      "sharedWith": "objects-medium-pencil-sharpener",
+      "equivalenceReason": "The standalone sharpener entry means a pencil sharpener, confirmed by its shavings clue and stationery context; both depict the same object."
+    },
+    {
+      "id": "objects-easy-sofa",
+      "sharedWith": "objects-easy-couch",
+      "equivalenceReason": "Couch and sofa are equivalent names for the same upholstered three-seat seating furniture; the reviewed sofa sense explicitly references this couch."
+    },
+    {
+      "id": "objects-easy-tray",
+      "sharedWith": "objects-medium-serving-tray",
+      "equivalenceReason": "Both entries mean a flat serving tray used to carry food or dishes, with the same balancing clue. Specialized baking sheets remain separate."
+    },
+    {
+      "id": "objects-easy-vase",
+      "sharedWith": "objects-medium-flower-vase",
+      "equivalenceReason": "Both object entries mean a decorative vessel holding flowers, as confirmed by their identical wilting clue. No different vessel form or use is intended."
+    },
+    {
+      "id": "objects-medium-globe",
+      "sharedWith": "places-easy-globe",
+      "equivalenceReason": "Both entries mean a tabletop globe on a stand with continents and oceans. The planet Earth itself remains a different depiction."
+    },
+    {
+      "id": "places-easy-amazon",
+      "sharedWith": "places-medium-amazon-rainforest",
+      "equivalenceReason": "The reviewed Amazon sense explicitly selects the Amazon rainforest via the canopy clue, rather than the retailer or river."
+    },
+    {
+      "id": "places-easy-coast",
+      "sharedWith": "places-medium-coastline",
+      "equivalenceReason": "Both entries select the land-sea coastal boundary, supported by their identical erosion clue. Lake shores, beaches, bays, and other landforms remain separate."
+    },
+    {
+      "id": "places-easy-stairs",
+      "sharedWith": "places-medium-staircase",
+      "equivalenceReason": "Both entries mean an architectural flight of steps. A staircase illustration also names the stairs directly, without changing the structure or activity."
+    },
+    {
+      "id": "places-easy-track",
+      "sharedWith": "sports-easy-track",
+      "equivalenceReason": "Both entries mean an oval athletics running track, as confirmed by their laps clue and the sports depiction; not a railway track or music track."
+    },
+    {
+      "id": "places-easy-woods",
+      "sharedWith": "places-easy-forest",
+      "equivalenceReason": "All three entries mean a wooded area with trees. The catalog selects no distinct forest biome for these generic terms; rainforest, jungle, savanna, and other biomes remain separate."
+    },
+    {
+      "id": "places-easy-world",
+      "sharedWith": "places-easy-earth",
+      "equivalenceReason": "The reviewed world sense explicitly selects planet Earth with continents and oceans. It does not depict society, humanity, or a tabletop globe."
+    },
+    {
+      "id": "places-medium-corridor",
+      "sharedWith": "places-easy-hallway",
+      "equivalenceReason": "Both entries mean an indoor passage linking rooms, supported by the same echoes clue."
+    },
+    {
+      "id": "places-medium-creek",
+      "sharedWith": "places-easy-stream",
+      "equivalenceReason": "Both entries select a small flowing freshwater watercourse, supported by babbling/trickle clues. Neither uses a tidal-inlet creek sense."
+    },
+    {
+      "id": "places-medium-graveyard",
+      "sharedWith": "places-easy-cemetery",
+      "equivalenceReason": "Both entries mean a burial ground with grave markers; the catalog does not select a different architecture or separate churchyard-specific sense."
+    },
+    {
+      "id": "places-medium-woodland",
+      "sharedWith": "places-easy-forest",
+      "equivalenceReason": "All three entries mean a wooded area with trees. The catalog selects no distinct forest biome for these generic terms; rainforest, jungle, savanna, and other biomes remain separate."
+    },
+    {
+      "id": "sports-easy-archery",
+      "sharedWith": "activities-easy-archery",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, archery; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-arena",
+      "sharedWith": "places-medium-arena",
+      "equivalenceReason": "Both entries name the same sports arena structure. A stadium remains separate to preserve the enclosed-arena distinction."
+    },
+    {
+      "id": "sports-easy-ball",
+      "sharedWith": "objects-easy-ball",
+      "equivalenceReason": "Both entries name the same physical ball, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-bench",
+      "sharedWith": "objects-easy-bench",
+      "equivalenceReason": "Both entries name the same physical bench, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-biking",
+      "sharedWith": "activities-easy-cycling",
+      "equivalenceReason": "Biking and cycling both mean riding a pedal bicycle in these activity/sport entries. They are distinct from motorcycling, mountain biking, bike racing, and a bicycle shown as equipment."
+    },
+    {
+      "id": "sports-easy-bowling",
+      "sharedWith": "activities-easy-bowling",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, bowling; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-boxing",
+      "sharedWith": "activities-easy-boxing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, boxing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-breakdancing",
+      "sharedWith": "activities-easy-breakdancing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, breakdancing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-controller",
+      "sharedWith": "objects-easy-game-controller",
+      "equivalenceReason": "Both entries mean a handheld video-game controller, supported by rage/thumbs clues and gaming context; not a joystick or keyboard."
+    },
+    {
+      "id": "sports-easy-cycling",
+      "sharedWith": "activities-easy-cycling",
+      "equivalenceReason": "Biking and cycling both mean riding a pedal bicycle in these activity/sport entries. They are distinct from motorcycling, mountain biking, bike racing, and a bicycle shown as equipment."
+    },
+    {
+      "id": "sports-easy-darts",
+      "sharedWith": "activities-easy-darts",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, darts; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-dice",
+      "sharedWith": "objects-easy-dice",
+      "equivalenceReason": "Both entries name the same physical dice, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-fishing",
+      "sharedWith": "activities-easy-fishing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, fishing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-helmet",
+      "sharedWith": "objects-medium-helmet",
+      "equivalenceReason": "Both entries name the same physical helmet, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-hiking",
+      "sharedWith": "activities-easy-hiking",
+      "equivalenceReason": "Both entries mean hiking on foot. Reuse the hiking pilot; backpacking and ordinary walking remain separate."
+    },
+    {
+      "id": "sports-easy-hockey",
+      "sharedWith": "sports-medium-ice-hockey",
+      "equivalenceReason": "The reviewed hockey sense explicitly selects ice hockey with skates, a hockey stick, and a puck. Field hockey remains separate."
+    },
+    {
+      "id": "sports-easy-hunting",
+      "sharedWith": "activities-medium-hunting",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, hunting; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-ice-skating",
+      "sharedWith": "activities-easy-ice-skating",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, ice skating; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-jogging",
+      "sharedWith": "activities-easy-jogging",
+      "equivalenceReason": "Both entries mean jogging at an easy running pace. Reuse the approved jogging pilot; do not combine with running or sprinting."
+    },
+    {
+      "id": "sports-easy-joystick",
+      "sharedWith": "objects-medium-joystick",
+      "equivalenceReason": "Both entries name the same physical joystick, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-jump-rope",
+      "sharedWith": "objects-medium-jump-rope",
+      "equivalenceReason": "Both reviewed entries describe the jump-rope equipment itself. The separate activity of jumping rope retains its own illustration."
+    },
+    {
+      "id": "sports-easy-karate",
+      "sharedWith": "activities-easy-karate",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, karate; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-keyboard",
+      "sharedWith": "objects-easy-keyboard",
+      "equivalenceReason": "Both entries name the same physical keyboard, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-mario",
+      "sharedWith": "sports-easy-super-mario",
+      "equivalenceReason": "Both reviewed game entries select the same red-capped mustached plumber character, with no distinct title or character incarnation specified. Mario Kart keeps its separate kart depiction."
+    },
+    {
+      "id": "sports-easy-martial-arts",
+      "sharedWith": "activities-easy-martial-arts",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, martial arts; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-mini-golf",
+      "sharedWith": "activities-easy-mini-golf",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, mini golf; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-racket",
+      "sharedWith": "objects-medium-tennis-racket",
+      "equivalenceReason": "The reviewed sports racket sense explicitly specifies a strung tennis racket, matching the object entry exactly. Badminton equipment remains separate."
+    },
+    {
+      "id": "sports-easy-rock-climbing",
+      "sharedWith": "activities-easy-rock-climbing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, rock climbing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-roller-skating",
+      "sharedWith": "activities-easy-roller-skating",
+      "equivalenceReason": "Both roller-skating entries describe the same activity, and the reviewed generic skating sense explicitly selects roller skating. Ice skating, rollerblading, and loose skate equipment remain separate."
+    },
+    {
+      "id": "sports-easy-running",
+      "sharedWith": "activities-easy-running",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, running; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-sailing",
+      "sharedWith": "activities-easy-sailing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, sailing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-scavenger-hunt",
+      "sharedWith": "activities-medium-scavenger-hunt",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, scavenger hunt; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-scuba-diving",
+      "sharedWith": "activities-medium-scuba-diving",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, scuba diving; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-skateboard",
+      "sharedWith": "objects-medium-skateboard",
+      "equivalenceReason": "Both entries name the same physical skateboard, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-skateboarding",
+      "sharedWith": "activities-easy-skateboarding",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, skateboarding; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-skating",
+      "sharedWith": "activities-easy-roller-skating",
+      "equivalenceReason": "Both roller-skating entries describe the same activity, and the reviewed generic skating sense explicitly selects roller skating. Ice skating, rollerblading, and loose skate equipment remain separate."
+    },
+    {
+      "id": "sports-easy-sledding",
+      "sharedWith": "activities-easy-sledding",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, sledding; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-snorkeling",
+      "sharedWith": "activities-easy-snorkeling",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, snorkeling; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-snowboarding",
+      "sharedWith": "activities-easy-snowboarding",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, snowboarding; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-sprinting",
+      "sharedWith": "activities-easy-sprinting",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, sprinting; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-stadium",
+      "sharedWith": "places-easy-stadium",
+      "equivalenceReason": "Both entries name the same sports stadium structure and stands, rather than an event or team."
+    },
+    {
+      "id": "sports-easy-surfing",
+      "sharedWith": "activities-easy-surfing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, surfing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-swimming",
+      "sharedWith": "activities-easy-swimming",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, swimming; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-table-tennis",
+      "sharedWith": "activities-easy-ping-pong",
+      "equivalenceReason": "Ping pong and table tennis are equivalent names for the same paddle-and-ball table sport. Tennis and standalone racket equipment remain separate."
+    },
+    {
+      "id": "sports-easy-tag",
+      "sharedWith": "activities-easy-playing-tag",
+      "equivalenceReason": "Both entries mean the playground chasing-and-touching game of tag. Laser tag, freeze tag, and flashlight tag retain their different equipment or rules."
+    },
+    {
+      "id": "sports-easy-timer",
+      "sharedWith": "objects-easy-timer",
+      "equivalenceReason": "Both entries name the same physical timer, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-weightlifting",
+      "sharedWith": "activities-easy-weightlifting",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, weightlifting; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-whistle",
+      "sharedWith": "objects-easy-whistle",
+      "equivalenceReason": "Both entries name the same physical whistle, not the activity of using it. The sporting category changes context but not the depicted object."
+    },
+    {
+      "id": "sports-easy-wrestling",
+      "sharedWith": "activities-easy-wrestling",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, wrestling; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-easy-yo-yo",
+      "sharedWith": "objects-medium-yoyo",
+      "equivalenceReason": "The spelling variants refer to the same physical yo-yo toy suspended from a string, not a separate sporting action."
+    },
+    {
+      "id": "sports-hard-orienteering",
+      "sharedWith": "activities-hard-orienteering",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, orienteering; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-billiards",
+      "sharedWith": "activities-medium-billiards",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, billiards; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-bodybuilding",
+      "sharedWith": "activities-easy-bodybuilding",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, bodybuilding; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-canoeing",
+      "sharedWith": "activities-medium-canoeing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, canoeing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-fencing",
+      "sharedWith": "activities-medium-fencing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, fencing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-jet-skiing",
+      "sharedWith": "activities-medium-jet-skiing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, jet skiing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-judo",
+      "sharedWith": "activities-medium-judo",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, judo; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-kayaking",
+      "sharedWith": "activities-easy-kayaking",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, kayaking; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-laser-tag",
+      "sharedWith": "activities-medium-laser-tag",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, laser tag; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-paddleboarding",
+      "sharedWith": "activities-medium-paddleboarding",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, paddleboarding; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-paintball",
+      "sharedWith": "activities-medium-paintball",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, paintball; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-rafting",
+      "sharedWith": "activities-medium-rafting",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, rafting; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-snowshoeing",
+      "sharedWith": "activities-hard-snowshoeing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, snowshoeing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-taekwondo",
+      "sharedWith": "activities-medium-taekwondo",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, taekwondo; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    },
+    {
+      "id": "sports-medium-water-skiing",
+      "sharedWith": "activities-medium-water-skiing",
+      "equivalenceReason": "Both catalog entries mean the same physical activity or sport, water skiing; their reviewed senses depict the same action and equipment. Category and clue differences do not change the subject."
+    }
+  ],
+  "notes": "Explicit semantic review of eligible exact-word duplicates and clear synonyms. Every sharedWith points directly to a standalone source; no chains, cycles, or pilot aliases. Pilot jogging, hiking, and skiing are reused as sources. Equivalent meanings still require the source artwork to pass recognition review for every linked word. Art depicting an action is kept separate from its equipment, and food servings are kept separate from living animals. Distinct species, subspecies, breeds, sports rules, geographical scope, and specific versus generic subjects are not collapsed merely because their words are similar.",
+  "generationSavings": {
+    "reviewedAliasCount": 103,
+    "existingAliasCount": 1,
+    "additionalGenerationsAvoided": 102,
+    "eligibleEntryCount": 2634,
+    "uniqueArtworkCountAfterReview": 2531
+  },
+  "notSharedExamples": [
+    {
+      "words": "basketball/baseball in objects versus sports",
+      "reason": "The ball equipment and a player performing the sport are different depicted meanings."
+    },
+    {
+      "words": "frisbee/jump rope/hula hoop in activity versus equipment entries",
+      "reason": "The action needs a person; the equipment entry must remain an isolated object."
+    },
+    {
+      "words": "animal versus food chicken, turkey, fish, shellfish, and similar entries",
+      "reason": "A living animal and a prepared meal differ materially."
+    },
+    {
+      "words": "kiwi, bat, mouse, cricket, sponge, fan, pitcher, ranch, squash",
+      "reason": "These are cross-category homonyms with distinct physical meanings."
+    },
+    {
+      "words": "painting, makeup, theater",
+      "reason": "The performed activity differs from the artwork/cosmetic object/building."
+    },
+    {
+      "words": "uniform",
+      "reason": "The object review specifies a service uniform while sports uses sporting attire."
+    },
+    {
+      "words": "glove",
+      "reason": "The sports entry is a baseball mitt, unlike the generic object glove."
+    },
+    {
+      "words": "puzzle/jigsaw",
+      "reason": "The generic puzzle entries do not all select a tabletop jigsaw; no broad mechanical/word/board puzzle merge is assumed."
+    },
+    {
+      "words": "mammoth/woolly mammoth, parakeet/budgie, retriever/golden retriever",
+      "reason": "Broader animal groups and specific species or breeds remain distinct."
+    },
+    {
+      "words": "opossum/possum",
+      "reason": "Regional possum usage risks a different marsupial family; no alias is created despite the earlier colloquial review."
+    },
+    {
+      "words": "cup/mug, comforter/duvet, pan/skillet, pushpin/thumbtack",
+      "reason": "Related household objects retain potentially distinct forms."
+    },
+    {
+      "words": "harbor/port, campground/campsite, lake/pond, cave/cavern",
+      "reason": "The geographic functions or scopes are not exact equivalents."
+    },
+    {
+      "words": "running/jogging/sprinting",
+      "reason": "Distinct movement intensity and posture are preserved, including the jogging pilot."
+    }
+  ]
+}
