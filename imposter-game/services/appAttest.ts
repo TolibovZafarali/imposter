@@ -217,14 +217,12 @@ export async function fetchWithTransportRetry(
 const defaultDependencies: AppAttestDependencies = {
   fetch: (...args) => fetch(...args),
   loadAppIntegrity: async () => {
-    const [AppIntegrity, { Platform }] = await Promise.all([
-      import('@expo/app-integrity'),
-      import('react-native'),
-    ]);
+    const AppIntegrity = await import('@expo/app-integrity');
 
     return {
       ...AppIntegrity,
-      isSupported: Platform.OS === 'ios' && AppIntegrity.isSupported,
+      // A namespace import of react-native initializes unrelated native modules.
+      isSupported: process.env.EXPO_OS === 'ios' && AppIntegrity.isSupported,
     };
   },
   loadStorage: async () => (await import('@react-native-async-storage/async-storage')).default,
