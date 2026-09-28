@@ -7,8 +7,6 @@ import { foodDrinkWords } from "../../../imposter-game/data/foodDrinkWords.ts";
 import { placesGeographyWords } from "../../../imposter-game/data/placesGeographyWords.ts";
 import { sportsGamesWords } from "../../../imposter-game/data/sportsGamesWords.ts";
 import { languageCatalog } from "./catalog/languages.ts";
-import { getIllustrationSense } from "./catalog/illustration-senses.ts";
-import { normalizeTranslatePayload } from "./normalize.ts";
 import { STATIC_WORD_ENTRIES } from "./static-data.ts";
 
 Deno.test("backend language metadata exactly matches all client language IDs/names", () => {
@@ -17,30 +15,6 @@ Deno.test("backend language metadata exactly matches all client language IDs/nam
     LANGUAGES.map(({ id, name, nativeName }) => [id, name, nativeName]),
   );
   assert.equal(languageCatalog.length, 133);
-});
-
-Deno.test("every reviewed illustration sense resolves through its canonical translation entry", () => {
-  let reviewedEntries = 0;
-  for (const { id } of STATIC_WORD_ENTRIES) {
-    const sense = getIllustrationSense(id);
-    if (sense === undefined) continue;
-    reviewedEntries += 1;
-    assert.equal(typeof sense, "string");
-    assert.ok(sense.trim(), `Empty illustration sense: ${id}`);
-    assert.equal(
-      normalizeTranslatePayload({
-        mode: "translate-word",
-        languageId: "spanish",
-        playedWords: [],
-        sourceEntryId: id,
-      }).source.sense,
-      sense,
-    );
-  }
-  assert.ok(reviewedEntries > 0);
-  for (const id of ["unknown", "__proto__", "constructor", "toString"]) {
-    assert.equal(getIllustrationSense(id), undefined);
-  }
 });
 
 Deno.test("backend static prompt catalog stays in tuple parity with the six client packs", () => {

@@ -5,13 +5,11 @@ import { canonicalJson, sha256Hex } from "./contracts.ts";
 import {
   createGenerationProviderPrompt,
   createHandler,
-  createTranslationProviderPrompt,
-  generateRoundWord,
   getClientFingerprint,
   type HandlerDependencies,
 } from "./index.ts";
 import { PersistenceError, type RoundPersistence } from "./persistence.ts";
-import { parseTranslationOutput, type RoundProvider } from "./provider.ts";
+import type { RoundProvider } from "./provider.ts";
 
 const REQUEST_ID = "018fe4d2-6c12-7b31-8c25-2c52f83c1f91";
 const CHALLENGE_ID = "018fe4d2-6c12-7b31-8c25-2c52f83c1f92";
@@ -57,11 +55,7 @@ const providerFor = (
   translate: async () => {
     onTranslate();
     return {
-      value: {
-        word: "chair",
-        clue: "posture",
-        sourceConceptMatch: "same_concept",
-      },
+      value: { word: "chair", clue: "posture" },
       requestId: "provider-request-id",
       inputTokens: 50,
       outputTokens: 10,
@@ -141,11 +135,7 @@ Deno.test("successful paid request admits, reserves once, calls provider once, a
 
   const response = await handler.fetch(post(body, "translate-word"));
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), {
-    word: "chair",
-    clue: "posture",
-    illustrationCompatible: true,
-  });
+  assert.deepEqual(await response.json(), { word: "chair", clue: "posture" });
   assert.equal(providerCalls, 1);
   assert.equal(reservation?.stage, "translation");
   assert.equal(reservation?.model, "gpt-5.4");
@@ -189,188 +179,6 @@ Deno.test("an existing or duplicate reservation never calls the provider", async
   assert.equal((await response.json()).code, "provider_failure");
   assert.equal(providerCreations, 0);
   assert.equal(providerCalls, 0);
-});
-
-Deno.test("translation compatibility is derived, persisted, and replayed without another provider call", async () => {
-  for (
-    const [sourceConceptMatch, illustrationCompatible] of [
-      ["same_concept", true],
-      ["broader_compatible", true],
-      ["different_or_uncertain", false],
-      [undefined, false],
-      [null, false],
-      ["true", false],
-    ] as const
-  ) {
-    let savedResponse: Record<string, unknown> | undefined;
-    let providerCalls = 0;
-    let reservations = 0;
-    const persistence = persistenceFor({
-      beginRequest: async () =>
-        savedResponse ? { status: "completed", response: savedResponse } : {
-          status: "accepted",
-          execution_id: "execution-1",
-          lease_token: "lease-1",
-          lease_fence: 1,
-        },
-      reserveModelCall: async () => {
-        reservations += 1;
-        return { status: "reserved", duplicate: false, call_id: "call-1" };
-      },
-      completeRequest: async ({ response }) => {
-        savedResponse = response;
-        return { status: "completed" };
-      },
-    });
-    const handler = createHandler({
-      env: envFor(),
-      createPersistence: () => persistence,
-      createProvider: () => ({
-        ...providerFor(),
-        translate: async () => {
-          providerCalls += 1;
-          return {
-            value: parseTranslationOutput({
-              word: "silla",
-              clue: "postura",
-              sourceConceptMatch,
-            }),
-          };
-        },
-      }),
-    });
-    const body = translationEnvelope();
-    body.payload.languageId = "spanish";
-    const expected = { word: "silla", clue: "postura", illustrationCompatible };
-    const first = await handler.fetch(post(body, "translate-word"));
-    assert.equal(first.status, 200);
-    assert.deepEqual(await first.json(), expected);
-    assert.deepEqual(savedResponse, expected);
-    const replay = await handler.fetch(post(body, "translate-word"));
-    assert.equal(replay.status, 200);
-    assert.deepEqual(await replay.json(), expected);
-    assert.equal(providerCalls, 1);
-    assert.equal(reservations, 1);
-  }
-});
-
-Deno.test("legacy cached text stays playable and malformed compatibility never enables artwork", async () => {
-  for (
-    const metadata of [{}, { illustrationCompatible: "true" }, {
-      illustrationCompatible: null,
-    }]
-  ) {
-    const handler = createHandler({
-      env: envFor(),
-      createPersistence: () =>
-        persistenceFor({
-          beginRequest: async () => ({
-            status: "completed",
-            response: { word: "chair", clue: "posture", ...metadata },
-          }),
-        }),
-      createProvider: () => {
-        throw new Error("Cached requests must not create a provider");
-      },
-    });
-    const response = await handler.fetch(
-      post(translationEnvelope(), "translate-word"),
-    );
-    assert.equal(response.status, 200);
-    const body = await response.json();
-    assert.equal(body.word, "chair");
-    assert.equal(body.clue, "posture");
-    assert.notEqual(body.illustrationCompatible, true);
-  }
-});
-
-Deno.test("translation prompt requires picture-compatible source meaning and uncertainty handling", () => {
-  const prompt = createTranslationProviderPrompt({
-    mode: "translate-word",
-    languageId: "spanish",
-    languageName: "Spanish",
-    languageNativeName: "Español",
-    languageScriptHint: "Latin script",
-    playedWords: [],
-    source: {
-      word: "chair",
-      clue: "posture",
-      categoryId: "objects",
-      categoryLabel: "Objects",
-      difficulty: "easy",
-      sense: "a seat for one person",
-    },
-  }, "gpt-5.4");
-  assert.ok(
-    prompt.userPrompt.includes("English source sense: a seat for one person"),
-  );
-  assert.ok(
-    prompt.userPrompt.includes("same illustration can truthfully represent"),
-  );
-  assert.ok(
-    prompt.userPrompt.includes(
-      "Preserve the original source word's level of specificity",
-    ),
-  );
-  assert.ok(
-    prompt.userPrompt.includes(
-      "do not add pictured colors, styling, counts, or incidental props absent from the source word",
-    ),
-  );
-  assert.ok(
-    prompt.userPrompt.includes("translate couch, not three-seat couch"),
-  );
-  assert.ok(prompt.userPrompt.includes("not merely a related subject"));
-  assert.ok(prompt.userPrompt.includes("different_or_uncertain"));
-  assert.ok(
-    prompt.userPrompt.includes(
-      "a related clue does not establish illustration compatibility",
-    ),
-  );
-});
-
-Deno.test("dynamic generation keeps its text-only response and one provider call", async () => {
-  let generationCalls = 0;
-  const result = await generateRoundWord(
-    {
-      mode: "generate-round",
-      categoryIds: ["movies"],
-      difficulty: "easy",
-      languageId: "english",
-      languageName: "English",
-      languageNativeName: "English",
-      languageScriptHint: "Latin script",
-      playerCount: 4,
-      playedWords: [],
-    },
-    {
-      ...providerFor(() => {
-        throw new Error("Generation must not translate");
-      }),
-      generate: async () => {
-        generationCalls += 1;
-        return {
-          value: {
-            word: "Titanic",
-            clues: [
-              "romance",
-              "romance",
-              "romance",
-              "romance",
-              "romance",
-              "romance",
-              "romance",
-              "romance",
-            ],
-          },
-        };
-      },
-    },
-    "gpt-5.4-mini",
-    new AbortController().signal,
-  );
-  assert.deepEqual(result.word, { word: "Titanic", clue: "romance" });
-  assert.equal(generationCalls, 1);
 });
 
 Deno.test("unknown nonempty model configuration fails closed before reservation/provider", async () => {
@@ -762,13 +570,7 @@ Deno.test("provider failure is called once, cached as failed, and retry makes ze
     },
     translate: async () => {
       providerCalls += 1;
-      return {
-        value: {
-          word: "chair",
-          clue: "chair",
-          sourceConceptMatch: "same_concept",
-        },
-      };
+      return { value: { word: "chair", clue: "chair" } };
     },
   };
   const handler = createHandler({

@@ -1,5 +1,4 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import type { ImageRef } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -15,15 +14,12 @@ import {
 } from 'react-native';
 
 import { TransparentImposterIcon } from '@/components/imposter/TransparentImposterIcon';
-import { WordIllustration } from '@/components/word-illustration';
-import { getWordIllustrationSize, selectRevealIllustration } from '@/components/word-illustration-state';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Colors, Radii, Shadows, Spacing } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
-import { useRoundIllustration } from '@/hooks/use-round-illustration';
 import * as Haptics from 'expo-haptics';
 
 const CARD_EXIT_DURATION = 220;
@@ -33,27 +29,12 @@ const FLIP_DURATION = 320;
 export default function RevealScreen() {
   const router = useRouter();
   const { reduceMotion, screenReader } = useAccessibilitySettings();
-  const { width, height, fontScale } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { state, advanceReveal, startPlaying } = useGame();
   const [hasSeenCard, setHasSeenCard] = useState(false);
   const [isCardHeld, setIsCardHeld] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
-  const [revealedCardIdentity, setRevealedCardIdentity] = useState<{
-    roundId: string;
-    playerId: string;
-  } | null>(null);
-  const [revealedIllustration, setRevealedIllustration] = useState<{
-    roundId: string;
-    playerId: string;
-    entryId: string;
-    image: ImageRef;
-    size: number;
-  } | null>(null);
-  const [failedIllustration, setFailedIllustration] = useState<{
-    roundId: string;
-    entryId: string;
-  } | null>(null);
   const transitionLocked = useRef(false);
   const mounted = useRef(true);
   const [isSliding, setIsSliding] = useState(false);
@@ -66,44 +47,9 @@ export default function RevealScreen() {
   const currentPlayer = round?.players[state.currentRevealIndex] ?? null;
   const currentCard =
     round?.cards.find((card) => card.playerId === currentPlayer?.id) ?? null;
-  const isCurrentReveal = revealedCardIdentity?.roundId === round?.id
-    && revealedCardIdentity?.playerId === currentPlayer?.id;
-  const isCurrentCardHeld = isCardHeld && isCurrentReveal;
-  const showCurrentContent = showContent && isCurrentReveal;
   const isLastPlayer = round ? state.currentRevealIndex === round.players.length - 1 : false;
-  const canContinue = hasSeenCard && isCurrentReveal && !isCardHeld && !isSliding && !isClosing;
+  const canContinue = hasSeenCard && !isCardHeld && !isSliding && !isClosing;
   const cardMinHeight = Math.min(480, Math.max(300, height - 310));
-  const roundIllustrationEntryId = round?.cards.find(
-    (card) => card.role === 'regular' && card.illustrationEntryId,
-  )?.illustrationEntryId ?? null;
-  const readyIllustration = useRoundIllustration(round?.id, roundIllustrationEntryId);
-  const illustrationSize = getWordIllustrationSize({
-    cardHeight: cardMinHeight,
-    contentWidth: Math.min(420, width - Spacing.xl * 2) - Spacing.xl * 2,
-    fontScale,
-  });
-  const currentIllustration = revealedIllustration?.roundId === round?.id
-    && revealedIllustration?.playerId === currentPlayer?.id
-    && revealedIllustration?.entryId === currentCard?.illustrationEntryId
-    ? revealedIllustration : null;
-
-  useEffect(() => {
-    isPressingCard.current = false;
-    transitionLocked.current = false;
-    flipValue.stopAnimation();
-    flipValue.setValue(0);
-    slideValue.stopAnimation();
-    slideValue.setValue(0);
-    opacityValue.stopAnimation();
-    opacityValue.setValue(1);
-    setHasSeenCard(false);
-    setIsCardHeld(false);
-    setShowContent(false);
-    setIsClosing(false);
-    setIsSliding(false);
-    setRevealedCardIdentity(null);
-    setRevealedIllustration(null);
-  }, [round?.id, flipValue, slideValue, opacityValue]);
 
   useEffect(() => {
     if (!round) {
@@ -131,7 +77,6 @@ export default function RevealScreen() {
         setIsCardHeld(false);
         setShowContent(false);
         setIsClosing(false);
-        setRevealedIllustration(null);
       }
     });
     const back = BackHandler.addEventListener('hardwareBackPress', () => true);
@@ -175,28 +120,10 @@ export default function RevealScreen() {
   };
 
   const revealCard = () => {
-    if (!round || !currentCard || transitionLocked.current) {
+    if (!currentCard || transitionLocked.current) {
       return;
     }
 
-    const image = selectRevealIllustration({
-      ready: failedIllustration?.roundId === round.id
-        && failedIllustration.entryId === currentCard.illustrationEntryId
-        ? null : readyIllustration,
-      roundId: round.id,
-      role: currentCard.role,
-      entryId: currentCard.illustrationEntryId,
-      size: illustrationSize,
-    });
-    // Freeze artwork readiness for this reveal so late decoding cannot move the word.
-    setRevealedCardIdentity({ roundId: round.id, playerId: currentCard.playerId });
-    setRevealedIllustration(image && currentCard.illustrationEntryId ? {
-      roundId: round.id,
-      playerId: currentCard.playerId,
-      entryId: currentCard.illustrationEntryId,
-      image,
-      size: illustrationSize,
-    } : null);
     isPressingCard.current = true;
     setIsCardHeld(true);
     setShowContent(true);
@@ -233,7 +160,6 @@ export default function RevealScreen() {
       if (finished && mounted.current && !isPressingCard.current) {
         setShowContent(false);
         setIsClosing(false);
-        setRevealedIllustration(null);
       }
     });
   };
@@ -261,7 +187,6 @@ export default function RevealScreen() {
       advanceReveal();
       setHasSeenCard(false);
       setShowContent(false);
-      setRevealedIllustration(null);
       setIsCardHeld(false);
       isPressingCard.current = false;
       flipValue.setValue(0);
@@ -319,13 +244,13 @@ export default function RevealScreen() {
           <Animated.View style={[styles.cardMotion, slideStyle]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={isCurrentCardHeld
+              accessibilityLabel={isCardHeld
                 ? currentCard.role === 'imposter'
                   ? `Imposter. ${currentCard.hint ? `Hint: ${currentCard.hint}.` : 'No hint this round.'} Activate to hide.`
                   : `Secret word: ${currentCard.word}. Activate to hide.`
                 : `Reveal ${currentPlayer.name}'s card`}
               accessibilityHint={screenReader ? 'Activate to reveal. Keep the phone private; your screen reader will read the card.' : 'Hold to reveal. Release to hide before passing the phone.'}
-              accessibilityState={{ expanded: isCurrentCardHeld, disabled: isSliding }}
+              accessibilityState={{ expanded: isCardHeld, disabled: isSliding }}
               disabled={isSliding}
               onPressIn={screenReader ? undefined : revealCard}
               onPressOut={screenReader ? undefined : hideCard}
@@ -352,7 +277,7 @@ export default function RevealScreen() {
                   styles.cardBack,
                   backFaceStyle,
                 ]}>
-                {showCurrentContent && currentCard.role === 'imposter' ? (
+                {showContent && currentCard.role === 'imposter' ? (
                   <>
                     <TransparentImposterIcon size={92} />
                     <Text
@@ -381,18 +306,8 @@ export default function RevealScreen() {
                   </>
                 ) : null}
 
-                {showCurrentContent && currentCard.role === 'regular' ? (
+                {showContent && currentCard.role === 'regular' ? (
                   <>
-                    {currentIllustration && illustrationSize > 0 ? (
-                      <WordIllustration
-                        image={currentIllustration.image}
-                        size={Math.min(currentIllustration.size, illustrationSize)}
-                        onError={() => setFailedIllustration({
-                          roundId: currentIllustration.roundId,
-                          entryId: currentIllustration.entryId,
-                        })}
-                      />
-                    ) : null}
                     <Text variant="bodyEmphasis" align="center" color="muted">
                       Secret Word
                     </Text>

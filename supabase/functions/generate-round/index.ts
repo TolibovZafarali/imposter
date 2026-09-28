@@ -613,7 +613,6 @@ const responseSchema = z
   .object({
     word: z.string().trim().min(1).max(42),
     clue: z.string().trim().min(1).max(42),
-    illustrationCompatible: z.boolean().catch(false).optional(),
   })
   .refine((value) => hasShortPhraseClue(value.clue), {
     message: "The clue must be one or two clean words",
@@ -873,9 +872,6 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     `English imposter clue: ${source.clue}`,
     "",
     "Translate the source word naturally for native speakers in the target language.",
-    "Preserve the source concept so the same illustration can truthfully represent the translated word.",
-    "When an English source sense is supplied, it defines the pictured subject and takes precedence over other possible meanings of the source word.",
-    "Preserve the original source word's level of specificity. Use the source sense to resolve meaning, but do not add pictured colors, styling, counts, or incidental props absent from the source word to the translated label: translate couch, not three-seat couch.",
     "Do not replace the source word with a different example.",
     "Localize naturally, do not directly translate if direct translation sounds weird.",
     "Use the common everyday word a native speaker would naturally say in a casual party game.",
@@ -886,7 +882,7 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     isAnimalTranslation
       ? "For animals, prefer natural everyday animal names over scientific or taxonomy-level precision."
       : null,
-    "If the exact English concept is awkward or uncommon in the target language, prefer a natural broader term that still names the same pictured subject.",
+    "If the exact English concept is awkward or uncommon in the target language, use the closest commonly used playable word in that language.",
     "If no natural playable localization exists, avoid forcing a rare or literal dictionary term.",
     "Translate the English imposter clue without generating a new clue relationship.",
     "Do not replace the source clue with a different association.",
@@ -894,11 +890,6 @@ const buildTranslationPrompt = (input: TranslationWordRequest) => {
     "The imposter clue must be one or two words. No hyphens, slashes, or punctuation-heavy text.",
     "The clue must stay distinctive, simple, common, and playable like the English source clue.",
     "If a literal clue translation sounds unnatural, choose the closest natural equivalent that preserves the same relationship.",
-    "Return sourceConceptMatch as same_concept, broader_compatible, or different_or_uncertain.",
-    "Use same_concept only when the translated secret word preserves the source meaning and sense.",
-    "Use broader_compatible only when a slightly broader translated label still truthfully names the pictured source subject, not merely a related subject.",
-    "Use different_or_uncertain for a different example, substitution, changed sense, or any uncertainty about the picture matching the translated word.",
-    "Assess the secret word only; a related clue does not establish illustration compatibility.",
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
@@ -1180,8 +1171,7 @@ export async function generateRoundWord(
 export const TRANSLATION_SYSTEM_PROMPT = [
   "You translate words for a pass-and-play Imposter party game.",
   "Regular players see the secret word. The imposter sees only the clue.",
-  "The word and clue must be in the requested target language and natural script.",
-  "Return sourceConceptMatch using one of the exact schema enum values.",
+  "The output must be in the requested target language and natural script.",
   "The imposter clue must be one or two simple, common words and stay distinctively related to the secret word.",
   "Never return explanations, romanization, punctuation-heavy answers, or multi-sentence output.",
 ].join(" ");
@@ -1209,15 +1199,7 @@ export async function translateStaticWord(
     source: input.source,
   });
   const { value: _value, ...providerMetadata } = response;
-  return {
-    word: {
-      ...word,
-      illustrationCompatible:
-        response.value.sourceConceptMatch === "same_concept" ||
-        response.value.sourceConceptMatch === "broader_compatible",
-    },
-    provider: providerMetadata,
-  };
+  return { word, provider: providerMetadata };
 }
 
 export type HandlerDependencies = {

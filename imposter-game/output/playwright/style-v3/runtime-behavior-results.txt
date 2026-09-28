@@ -1,0 +1,2 @@
+### Result
+[{"language":"Latin","word":"Zusammenklappbarer Regenschirm","artworkAndText":"pass"},{"language":"Cyrillic","word":"зонт","artworkAndText":"pass"},{"language":"Arabic","word":"مظلة","artworkAndText":"pass"},{"language":"Japanese","word":"傘","artworkAndText":"pass"},{"compactTextPriority":"pass"},{"decodeFailure":"pass"},{"delayedLoadStableHeldLayout":"pass"},{"simulatedVisibilityBackgroundResume":"pass"},{"reducedMotion":"pass","activeRoundReplacement":"pass"}]

@@ -4,11 +4,10 @@ import { gameReducer, initialState } from '../game/state.ts';
 import { buildRound } from '../game/round.ts';
 import { remainingRoundSeconds } from '../game/timer.ts';
 
-const makeRound = (count = 3, imposters = 1, illustrationEntryId) => buildRound({
+const makeRound = (count = 3, imposters = 1) => buildRound({
   players: Array.from({ length: count }, (_, i) => ({ id: `p${i}`, name: `Player ${i}` })),
   categoryIds: ['food'], difficulty: 'easy', languageId: 'en', languageName: 'English',
   secretWord: 'Apple', imposterHint: 'Orchard', imposterCount: imposters, rng: () => 0.4,
-  illustrationEntryId,
 });
 
 test('full reveal, discussion, completion and replay preserve setup and clear role progress', () => {
@@ -43,20 +42,7 @@ test('three to ten players keep unique assignments and regular players share one
     assert.equal(new Set(round.imposterPlayerIds).size, round.imposterPlayerIds.length);
     assert.ok(round.cards.filter((card) => card.role === 'regular').every((card) => card.word === 'Apple' && card.hint === null));
     assert.ok(round.cards.filter((card) => card.role === 'imposter').every((card) => card.word === null));
-    assert.ok(round.cards.every((card) => card.illustrationEntryId === null));
     assert.ok(round.players.some((player) => player.id === round.firstSpeakerId));
-  }
-});
-
-test('only regular cards receive the illustration with one or two imposters', () => {
-  for (const imposterCount of [1, 2]) {
-    const round = makeRound(5, imposterCount, 'food-easy-apple');
-    const imposterCards = round.cards.filter((card) => card.role === 'imposter');
-    const regularCards = round.cards.filter((card) => card.role === 'regular');
-
-    assert.equal(imposterCards.length, imposterCount);
-    assert.ok(imposterCards.every((card) => card.illustrationEntryId === null));
-    assert.ok(regularCards.every((card) => card.illustrationEntryId === 'food-easy-apple'));
   }
 });
 

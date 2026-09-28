@@ -14,7 +14,6 @@ type BuildRoundInput = {
   languageName: string;
   secretWord: string;
   imposterHint: string;
-  illustrationEntryId?: string | null;
   imposterCount?: ImposterCount;
   isImposterHintEnabled?: boolean;
   roundTimerMinutes?: RoundTimerSetting;
@@ -46,7 +45,6 @@ export function buildRound({
   languageName,
   secretWord,
   imposterHint,
-  illustrationEntryId = null,
   imposterCount,
   isImposterHintEnabled = DEFAULT_IMPOSTER_HINT_ENABLED,
   roundTimerMinutes = DEFAULT_ROUND_TIMER_MINUTES,
@@ -71,7 +69,6 @@ export function buildRound({
         role: isImposter ? 'imposter' : 'regular',
         word: isImposter ? null : secretWord,
         hint: isImposter && isImposterHintEnabled ? imposterHint : null,
-        illustrationEntryId: isImposter ? null : illustrationEntryId,
       };
     }),
     secretWord,

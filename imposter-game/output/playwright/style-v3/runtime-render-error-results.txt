@@ -1,0 +1,2 @@
+### Result
+[{"renderErrorFallback":"pass","textOnlyWordY":421,"illustratedWordY":529,"failedWordY":421},{"failedImageStaysDisabledForRound":"pass"},{"nextRoundRecovers":"pass"}]
