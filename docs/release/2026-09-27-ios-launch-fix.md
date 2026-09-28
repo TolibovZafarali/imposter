@@ -1,5 +1,7 @@
 # iOS 1.0.2 launch fix
 
+Build 5 was superseded by [build 6](2026-09-27-ios-round-start-fix.md) after a separate crash during round preparation was reproduced. Its review submission was canceled; the following records its original submission state.
+
 - Source: `a88d96c3504820cd3f44bbfafde38a53ef9b97e2`.
 - App version: `1.0.2`, iOS build `5`.
 - Production build: `56da8dd9-cfe9-44a7-9478-ac0595962178` (finished).
