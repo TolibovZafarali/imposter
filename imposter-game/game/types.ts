@@ -3,6 +3,7 @@ import type { WordDifficulty } from '../data/wordBank.ts';
 export type Player = {
   id: string;
   name: string;
+  languageId?: string;
 };
 
 export type Role = 'regular' | 'imposter';
@@ -17,6 +18,7 @@ export type RoundCard = {
   role: Role;
   word: string | null;
   hint: string | null;
+  languageId?: string;
 };
 
 export type RoundConfig = {

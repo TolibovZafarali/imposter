@@ -20,6 +20,12 @@ const aiWordCandidatesSchema = z.object({
   clues: z.array(z.string()).length(CANDIDATE_COUNT),
 });
 
+const multilingualWordSchema = aiWordSchema.extend({
+  translations: z.array(aiWordSchema.extend({ languageId: z.string() })),
+});
+
+export type MultilingualWordResponse = z.infer<typeof multilingualWordSchema>;
+
 export type AiWordCandidatesResponse = z.infer<typeof aiWordCandidatesSchema>;
 export type AiWordResponse = z.infer<typeof aiWordSchema>;
 
@@ -35,21 +41,18 @@ export type ProviderPrompt = {
   model: AllowedModel;
   systemPrompt: string;
   userPrompt: string;
+  additionalLanguageIds?: readonly string[];
 };
 
 export interface RoundProvider {
-  generate(input: {
-    model: AllowedModel;
-    systemPrompt: string;
-    userPrompt: string;
-    signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordCandidatesResponse>>;
-  translate(input: {
-    model: AllowedModel;
-    systemPrompt: string;
-    userPrompt: string;
-    signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordResponse>>;
+  generate(
+    input: ProviderPrompt & { signal: AbortSignal },
+  ): Promise<
+    ProviderResult<AiWordCandidatesResponse | MultilingualWordResponse>
+  >;
+  translate(
+    input: ProviderPrompt & { signal: AbortSignal },
+  ): Promise<ProviderResult<AiWordResponse | MultilingualWordResponse>>;
 }
 
 const providerResult = <T>(
@@ -78,7 +81,25 @@ export const buildProviderRequest = (
   operation: ProviderOperation,
   input: ProviderPrompt,
 ) =>
-  operation === "generation"
+  input.additionalLanguageIds?.length
+    ? {
+      model: input.model,
+      reasoning: { effort: "none" as const },
+      temperature: operation === "generation" ? 1 : 0.2,
+      max_output_tokens: 200 + input.additionalLanguageIds.length * 180,
+      store: false,
+      input: [
+        { role: "system" as const, content: input.systemPrompt },
+        { role: "user" as const, content: input.userPrompt },
+      ],
+      text: {
+        format: zodTextFormat(
+          multilingualWordSchema,
+          "multilingual_round_word",
+        ),
+      },
+    }
+    : operation === "generation"
     ? {
       model: input.model,
       reasoning: { effort: "none" as const },
@@ -117,36 +138,35 @@ export class OpenAIRoundProvider implements RoundProvider {
     });
   }
 
-  async generate(input: {
-    model: AllowedModel;
-    systemPrompt: string;
-    userPrompt: string;
-    signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordCandidatesResponse>> {
+  async generate(
+    input: ProviderPrompt & { signal: AbortSignal },
+  ): Promise<
+    ProviderResult<AiWordCandidatesResponse | MultilingualWordResponse>
+  > {
     const response = await this.#client.responses.parse(
       buildProviderRequest("generation", input),
       { signal: input.signal },
     );
-    return providerResult<AiWordCandidatesResponse>(
+    return providerResult<AiWordCandidatesResponse | MultilingualWordResponse>(
       response as typeof response & {
-        output_parsed?: AiWordCandidatesResponse | null;
+        output_parsed?:
+          | AiWordCandidatesResponse
+          | MultilingualWordResponse
+          | null;
       },
     );
   }
 
-  async translate(input: {
-    model: AllowedModel;
-    systemPrompt: string;
-    userPrompt: string;
-    signal: AbortSignal;
-  }): Promise<ProviderResult<AiWordResponse>> {
+  async translate(
+    input: ProviderPrompt & { signal: AbortSignal },
+  ): Promise<ProviderResult<AiWordResponse | MultilingualWordResponse>> {
     const response = await this.#client.responses.parse(
       buildProviderRequest("translation", input),
       { signal: input.signal },
     );
-    return providerResult<AiWordResponse>(
+    return providerResult<AiWordResponse | MultilingualWordResponse>(
       response as typeof response & {
-        output_parsed?: AiWordResponse | null;
+        output_parsed?: AiWordResponse | MultilingualWordResponse | null;
       },
     );
   }
@@ -184,9 +204,7 @@ export const getProviderReservation = (
   const requestBytes =
     new TextEncoder().encode(JSON.stringify(request)).byteLength;
   const inputTokenCeiling = requestBytes;
-  const maxOutputTokens = operation === "generation"
-    ? GENERATION_MAX_OUTPUT_TOKENS
-    : TRANSLATION_MAX_OUTPUT_TOKENS;
+  const maxOutputTokens = request.max_output_tokens;
   const prices = standardPricePerMillionTokens[input.model];
   const callUnits = Math.ceil(
     PROVIDER_COST_SAFETY_MARGIN * (

@@ -4,13 +4,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentProps, ComponentRef } from 'react';
 import {
   ActivityIndicator,
+  AccessibilityInfo,
   Animated as RNAnimated,
   Platform,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
   Text as RNText,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Animated, {
@@ -21,10 +24,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Card } from '@/components/ui/card';
+import { PlayerLanguageModal } from '@/components/player-language-modal';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { getLanguageFlagEmoji } from '@/constants/languages';
+import { getLanguageFlagEmoji, getLanguageOption } from '@/constants/languages';
 import { Colors, Radii, Spacing, Transitions, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
@@ -244,6 +248,8 @@ export default function HomeScreen() {
   const { setupPreferences, startRound, updateSetupPreferences } = useGame();
   const { selectedLanguage } = useLanguageSettings();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [languagePlayerId, setLanguagePlayerId] = useState<string | null>(null);
+  const compactPlayerRows = useWindowDimensions().width < 360;
   const [playerNameSelection, setPlayerNameSelection] = useState<PlayerNameSelection | null>(null);
   const [difficultyToggleWidth, setDifficultyToggleWidth] = useState(0);
   const [setupViewportHeight, setSetupViewportHeight] = useState(0);
@@ -264,6 +270,7 @@ export default function HomeScreen() {
     isImposterHintEnabled,
     roundTimerMinutes,
   } = setupPreferences;
+  const languagePlayer = players.find((player) => player.id === languagePlayerId);
 
   const canStartGame =
     (isRandomCategoryMode || selectedCategoryIds.length > 0) && !isStartingGame;
@@ -497,6 +504,8 @@ export default function HomeScreen() {
   return (
     <Screen padded={false} style={styles.screen}>
       <ScrollView
+        accessibilityElementsHidden={Platform.OS !== 'web' && Boolean(languagePlayer)}
+        importantForAccessibility={Platform.OS !== 'web' && languagePlayer ? 'no-hide-descendants' : 'auto'}
         alwaysBounceVertical={false}
         bounces={isSetupScrollEnabled}
         keyboardShouldPersistTaps="handled"
@@ -578,6 +587,7 @@ export default function HomeScreen() {
               {players.map((player, index) => {
                 const isEditing = editingPlayerId === player.id;
                 const canRemovePlayer = index >= 3;
+                const playerLanguage = getLanguageOption(player.languageId ?? selectedLanguage.id) ?? selectedLanguage;
                 const playerIconSwatch = PLAYER_ICON_SWATCHES[index % PLAYER_ICON_SWATCHES.length];
 
                 return (
@@ -586,10 +596,11 @@ export default function HomeScreen() {
                     entering={reduceMotion ? undefined : playerTileEntering}
                     exiting={reduceMotion ? undefined : playerTileExiting}
                     layout={reduceMotion ? undefined : playerTileLayoutTransition}
-                    style={styles.playerTile}>
+                    style={[styles.playerTile, compactPlayerRows && styles.compactPlayerTile]}>
                     <View
                       style={[
                         styles.personBadge,
+                        compactPlayerRows && styles.compactPersonBadge,
                         {
                           backgroundColor: playerIconSwatch.background,
                           borderColor: playerIconSwatch.border,
@@ -651,18 +662,44 @@ export default function HomeScreen() {
                           adjustsFontSizeToFit
                           minimumFontScale={0.72}
                           numberOfLines={1}
-                          style={styles.playerNameText}>
+                          style={[styles.playerNameText, compactPlayerRows && styles.compactPlayerName]}>
                           {player.name}
                         </Text>
                       )}
                     </View>
 
                     <View style={styles.playerActions}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Change ${player.name}'s language, current language ${playerLanguage.name}`}
+                        disabled={isStartingGame}
+                        onPress={() => {
+                          if (editingPlayerId) finishEditing(editingPlayerId);
+                          Keyboard.dismiss();
+                          setLanguagePlayerId(player.id);
+                        }}
+                        style={({ pressed }) => [styles.playerLanguageButton, pressed && styles.iconButtonPressed]}>
+                        <RNText allowFontScaling={false} style={styles.playerFlag}>
+                          {getLanguageFlagEmoji(playerLanguage)}
+                        </RNText>
+                      </Pressable>
+
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${player.name}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
+                        onPress={() => beginEditingPlayer(player)}
+                        style={({ pressed }) => [
+                          styles.editButton,
+                          pressed && styles.iconButtonPressed,
+                        ]}>
+                        <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
+                      </Pressable>
                       {canRemovePlayer ? (
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={`Remove ${player.name}`}
-                          hitSlop={8}
+                          hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
                           onPress={() => removePlayer(player.id)}
                           style={({ pressed }) => [
                             styles.removeButton,
@@ -671,18 +708,6 @@ export default function HomeScreen() {
                           <MaterialIcons name={REMOVE_PLAYER_ICON} size={20} color={Colors.muted} />
                         </Pressable>
                       ) : null}
-
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Edit ${player.name}`}
-                        hitSlop={8}
-                        onPress={() => beginEditingPlayer(player)}
-                        style={({ pressed }) => [
-                          styles.editButton,
-                          pressed && styles.iconButtonPressed,
-                        ]}>
-                        <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
-                      </Pressable>
                     </View>
                   </Animated.View>
                 );
@@ -863,6 +888,19 @@ export default function HomeScreen() {
           />
         </View>
       </ScrollView>
+      {languagePlayer ? (
+        <PlayerLanguageModal
+          playerName={languagePlayer.name}
+          selectedLanguageId={languagePlayer.languageId ?? selectedLanguage.id}
+          onDismiss={() => setLanguagePlayerId(null)}
+          onSelect={(language) => {
+            updatePlayers((currentPlayers) => currentPlayers.map((player) =>
+              player.id === languagePlayer.id ? { ...player, languageId: language.id } : player));
+            setLanguagePlayerId(null);
+            AccessibilityInfo.announceForAccessibility(`${languagePlayer.name}'s language is ${language.name}`);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -937,7 +975,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.lg,
@@ -955,6 +993,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     backgroundColor: Colors.surfacePressed,
   },
+  compactPlayerTile: { gap: 4, paddingHorizontal: 8 },
+  compactPersonBadge: { width: 32, height: 32 },
+  compactPlayerName: { fontSize: 14 },
   playerNameRow: {
     flex: 1,
     height: 44,
@@ -1001,8 +1042,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: Spacing.xs,
+    gap: 2,
   },
+  playerLanguageButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playerFlag: { fontSize: 24, lineHeight: 30 },
   addPlayerButton: {
     width: 38,
     height: 38,

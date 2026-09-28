@@ -42,6 +42,14 @@ export const normalizeGeneratePayload = (
     playerCount: payload.playerCount,
     playedWords: payload.playedWords,
     ...getLanguage(payload.languageId),
+    ...("additionalLanguageIds" in payload &&
+        payload.additionalLanguageIds?.length
+      ? {
+        additionalLanguageIds: payload.additionalLanguageIds.filter((id) =>
+          id !== payload.languageId
+        ),
+      }
+      : {}),
   };
 };
 
@@ -72,6 +80,14 @@ export const normalizeTranslatePayload = (
       ...(entry.sense ? { sense: entry.sense } : {}),
     },
     ...getLanguage(payload.languageId),
+    ...("additionalLanguageIds" in payload &&
+        payload.additionalLanguageIds?.length
+      ? {
+        additionalLanguageIds: payload.additionalLanguageIds.filter((id) =>
+          id !== payload.languageId
+        ),
+      }
+      : {}),
   };
 };
 

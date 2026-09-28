@@ -10,6 +10,23 @@ const makeRound = (count = 3, imposters = 1) => buildRound({
   secretWord: 'Apple', imposterHint: 'Orchard', imposterCount: imposters, rng: () => 0.4,
 });
 
+test('player language overrides survive renaming, replay and returning to setup', () => {
+  const players = initialState.setupPreferences.players.map((player, index) => ({
+    ...player, ...(index === 1 ? { languageId: 'uzbek' } : {}),
+  }));
+  let state = gameReducer(initialState, { type: 'updateSetupPreferences', preferences: { players } });
+  const renamed = state.setupPreferences.players.map((player, index) =>
+    index === 1 ? { ...player, name: 'Zafar' } : player);
+  state = gameReducer(state, { type: 'updateSetupPreferences', preferences: { players: renamed } });
+  state = gameReducer(state, { type: 'startRound', round: makeRound() });
+  state = gameReducer(state, { type: 'resetGame' });
+  assert.equal(state.setupPreferences.players[1].languageId, 'uzbek');
+  assert.equal(state.setupPreferences.players[1].name, 'Zafar');
+  assert.equal(state.setupPreferences.players[0].languageId, undefined);
+  state = gameReducer(state, { type: 'startRound', round: makeRound() });
+  assert.equal(state.setupPreferences.players[1].languageId, 'uzbek');
+});
+
 test('full reveal, discussion, completion and replay preserve setup and clear role progress', () => {
   const round = makeRound();
   let state = gameReducer(initialState, { type: 'startRound', round });

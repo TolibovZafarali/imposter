@@ -25,6 +25,26 @@ const buildPlayers = () => [
   { id: 'player-3', name: 'C' },
 ];
 
+const multilingualPlayers = () => [
+  { id: 'player-1', name: 'A', languageId: 'russian' },
+  { id: 'player-2', name: 'B', languageId: 'english' },
+  { id: 'player-3', name: 'C', languageId: 'uzbek' },
+  { id: 'player-4', name: 'D', languageId: 'uzbek' },
+];
+
+const multilingualWord = () => ({
+  word: 'apple', clue: 'orchard',
+  translations: [
+    { languageId: 'russian', word: 'яблоко', clue: 'сад' },
+    { languageId: 'uzbek', word: 'olma', clue: 'bogʻ' },
+  ],
+});
+
+const multilingualInput = () => ({
+  players: multilingualPlayers(), categoryIds: ['food'], difficulty: 'easy',
+  languageId: 'english', languageName: 'English', rng: () => 0,
+});
+
 const installObserveOnlyPreparer = (calls = []) => {
   setRoundRequestPreparerForTesting(async ({ action, payload }) => {
     calls.push({ action, payload });
@@ -49,6 +69,79 @@ afterEach(() => {
   setAppAttestKeyInvalidatorForTesting();
   setRoundRequestPreparerForTesting();
   resetRoundGeneratorStateForTesting();
+});
+
+test('mixed-language cards share one source request and expose only the localized role content', async () => {
+  const calls = installObserveOnlyPreparer();
+  globalThis.fetch = async () => Response.json(multilingualWord());
+  const round = await createRound(multilingualInput());
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].payload.additionalLanguageIds, ['russian', 'uzbek']);
+  assert.equal(typeof calls[0].payload.sourceEntryId, 'string');
+  assert.deepEqual(round.cards.map(({ word, hint, languageId }) => ({ word, hint, languageId })), [
+    { word: null, hint: 'сад', languageId: 'russian' },
+    { word: 'apple', hint: null, languageId: 'english' },
+    { word: 'olma', hint: null, languageId: 'uzbek' },
+    { word: 'olma', hint: null, languageId: 'uzbek' },
+  ]);
+});
+
+test('mixed-language rounds honor disabled hints', async () => {
+  installObserveOnlyPreparer();
+  globalThis.fetch = async () => Response.json(multilingualWord());
+  const round = await createRound({ ...multilingualInput(), isImposterHintEnabled: false });
+  assert.equal(round.cards[0].word, null);
+  assert.equal(round.cards[0].hint, null);
+});
+
+test('missing, duplicate and unsupported translations prevent a partial round', async () => {
+  installObserveOnlyPreparer();
+  const full = multilingualWord();
+  for (const translations of [undefined, [], [full.translations[0], full.translations[0]],
+    [full.translations[0], { languageId: 'spanish', word: 'manzana', clue: 'huerto' }]]) {
+    globalThis.fetch = async () => Response.json({ ...full, translations });
+    await assert.rejects(() => createRound(multilingualInput()), /translation/);
+  }
+});
+
+test('dynamic mixed-language rounds use one generation and fail without an English fallback', async () => {
+  const calls = installObserveOnlyPreparer();
+  globalThis.fetch = async () => Response.json({
+    word: 'Titanic', clue: 'iceberg', translations: [
+      { languageId: 'russian', word: 'Титаник', clue: 'айсберг' },
+      { languageId: 'uzbek', word: 'Titanik', clue: 'aysberg' },
+    ],
+  });
+  const input = { ...multilingualInput(), categoryIds: ['movies'] };
+  const round = await createRound(input);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].action, 'generate-round');
+  assert.equal(round.cards[2].word, 'Titanik');
+  globalThis.fetch = async () => Response.json({ error: 'unavailable' }, { status: 503 });
+  await assert.rejects(() => createRound(input));
+});
+
+test('a shared player override uses that language without requesting the unused default', async () => {
+  const calls = installObserveOnlyPreparer();
+  globalThis.fetch = async () => Response.json({ word: 'olma', clue: 'bogʻ' });
+  const round = await createRound({ ...multilingualInput(),
+    players: buildPlayers().map((player) => ({ ...player, languageId: 'uzbek' })),
+  });
+  assert.equal(calls[0].payload.languageId, 'uzbek');
+  assert.equal(calls[0].payload.additionalLanguageIds, undefined);
+  assert.equal(round.config.languageId, 'uzbek');
+  assert.equal(round.cards[1].word, 'olma');
+});
+
+test('translated source history prevents repeating a concept after changing group languages', async () => {
+  const calls = installObserveOnlyPreparer();
+  globalThis.fetch = async () => Response.json(multilingualWord());
+  await createRound(multilingualInput());
+  globalThis.fetch = async () => Response.json({ word: 'nok', clue: 'shakl' });
+  await createRound({ ...multilingualInput(),
+    players: buildPlayers().map((player) => ({ ...player, languageId: 'uzbek' })),
+  });
+  assert.notEqual(calls[0].payload.sourceEntryId, calls[1].payload.sourceEntryId);
 });
 
 test('English static rounds make zero fetch and zero App Attest calls', async () => {

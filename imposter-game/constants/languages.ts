@@ -151,3 +151,6 @@ export const getLanguageFlagEmoji = ({
     .join('');
 
 export const DEFAULT_LANGUAGE_ID = 'english';
+
+export const getLanguageOption = (languageId: string) =>
+  LANGUAGES.find((language) => language.id === languageId);

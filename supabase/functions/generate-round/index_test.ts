@@ -96,6 +96,62 @@ const post = (
     body: JSON.stringify(body),
   });
 
+Deno.test("multilingual responses survive completion and replay without another provider call", async () => {
+  const body = {
+    ...translationEnvelope(),
+    payload: {
+      ...translationEnvelope().payload,
+      additionalLanguageIds: ["russian"],
+    },
+  };
+  const value = {
+    word: "chair",
+    clue: "posture",
+    translations: [
+      { languageId: "russian", word: "стул", clue: "осанка" },
+    ],
+  };
+  let saved: unknown;
+  let calls = 0;
+  const persistence = persistenceFor({
+    beginRequest: async () =>
+      saved ? { status: "completed", response: saved } : {
+        status: "accepted",
+        execution_id: "execution-1",
+        lease_token: "lease-1",
+        lease_fence: 1,
+      },
+    reserveModelCall: async () => ({
+      status: "reserved",
+      duplicate: false,
+      call_id: "call-1",
+    }),
+    completeRequest: async (input) => {
+      saved = input.response;
+      return { status: "completed" };
+    },
+  });
+  const handler = createHandler({
+    env: envFor(),
+    createPersistence: () => persistence,
+    createProvider: () => ({
+      generate: async () => {
+        throw new Error("Unexpected generation");
+      },
+      translate: async () => {
+        calls++;
+        return { value };
+      },
+    }),
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await handler.fetch(post(body, "translate-word"));
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), value);
+  }
+  assert.equal(calls, 1);
+});
+
 Deno.test("successful paid request admits, reserves once, calls provider once, and completes", async () => {
   let providerCalls = 0;
   let beginPayloadHash = "";

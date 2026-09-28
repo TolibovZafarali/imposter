@@ -14,6 +14,7 @@ type BuildRoundInput = {
   languageName: string;
   secretWord: string;
   imposterHint: string;
+  localizedWords?: Record<string, { word: string; clue: string }>;
   imposterCount?: ImposterCount;
   isImposterHintEnabled?: boolean;
   roundTimerMinutes?: RoundTimerSetting;
@@ -45,6 +46,7 @@ export function buildRound({
   languageName,
   secretWord,
   imposterHint,
+  localizedWords,
   imposterCount,
   isImposterHintEnabled = DEFAULT_IMPOSTER_HINT_ENABLED,
   roundTimerMinutes = DEFAULT_ROUND_TIMER_MINUTES,
@@ -63,12 +65,19 @@ export function buildRound({
     players,
     cards: players.map((player, index) => {
       const isImposter = imposterIndexSet.has(index);
+      const playerLanguageId = player.languageId ?? languageId;
+      const localizedWord = localizedWords?.[playerLanguageId];
+
+      if (localizedWords && !localizedWord) {
+        throw new Error('A player language is missing from this round');
+      }
 
       return {
         playerId: player.id,
         role: isImposter ? 'imposter' : 'regular',
-        word: isImposter ? null : secretWord,
-        hint: isImposter && isImposterHintEnabled ? imposterHint : null,
+        languageId: playerLanguageId,
+        word: isImposter ? null : localizedWord?.word ?? secretWord,
+        hint: isImposter && isImposterHintEnabled ? localizedWord?.clue ?? imposterHint : null,
       };
     }),
     secretWord,

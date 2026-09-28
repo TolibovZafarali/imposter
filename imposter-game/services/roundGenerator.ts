@@ -1,4 +1,5 @@
 import { buildRound } from '../game/round.ts';
+import { getLanguageOption } from '../constants/languages.ts';
 import type { ImposterCount, Player, Round, RoundTimerSetting } from '../game/types.ts';
 import {
   hasPlayableCelebrityAnswer,
@@ -23,6 +24,7 @@ import {
 type GeneratedWord = {
   word: string;
   clue: string;
+  translations?: { languageId: string; word: string; clue: string }[];
 };
 
 type PlayedWordContext = {
@@ -39,6 +41,7 @@ export type RoundGeneratorInput = {
   languageName: string;
   languageNativeName?: string;
   languageScriptHint?: string;
+  additionalLanguageIds?: string[];
   imposterCount?: ImposterCount;
   isImposterHintEnabled?: boolean;
   roundTimerMinutes?: RoundTimerSetting;
@@ -297,12 +300,74 @@ const isGeneratedWordValidForCategories = (
   language: Pick<RoundGeneratorInput, 'languageId' | 'languageName'>
 ) => !isCelebrityCategory(categoryIds) || hasPlayableCelebrityAnswer(generatedWord.word, language);
 
+const prepareLanguageInput = (input: RoundGeneratorInput): RoundGeneratorInput => {
+  const players = input.players.map((player) => ({
+    ...player,
+    languageId: player.languageId ?? input.languageId,
+  }));
+  const languageIds = [...new Set(players.map((player) => player.languageId))];
+  if (languageIds.some((id) => !getLanguageOption(id))) {
+    throw new Error('A player has an unsupported language');
+  }
+  const primaryId = languageIds.includes(input.languageId) ? input.languageId : languageIds[0];
+  const primary = getLanguageOption(primaryId);
+  if (!primary) throw new Error('This round needs a supported language');
+  return {
+    ...input,
+    players,
+    languageId: primary.id,
+    languageName: primary.name,
+    additionalLanguageIds: languageIds.filter((id) => id !== primary.id),
+  };
+};
+
+const readLocalizedWord = (
+  payload: unknown,
+  languageId: string,
+  additionalLanguageIds: readonly string[] = [],
+): GeneratedWord => {
+  if (!isGeneratedWord(payload)) throw new Error('The round word is invalid');
+  const word = { word: payload.word.trim(), clue: payload.clue.trim() };
+  if (!additionalLanguageIds.length) return word;
+  const translations = payload.translations;
+  if (!Array.isArray(translations) || translations.length !== additionalLanguageIds.length ||
+    translations.some((entry) => !isGeneratedWord(entry) ||
+      typeof entry.languageId !== 'string' || !additionalLanguageIds.includes(entry.languageId)) ||
+    new Set(translations.map((entry) => entry.languageId)).size !== additionalLanguageIds.length ||
+    translations.some((entry) => entry.languageId === languageId)) {
+    throw new Error('A required round translation is missing or invalid');
+  }
+  return {
+    ...word,
+    translations: translations.map((entry) => ({
+      languageId: entry.languageId, word: entry.word.trim(), clue: entry.clue.trim(),
+    })),
+  };
+};
+
+const localizedWordsFor = (word: GeneratedWord, input: RoundGeneratorInput) =>
+  Object.fromEntries([
+    [input.languageId, { word: word.word, clue: word.clue }],
+    ...(word.translations ?? []).map((entry) => [entry.languageId, { word: entry.word, clue: entry.clue }]),
+  ]) as Record<string, { word: string; clue: string }>;
+
+const rememberLocalizedWord = (word: GeneratedWord, input: RoundGeneratorInput, entryId?: string) => {
+  for (const [languageId, localized] of Object.entries(localizedWordsFor(word, input))) {
+    rememberRoundWord(localized.word, {
+      categoryIds: input.categoryIds,
+      languageId,
+      languageName: getLanguageOption(languageId)!.name,
+    }, entryId);
+  }
+};
+
 async function fetchAiGeneratedWord({
   players,
   categoryIds,
   difficulty,
   languageId,
   languageName,
+  additionalLanguageIds,
 }: RoundGeneratorInput): Promise<GeneratedWord> {
   const categoryId = categoryIds[0];
 
@@ -322,6 +387,7 @@ async function fetchAiGeneratedWord({
     languageId,
     playerCount: players.length,
     playedWords: sanitizePlayedWordHistory(playedWords),
+    ...(additionalLanguageIds?.length ? { additionalLanguageIds } : {}),
   };
   const response = await postRoundRequest('generate-round', requestPayload);
 
@@ -335,10 +401,7 @@ async function fetchAiGeneratedWord({
     throw new Error('AI round generation returned an invalid payload');
   }
 
-  const generatedWord = {
-    word: payload.word.trim(),
-    clue: payload.clue.trim(),
-  };
+  const generatedWord = readLocalizedWord(payload, languageId, additionalLanguageIds);
 
   if (isPlayedWord(generatedWord.word, playedWords)) {
     throw new Error('AI round generation returned an already played word');
@@ -360,16 +423,19 @@ async function fetchTranslatedStaticWord({
   sourceEntry,
   languageId,
   playedWords,
+  additionalLanguageIds,
 }: {
   sourceEntry: EnglishWordEntry;
   languageId: string;
   playedWords: readonly string[];
+  additionalLanguageIds?: string[];
 }): Promise<GeneratedWord> {
   const requestPayload: JsonValue = {
     mode: 'translate-word',
     languageId,
     playedWords: sanitizePlayedWordHistory(playedWords),
     sourceEntryId: sourceEntry.id,
+    ...(additionalLanguageIds?.length ? { additionalLanguageIds } : {}),
   };
   const response = await postRoundRequest('translate-word', requestPayload);
 
@@ -383,13 +449,11 @@ async function fetchTranslatedStaticWord({
     throw new Error('Static word translation returned an invalid payload');
   }
 
-  return {
-    word: payload.word.trim(),
-    clue: payload.clue.trim(),
-  };
+  return readLocalizedWord(payload, languageId, additionalLanguageIds);
 }
 
 export async function createAiRound(input: RoundGeneratorInput): Promise<Round> {
+  input = prepareLanguageInput(input);
   const generatedWord = await fetchAiGeneratedWord(input);
   const round = buildRound({
     players: input.players,
@@ -399,28 +463,27 @@ export async function createAiRound(input: RoundGeneratorInput): Promise<Round> 
     languageName: input.languageName,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
+    localizedWords: localizedWordsFor(generatedWord, input),
     imposterCount: input.imposterCount,
     isImposterHintEnabled: input.isImposterHintEnabled,
     roundTimerMinutes: input.roundTimerMinutes,
   });
 
-  rememberRoundWord(generatedWord.word, {
-    categoryIds: input.categoryIds,
-    languageId: input.languageId,
-    languageName: input.languageName,
-  });
+  rememberLocalizedWord(generatedWord, input);
 
   return round;
 }
 
 export async function createRound(input: RoundGeneratorInput): Promise<Round> {
+  input = prepareLanguageInput(input);
   const playedWordContext = {
     categoryIds: input.categoryIds,
     languageId: input.languageId,
     languageName: input.languageName,
   };
   const playedWords = getPlayedWordsForContext(playedWordContext);
-  const playedEntryIds = getPlayedEntryIdsForContext(playedWordContext);
+  const playedEntryIds = [...new Set([input.languageId, ...input.additionalLanguageIds ?? []]
+    .flatMap((languageId) => getPlayedEntryIdsForContext({ ...playedWordContext, languageId })))];
   let wordPlan: RoundWordPlan;
 
   try {
@@ -461,7 +524,7 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
         categoryIds: [wordPlan.source.categoryId],
       });
     } catch (error) {
-      if (!isEnglishLanguage(input)) {
+      if (!isEnglishLanguage(input) || input.additionalLanguageIds?.length) {
         throw error instanceof Error ? error : new Error('AI round generation failed');
       }
 
@@ -471,13 +534,14 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
       );
     }
   } else {
-    if (isEnglishLanguage(input)) {
+    if (isEnglishLanguage(input) && !input.additionalLanguageIds?.length) {
       generatedWord = getLocalStaticWord(wordPlan.source.entry);
     } else {
       generatedWord = await fetchTranslatedStaticWord({
         sourceEntry: wordPlan.source.entry,
         languageId: input.languageId,
         playedWords,
+        additionalLanguageIds: input.additionalLanguageIds,
       });
 
       if (isPlayedWord(generatedWord.word, playedWords)) {
@@ -497,15 +561,17 @@ export async function createRound(input: RoundGeneratorInput): Promise<Round> {
     languageName: input.languageName,
     secretWord: generatedWord.word,
     imposterHint: generatedWord.clue,
+    localizedWords: localizedWordsFor(generatedWord, input),
     imposterCount: input.imposterCount,
     isImposterHintEnabled: input.isImposterHintEnabled,
     roundTimerMinutes: input.roundTimerMinutes,
     rng: input.rng,
   });
 
-  rememberRoundWord(
-    generatedWord.word,
+  rememberLocalizedWord(
+    generatedWord,
     {
+      ...input,
       categoryIds: [wordPlan.source.categoryId],
       languageId: input.languageId,
       languageName: input.languageName,

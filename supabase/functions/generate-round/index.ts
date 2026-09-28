@@ -5,6 +5,7 @@ import {
   type ChallengeEnvelope,
   createAppAttestSignedData,
   getPayloadHash,
+  LANGUAGE_IDS,
   type LanguageMetadata,
   type LegacyRoundWordRequest,
   type LegacyTranslationWordRequest,
@@ -17,6 +18,7 @@ import {
   type WireRequest,
   wireRequestSchema,
 } from "./contracts.ts";
+import { getCanonicalLanguageMetadata } from "./languages.ts";
 import {
   type AiWordCandidatesResponse,
   type AllowedModel,
@@ -628,6 +630,16 @@ const responseSchema = z
   );
 
 type RoundWordResponse = z.infer<typeof responseSchema>;
+const localizedResponseSchema = z.object({
+  word: responseSchema.shape.word,
+  clue: responseSchema.shape.clue,
+  translations: z.array(z.object({
+    languageId: z.enum(LANGUAGE_IDS),
+    word: responseSchema.shape.word,
+    clue: responseSchema.shape.clue,
+  })).min(1).max(9).optional(),
+});
+type LocalizedRoundResponse = z.infer<typeof localizedResponseSchema>;
 type ClueQuality = z.infer<typeof clueQualitySchema>;
 type ClueQualityJudgment = z.infer<typeof clueQualityJudgmentSchema>;
 export type PopularityScope = "international" | "local";
@@ -801,7 +813,9 @@ export const buildPrompt = (
     `Variety key: ${varietyKey}`,
     `Already played secret words to avoid: ${playedWordList}`,
     "",
-    `Generate one secret word and ${CANDIDATE_COUNT} imposter clue candidates for this round.`,
+    input.additionalLanguageIds?.length
+      ? "Generate one secret word and one imposter clue for this round."
+      : `Generate one secret word and ${CANDIDATE_COUNT} imposter clue candidates for this round.`,
     "Choose a fair, broadly playable answer that casual players can discuss.",
     difficultyInstructions[difficulty],
     "",
@@ -845,7 +859,9 @@ export const buildPrompt = (
     "Output rules:",
     "- Return short answers only.",
     "- Return one secret word or short phrase.",
-    `- Return exactly ${CANDIDATE_COUNT} clue candidates in the clues array.`,
+    input.additionalLanguageIds?.length
+      ? "- Return one clue in the clue field with equivalent translations."
+      : `- Return exactly ${CANDIDATE_COUNT} clue candidates in the clues array.`,
     "- Every clue candidate must be one or two words.",
     "- Both fields must be in the requested language, using the natural script for that language.",
     "- Treat the variety key as a random seed; do not output it.",
@@ -1127,8 +1143,75 @@ export const GENERATION_SYSTEM_PROMPT = [
 ].join(" ");
 
 export type GeneratedRoundResult = {
-  word: RoundWordResponse;
+  word: LocalizedRoundResponse;
   provider: Omit<ProviderResult<unknown>, "value">;
+};
+
+const multilingualInstructions = (input: LanguageMetadata) =>
+  [
+    "This round is shared by players using different languages.",
+    "Return word and clue in the primary language, plus exactly one translation for each additional language ID below.",
+    "Every translation must identify exactly the SAME object, activity, animal, movie, or person. Never substitute a broader concept or a different example.",
+    "Translate the SAME clue relationship at equivalent difficulty; never invent a new association for another language.",
+    "Use everyday words and each language's natural writing system. Movie titles and full public names must identify the same work or person.",
+    "For generated answers, choose something internationally recognizable across all requested languages.",
+    "When English is requested for a static source, preserve the supplied English word and clue exactly.",
+    ...input.additionalLanguageIds?.map((id) =>
+      JSON.stringify(getCanonicalLanguageMetadata(id))
+    ) ?? [],
+    "Return one clue per language in the clue field, not a clues array. Return no extra languages.",
+  ].join("\n");
+
+export const parseLocalizedRound = (
+  value: unknown,
+  input: RoundWordRequest | TranslationWordRequest,
+): LocalizedRoundResponse => {
+  const parsed = localizedResponseSchema.parse(value);
+  const expected = input.additionalLanguageIds ?? [];
+  const parseForLanguage = (
+    word: RoundWordResponse,
+    language: LanguageMetadata,
+    primary = false,
+  ) => {
+    if (
+      expected.length && input.mode === "translate-word" &&
+      language.languageId === "english"
+    ) {
+      if (
+        word.word !== input.source.word || word.clue !== input.source.clue ||
+        (primary && isAlreadyPlayedWord(word.word, input.playedWords))
+      ) {
+        throw new Error("The English word must preserve the selected source");
+      }
+      return { word: input.source.word, clue: input.source.clue };
+    }
+    return parseGeneratedWord(word, {
+      alreadyPlayedWords: primary ? input.playedWords : [],
+      language,
+      categoryIds: input.mode === "generate-round"
+        ? input.categoryIds
+        : [input.source.categoryId],
+      source: input.mode === "translate-word" ? input.source : undefined,
+    });
+  };
+  const primary = parseForLanguage(parsed, input, true);
+  if (!expected.length) return primary;
+  if (
+    !parsed.translations || parsed.translations.length !== expected.length ||
+    new Set(parsed.translations.map((entry) => entry.languageId)).size !==
+      expected.length ||
+    parsed.translations.some((entry) => !expected.includes(entry.languageId))
+  ) {
+    throw new Error("Round translations do not match the requested languages");
+  }
+  const translations = parsed.translations.map((entry) => ({
+    languageId: entry.languageId,
+    ...parseForLanguage(
+      entry,
+      getCanonicalLanguageMetadata(entry.languageId) as LanguageMetadata,
+    ),
+  }));
+  return { ...primary, translations };
 };
 
 export const createGenerationProviderPrompt = (
@@ -1137,13 +1220,25 @@ export const createGenerationProviderPrompt = (
   varietyKey = createVarietyKey(1),
 ): ProviderPrompt => ({
   model,
-  systemPrompt: GENERATION_SYSTEM_PROMPT,
+  systemPrompt: input.additionalLanguageIds?.length
+    ? `${
+      GENERATION_SYSTEM_PROMPT.replace(
+        "answers, translations, romanization",
+        "answers, romanization",
+      )
+    } For multilingual rounds, include the requested translations of the same answer and clue.`
+    : GENERATION_SYSTEM_PROMPT,
   userPrompt: buildPrompt(
     input,
     varietyKey,
     getAlreadyPlayedWords(input),
-    selectPopularityScope(varietyKey),
-  ),
+    input.additionalLanguageIds?.length
+      ? "international"
+      : selectPopularityScope(varietyKey),
+  ) + (input.additionalLanguageIds?.length
+    ? `\n${multilingualInstructions(input)}`
+    : ""),
+  additionalLanguageIds: input.additionalLanguageIds,
 });
 
 export async function generateRoundWord(
@@ -1158,12 +1253,14 @@ export async function generateRoundWord(
     ...preparedPrompt,
     signal,
   });
-  const word = selectBestGeneratedClue({
-    candidateWord: response.value,
-    alreadyPlayedWords,
-    categoryIds: input.categoryIds,
-    language: input,
-  });
+  const word = input.additionalLanguageIds?.length
+    ? parseLocalizedRound(response.value, input)
+    : selectBestGeneratedClue({
+      candidateWord: response.value as AiWordCandidatesResponse,
+      alreadyPlayedWords,
+      categoryIds: input.categoryIds,
+      language: input,
+    });
   const { value: _value, ...providerMetadata } = response;
   return { word, provider: providerMetadata };
 }
@@ -1182,7 +1279,11 @@ export const createTranslationProviderPrompt = (
 ): ProviderPrompt => ({
   model,
   systemPrompt: TRANSLATION_SYSTEM_PROMPT,
-  userPrompt: buildTranslationPrompt(input),
+  userPrompt: buildTranslationPrompt(input) +
+    (input.additionalLanguageIds?.length
+      ? `\n${multilingualInstructions(input)}`
+      : ""),
+  additionalLanguageIds: input.additionalLanguageIds,
 });
 
 export async function translateStaticWord(
@@ -1193,11 +1294,7 @@ export async function translateStaticWord(
   preparedPrompt = createTranslationProviderPrompt(input, model),
 ): Promise<GeneratedRoundResult> {
   const response = await provider.translate({ ...preparedPrompt, signal });
-  const word = parseGeneratedWord(response.value, {
-    alreadyPlayedWords: input.playedWords,
-    language: input,
-    source: input.source,
-  });
+  const word = parseLocalizedRound(response.value, input);
   const { value: _value, ...providerMetadata } = response;
   return { word, provider: providerMetadata };
 }
@@ -1710,7 +1807,7 @@ const handlePaidRequest = async ({
   signal: AbortSignal;
   assertionVerifier: typeof verifyAssertion;
   onIntegrityInvalid: () => void;
-}): Promise<{ body: RoundWordResponse; integrityInvalid: boolean }> => {
+}): Promise<{ body: LocalizedRoundResponse; integrityInvalid: boolean }> => {
   const isV2 = isV2PaidRequest(parsed);
   const action = isV2 ? parsed.action : actionForLegacy(parsed);
   const rawPayload = isV2 && rawBody && typeof rawBody === "object"
@@ -1806,15 +1903,17 @@ const handlePaidRequest = async ({
         "The generation service is unavailable",
       );
     }
-    const parsedResponse = responseSchema.safeParse(response);
-    if (!parsedResponse.success) {
+    let parsedResponse: LocalizedRoundResponse;
+    try {
+      parsedResponse = parseLocalizedRound(response, normalized);
+    } catch {
       throw new ApiError(
         503,
         "service_unavailable",
         "The generation service is unavailable",
       );
     }
-    return { body: parsedResponse.data, integrityInvalid };
+    return { body: parsedResponse, integrityInvalid };
   }
   if (admission.status === "failed") throw failedReplayError(admission);
   if (admission.status !== "accepted") {

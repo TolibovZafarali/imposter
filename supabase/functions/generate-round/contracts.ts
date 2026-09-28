@@ -198,6 +198,9 @@ const base64Schema = (max: number) =>
 const payloadHashSchema = z.string().length(43).regex(/^[A-Za-z0-9_-]{43}$/u);
 const difficultySchema = z.enum(["easy", "medium", "hard"]);
 const languageIdSchema = z.enum(LANGUAGE_IDS);
+const additionalLanguageIdsSchema = z.array(languageIdSchema).min(1).max(9)
+  .refine((ids) => new Set(ids).size === ids.length, "Languages must be unique")
+  .optional();
 const dynamicCategoryIdSchema = z.enum(DYNAMIC_CATEGORY_IDS);
 const staticCategoryIdSchema = z.enum(STATIC_CATEGORY_IDS);
 const playedWordsSchema = z.array(safeText(42))
@@ -256,6 +259,7 @@ export const generatePayloadSchema = z.object({
   categoryId: dynamicCategoryIdSchema,
   difficulty: difficultySchema,
   languageId: languageIdSchema,
+  additionalLanguageIds: additionalLanguageIdsSchema,
   playerCount: z.number().int().min(3).max(10),
   playedWords: playedWordsSchema,
 }).strict();
@@ -263,6 +267,7 @@ export const generatePayloadSchema = z.object({
 export const translatePayloadSchema = z.object({
   mode: z.literal("translate-word"),
   languageId: languageIdSchema,
+  additionalLanguageIds: additionalLanguageIdsSchema,
   playedWords: playedWordsSchema,
   sourceEntryId: safeText(128).regex(/^[a-z0-9-]+$/u),
 }).strict();
@@ -364,6 +369,7 @@ export type LanguageMetadata = {
   languageName: string;
   languageNativeName: string;
   languageScriptHint: string;
+  additionalLanguageIds?: LanguageId[];
 };
 export type LegacyRoundWordRequest = z.infer<typeof roundWordRequestSchema>;
 export type LegacyTranslationWordRequest = z.infer<
