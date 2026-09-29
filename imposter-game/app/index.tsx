@@ -11,7 +11,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text as RNText,
   TextInput,
   useWindowDimensions,
   View,
@@ -23,17 +22,20 @@ import Animated, {
   type EntryExitAnimationFunction,
 } from 'react-native-reanimated';
 
+import { LanguageFlag } from '@/components/language-flag';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { Card } from '@/components/ui/card';
 import { PlayerLanguageModal } from '@/components/player-language-modal';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { getLanguageFlagEmoji, getLanguageOption } from '@/constants/languages';
+import { getLanguageOption } from '@/constants/languages';
 import { Colors, Radii, Spacing, Transitions, Typography } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
 import { selectRandomCategoryIds, type WordDifficulty } from '@/data/wordBank';
 import type { Player } from '@/game/types';
+import { MAX_PLAYERS, PLAYER_AVATARS } from '@/game/playerAvatars';
 import { createRound } from '@/services/roundGenerator';
 import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 import { engagementStore } from '@/services/engagement';
@@ -83,13 +85,11 @@ const CATEGORIES_BY_ID = new Map(CATEGORIES.map((category) => [category.id, cate
 const ADD_PLAYER_ICON: MaterialIconName = 'person-add-alt-1';
 const REMOVE_PLAYER_ICON: MaterialIconName = 'close';
 const EDIT_ICON: MaterialIconName = 'edit';
-const PLAYER_ICON: MaterialIconName = 'person';
 const PLAY_ICON: MaterialIconName = 'play-arrow';
 const RANDOM_CATEGORY_ICON: MaterialIconName = 'casino';
 const AI_GENERATED_CATEGORY_ICON: MaterialIconName = 'auto-awesome';
 const SETTINGS_ICON: MaterialIconName = 'settings';
 const MIN_PLAYERS = 3;
-const MAX_PLAYERS = 10;
 const MAX_PLAYER_NAME_LENGTH = 10;
 const MAX_SELECTED_CATEGORIES = 3;
 const RANDOM_CATEGORY_COUNT = 1;
@@ -104,58 +104,6 @@ const PLAYER_TILE_EXIT_DURATION = Transitions.base;
 const PLAYER_TILE_MOTION_OFFSET = 8;
 const PLAYER_TILE_ENTER_SCALE = 0.96;
 const PLAYER_TILE_EXIT_SCALE = 0.97;
-const PLAYER_ICON_SWATCHES = [
-  {
-    foreground: '#0B5CFF',
-    background: 'rgba(11, 92, 255, 0.12)',
-    border: 'rgba(11, 92, 255, 0.24)',
-  },
-  {
-    foreground: '#00A88F',
-    background: 'rgba(0, 168, 143, 0.13)',
-    border: 'rgba(0, 168, 143, 0.24)',
-  },
-  {
-    foreground: '#FF4F31',
-    background: 'rgba(255, 79, 49, 0.13)',
-    border: 'rgba(255, 79, 49, 0.25)',
-  },
-  {
-    foreground: '#7B4DFF',
-    background: 'rgba(123, 77, 255, 0.13)',
-    border: 'rgba(123, 77, 255, 0.24)',
-  },
-  {
-    foreground: '#D61F69',
-    background: 'rgba(214, 31, 105, 0.12)',
-    border: 'rgba(214, 31, 105, 0.23)',
-  },
-  {
-    foreground: '#F97316',
-    background: 'rgba(249, 115, 22, 0.13)',
-    border: 'rgba(249, 115, 22, 0.24)',
-  },
-  {
-    foreground: '#0086C9',
-    background: 'rgba(0, 134, 201, 0.12)',
-    border: 'rgba(0, 134, 201, 0.23)',
-  },
-  {
-    foreground: '#10A34A',
-    background: 'rgba(16, 163, 74, 0.12)',
-    border: 'rgba(16, 163, 74, 0.23)',
-  },
-  {
-    foreground: '#C026D3',
-    background: 'rgba(192, 38, 211, 0.12)',
-    border: 'rgba(192, 38, 211, 0.23)',
-  },
-  {
-    foreground: '#E11D48',
-    background: 'rgba(225, 29, 72, 0.12)',
-    border: 'rgba(225, 29, 72, 0.23)',
-  },
-] as const;
 
 const playerTileEasing = ReanimatedEasing.bezier(...Transitions.easing);
 const playerTileLayoutTransition = LinearTransition.duration(PLAYER_TILE_ENTER_DURATION).easing(
@@ -245,7 +193,7 @@ export default function HomeScreen() {
     void refreshAdConsent();
     return () => { active.current = false; };
   }, []));
-  const { setupPreferences, startRound, updateSetupPreferences } = useGame();
+  const { setupPreferences, startRound, updateSetupPreferences, changePlayerAvatar } = useGame();
   const { selectedLanguage } = useLanguageSettings();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [languagePlayerId, setLanguagePlayerId] = useState<string | null>(null);
@@ -548,9 +496,7 @@ export default function HomeScreen() {
                 styles.topIconButton,
                 pressed && styles.iconButtonPressed,
               ]}>
-              <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
-                {getLanguageFlagEmoji(selectedLanguage)}
-              </RNText>
+              <LanguageFlag language={selectedLanguage} />
             </Pressable>
           </View>
 
@@ -588,7 +534,7 @@ export default function HomeScreen() {
                 const isEditing = editingPlayerId === player.id;
                 const canRemovePlayer = index >= 3;
                 const playerLanguage = getLanguageOption(player.languageId ?? selectedLanguage.id) ?? selectedLanguage;
-                const playerIconSwatch = PLAYER_ICON_SWATCHES[index % PLAYER_ICON_SWATCHES.length];
+                const avatarName = PLAYER_AVATARS.find((avatar) => avatar.id === player.avatarId)?.name ?? PLAYER_AVATARS[0].name;
 
                 return (
                   <Animated.View
@@ -597,75 +543,84 @@ export default function HomeScreen() {
                     exiting={reduceMotion ? undefined : playerTileExiting}
                     layout={reduceMotion ? undefined : playerTileLayoutTransition}
                     style={[styles.playerTile, compactPlayerRows && styles.compactPlayerTile]}>
-                    <View
-                      style={[
-                        styles.personBadge,
-                        compactPlayerRows && styles.compactPersonBadge,
-                        {
-                          backgroundColor: playerIconSwatch.background,
-                          borderColor: playerIconSwatch.border,
-                        },
-                      ]}>
-                      <MaterialIcons
-                        name={PLAYER_ICON}
-                        size={24}
-                        color={playerIconSwatch.foreground}
-                      />
-                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Change ${player.name}'s avatar, ${avatarName}`}
+                      accessibilityHint={players.length === MAX_PLAYERS
+                        ? 'Swaps avatars with another player.'
+                        : 'Changes to the next unused avatar.'}
+                      disabled={isStartingGame}
+                      onPress={() => changePlayerAvatar(player.id)}
+                      style={({ pressed }) => [styles.avatarButton, pressed && styles.iconButtonPressed]}>
+                      <PlayerAvatar player={player} size={compactPlayerRows ? 36 : 44} />
+                    </Pressable>
 
                     <View style={styles.playerNameRow}>
-                      {isEditing && Platform.OS === 'ios' ? (
-                        <View pointerEvents="none" style={styles.playerInputEditingIos} />
-                      ) : null}
-                      {isEditing ? (
-                        <TextInput
-                          ref={(input) => {
-                            if (input) {
-                              playerInputRefs.current.set(player.id, input);
-                            } else {
-                              playerInputRefs.current.delete(player.id);
-                            }
-                          }}
-                          selectTextOnFocus
-                          value={player.name}
-                          onChangeText={(name) => {
-                            clearPlayerNameSelection();
-                            updatePlayerName(player.id, name);
-                          }}
-                          onPressIn={clearPlayerNameSelection}
-                          onBlur={() => {
-                            if (playerBlurLockRef.current === player.id) {
-                              return;
-                            }
+                      <View style={[styles.playerNameField, isEditing && styles.playerNameFieldEditing]}>
+                        {isEditing && Platform.OS === 'ios' ? (
+                          <View pointerEvents="none" style={styles.playerInputEditingIos} />
+                        ) : null}
+                        {isEditing ? (
+                          <TextInput
+                            ref={(input) => {
+                              if (input) {
+                                playerInputRefs.current.set(player.id, input);
+                              } else {
+                                playerInputRefs.current.delete(player.id);
+                              }
+                            }}
+                            selectTextOnFocus
+                            value={player.name}
+                            onChangeText={(name) => {
+                              clearPlayerNameSelection();
+                              updatePlayerName(player.id, name);
+                            }}
+                            onPressIn={clearPlayerNameSelection}
+                            onBlur={() => {
+                              if (playerBlurLockRef.current === player.id) {
+                                return;
+                              }
 
-                            finishEditing(player.id);
-                          }}
-                          onSubmitEditing={() => finishEditing(player.id)}
-                          returnKeyType="done"
-                          maxLength={MAX_PLAYER_NAME_LENGTH}
-                          placeholder={player.name}
-                          placeholderTextColor={Colors.muted}
-                          selection={
-                            playerNameSelection?.playerId === player.id
-                              ? {
-                                  start: playerNameSelection.start,
-                                  end: playerNameSelection.end,
-                                }
-                              : undefined
-                          }
-                          textAlign="left"
-                          style={styles.playerInput}
-                        />
-                      ) : (
-                        <Text
-                          variant="bodyEmphasis"
-                          adjustsFontSizeToFit
-                          minimumFontScale={0.72}
-                          numberOfLines={1}
-                          style={[styles.playerNameText, compactPlayerRows && styles.compactPlayerName]}>
-                          {player.name}
-                        </Text>
-                      )}
+                              finishEditing(player.id);
+                            }}
+                            onSubmitEditing={() => finishEditing(player.id)}
+                            returnKeyType="done"
+                            maxLength={MAX_PLAYER_NAME_LENGTH}
+                            placeholder={player.name}
+                            placeholderTextColor={Colors.muted}
+                            selection={
+                              playerNameSelection?.playerId === player.id
+                                ? {
+                                    start: playerNameSelection.start,
+                                    end: playerNameSelection.end,
+                                  }
+                                : undefined
+                            }
+                            textAlign="left"
+                            style={styles.playerInput}
+                          />
+                        ) : (
+                          <Text
+                            variant="bodyEmphasis"
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.72}
+                            numberOfLines={1}
+                            style={[styles.playerNameText, compactPlayerRows && styles.compactPlayerName]}>
+                            {player.name}
+                          </Text>
+                        )}
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${player.name}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
+                        onPress={() => beginEditingPlayer(player)}
+                        style={({ pressed }) => [
+                          styles.editButton,
+                          pressed && styles.iconButtonPressed,
+                        ]}>
+                        <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
+                      </Pressable>
                     </View>
 
                     <View style={styles.playerActions}>
@@ -679,21 +634,7 @@ export default function HomeScreen() {
                           setLanguagePlayerId(player.id);
                         }}
                         style={({ pressed }) => [styles.playerLanguageButton, pressed && styles.iconButtonPressed]}>
-                        <RNText allowFontScaling={false} style={styles.playerFlag}>
-                          {getLanguageFlagEmoji(playerLanguage)}
-                        </RNText>
-                      </Pressable>
-
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Edit ${player.name}`}
-                        hitSlop={{ top: 8, bottom: 8, left: 0, right: 0 }}
-                        onPress={() => beginEditingPlayer(player)}
-                        style={({ pressed }) => [
-                          styles.editButton,
-                          pressed && styles.iconButtonPressed,
-                        ]}>
-                        <MaterialIcons name={EDIT_ICON} size={20} color={Colors.primary} />
+                        <LanguageFlag language={playerLanguage} width={28} />
                       </Pressable>
                       {canRemovePlayer ? (
                         <Pressable
@@ -983,25 +924,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-  personBadge: {
-    width: 42,
-    height: 42,
+  compactPlayerTile: { gap: 4, paddingHorizontal: 8 },
+  avatarButton: {
+    width: 44,
+    height: 44,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: Radii.pill,
-    backgroundColor: Colors.surfacePressed,
   },
-  compactPlayerTile: { gap: 4, paddingHorizontal: 8 },
-  compactPersonBadge: { width: 32, height: 32 },
   compactPlayerName: { fontSize: 14 },
   playerNameRow: {
     flex: 1,
     height: 44,
     minWidth: 0,
+    flexDirection: 'row',
     alignItems: 'center',
+  },
+  playerNameField: {
+    minWidth: 0,
+    flexShrink: 1,
     justifyContent: 'center',
+  },
+  playerNameFieldEditing: {
+    flex: 1,
   },
   playerNameText: {
     alignSelf: 'stretch',
@@ -1050,7 +995,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playerFlag: { fontSize: 24, lineHeight: 30 },
   addPlayerButton: {
     width: 38,
     height: 38,
@@ -1064,12 +1008,11 @@ const styles = StyleSheet.create({
     opacity: 0.64,
   },
   editButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.pill,
-    backgroundColor: Colors.redSurface,
   },
   removeButton: {
     width: 36,
@@ -1221,13 +1164,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Radii.pill,
     backgroundColor: Colors.surface,
-  },
-  languageFlagIcon: {
-    fontSize: 26,
-    lineHeight: 30,
-    includeFontPadding: false,
-    textAlign: 'center',
-    textAlignVertical: 'center',
   },
   startActions: {
     width: '100%',

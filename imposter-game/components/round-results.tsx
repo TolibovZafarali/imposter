@@ -4,6 +4,7 @@ import { Animated, AppState, Easing, Pressable, ScrollView, StyleSheet, View } f
 import Reanimated, { FadeIn } from 'react-native-reanimated';
 
 import { TransparentImposterIcon } from '@/components/imposter/TransparentImposterIcon';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Colors, Radii, Shadows, Spacing } from '@/constants/theme';
@@ -198,8 +199,9 @@ export function RoundResults({ round, onRevealComplete, children }: RoundResults
               </Text> : <View style={styles.labelSpace} />}
               <View style={[styles.names, { minHeight: imposterCount * 44 }]}>
                 {imposters.slice(0, visibleNames).map((player) => (
-                  <Reanimated.View key={player.id} entering={reduceMotion || screenReader ? undefined : FadeIn.duration(220)}>
-                    <Text variant="title" align="center" style={styles.resultValue}>{player.name}</Text>
+                  <Reanimated.View key={player.id} style={styles.playerIdentity} entering={reduceMotion || screenReader ? undefined : FadeIn.duration(220)}>
+                    <PlayerAvatar player={player} size={40} />
+                    <Text variant="title" align="center" numberOfLines={1} adjustsFontSizeToFit style={[styles.resultValue, styles.playerName]}>{player.name}</Text>
                   </Reanimated.View>
                 ))}
               </View>
@@ -273,6 +275,8 @@ const styles = StyleSheet.create({
   labelSpace: { height: 24 },
   names: { width: '100%', justifyContent: 'center', gap: Spacing.xs },
   resultValue: { fontSize: 36, lineHeight: 44, color: Colors.textInverse },
+  playerIdentity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  playerName: { flexShrink: 1 },
   secondaryText: { color: '#B9B8BE' },
   secretWord: { color: RESULT_ACCENT },
   word: { width: '100%', minHeight: 112, alignItems: 'center', gap: Spacing.sm },

@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import test from 'node:test';
 
-import { getLanguageFlagEmoji, LANGUAGES } from '../constants/languages.ts';
+import { LANGUAGES } from '../constants/languages.ts';
 
-test('all languages have a valid flag country code', () => {
+test('all languages have a valid country code and a bundled flag', () => {
   assert.ok(LANGUAGES.length > 0);
+  const assetModuleUrl = new URL('../constants/flag-assets.ts', import.meta.url);
+  const assetModule = readFileSync(assetModuleUrl, 'utf8');
+  const require = createRequire(assetModuleUrl);
+  const flagAssets = Object.fromEntries(
+    [...assetModule.matchAll(/([A-Z]{2}): require\('([^']+)'\)/g)]
+      .map(([, code, path]) => [code, require.resolve(path)])
+  );
 
   for (const language of LANGUAGES) {
     assert.match(
@@ -13,13 +22,11 @@ test('all languages have a valid flag country code', () => {
       `${language.id} should have a two-letter ISO country code`
     );
 
-    const flagEmoji = getLanguageFlagEmoji(language);
-
-    assert.ok(flagEmoji.length > 0, `${language.id} should produce a flag emoji`);
-    assert.equal(
-      Array.from(flagEmoji).length,
-      2,
-      `${language.id} should produce two regional indicator symbols`
-    );
+    const assetPath = flagAssets[language.flagCountryCode];
+    assert.ok(assetPath, `${language.id} should have a bundled flag`);
+    const image = readFileSync(assetPath);
+    assert.deepEqual(image.subarray(0, 8), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    assert.equal(image.readUInt32BE(16), 128, `${language.id} should have a 128px-wide flag`);
+    assert.equal(image.readUInt32BE(20), 96, `${language.id} should have a 96px-tall flag`);
   }
 });

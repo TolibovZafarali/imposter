@@ -5,6 +5,7 @@ import { AppState, BackHandler, ScrollView, StyleSheet, View } from 'react-nativ
 import * as Haptics from 'expo-haptics';
 
 import { Button } from '@/components/ui/button';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { RoundResults } from '@/components/round-results';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Screen } from '@/components/ui/screen';
@@ -168,7 +169,14 @@ export default function PlayScreen() {
           ) : <MaterialIcons name="forum" size={64} color={Colors.primary} />}
           <View style={styles.statusBlock}>
             <Text variant="bodySmall" align="center" color="muted">{timeUp ? 'Make your call together' : 'First speaker'}</Text>
-            <Text variant="title" align="center">{timeUp ? 'Who is bluffing?' : firstSpeaker.name}</Text>
+            {timeUp ? <Text variant="title" align="center">Who is bluffing?</Text> : (
+              <View style={styles.speaker}>
+                <PlayerAvatar player={firstSpeaker} size={44} />
+                <Text variant="title" align="center" numberOfLines={1} adjustsFontSizeToFit style={styles.speakerName}>
+                  {firstSpeaker.name}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
         <View style={styles.actions}>
@@ -211,5 +219,7 @@ const styles = StyleSheet.create({
   timerRingDone: { borderColor: Colors.redBorder, backgroundColor: Colors.redSurfaceStrong },
   timerText: { fontVariant: ['tabular-nums'], letterSpacing: 0 },
   statusBlock: { alignItems: 'center', gap: Spacing.md },
+  speaker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  speakerName: { flexShrink: 1 },
   actions: { width: '100%', maxWidth: 420, gap: Spacing.md },
 });

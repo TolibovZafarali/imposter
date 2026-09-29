@@ -141,15 +141,6 @@ export const LANGUAGES: LanguageOption[] = [
   { id: 'zulu', name: 'Zulu', nativeName: 'isiZulu', flagCountryCode: 'ZA' },
 ];
 
-const REGIONAL_INDICATOR_SYMBOL_OFFSET = 127397;
-
-export const getLanguageFlagEmoji = ({
-  flagCountryCode,
-}: Pick<LanguageOption, 'flagCountryCode'>) =>
-  Array.from(flagCountryCode.trim().toUpperCase())
-    .map((letter) => String.fromCodePoint(letter.charCodeAt(0) + REGIONAL_INDICATOR_SYMBOL_OFFSET))
-    .join('');
-
 export const DEFAULT_LANGUAGE_ID = 'english';
 
 export const getLanguageOption = (languageId: string) =>

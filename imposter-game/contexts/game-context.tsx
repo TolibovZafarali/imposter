@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
 
 import type { Round } from '@/game/types';
-import { gameReducer, initialState, type GameState, type GameSetupPreferences } from '@/game/state';
+import { createInitialState, gameReducer, type GameState, type GameSetupPreferences } from '@/game/state';
 
 type GameContextValue = {
   state: GameState;
@@ -11,13 +11,14 @@ type GameContextValue = {
   startPlaying: () => void;
   completeRound: () => void;
   resetGame: () => void;
+  changePlayerAvatar: (playerId: string) => void;
   updateSetupPreferences: (preferences: Partial<GameSetupPreferences>) => void;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => createInitialState());
 
   const value = useMemo(
     () => ({
@@ -28,6 +29,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       startPlaying: () => dispatch({ type: 'startPlaying', now: Date.now() }),
       completeRound: () => dispatch({ type: 'completeRound' }),
       resetGame: () => dispatch({ type: 'resetGame' }),
+      changePlayerAvatar: (playerId: string) => dispatch({ type: 'changePlayerAvatar', playerId }),
       updateSetupPreferences: (preferences: Partial<GameSetupPreferences>) =>
         dispatch({ type: 'updateSetupPreferences', preferences }),
     }),

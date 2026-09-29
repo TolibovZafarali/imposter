@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { TransparentImposterIcon } from '@/components/imposter/TransparentImposterIcon';
+import { PlayerAvatar } from '@/components/player-avatar';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -229,6 +230,7 @@ export default function RevealScreen() {
     <Screen style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <PlayerAvatar player={currentPlayer} size={56} />
           <Text
             variant="title"
             align="center"
@@ -367,10 +369,13 @@ const styles = StyleSheet.create({
   },
   header: {
     minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.md,
   },
   playerName: {
+    flexShrink: 1,
     letterSpacing: 0,
   },
   cardStage: {

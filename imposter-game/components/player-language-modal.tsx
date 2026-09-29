@@ -6,8 +6,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LanguageFlag } from '@/components/language-flag';
 import { Text } from '@/components/ui/text';
-import { getLanguageFlagEmoji, LANGUAGES, type LanguageOption } from '@/constants/languages';
+import { LANGUAGES, type LanguageOption } from '@/constants/languages';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 
@@ -77,7 +78,7 @@ export function PlayerLanguageModal({ playerName, selectedLanguageId, onSelect, 
                   accessibilityLabel={`Choose ${item.name}, ${item.nativeName}`}
                   aria-checked={selected} onPress={() => onSelect(item)}
                   style={({ pressed }) => [styles.row, selected && styles.selectedRow, pressed && styles.pressed]}>
-                  <RNText allowFontScaling={false} style={styles.flag}>{getLanguageFlagEmoji(item)}</RNText>
+                  <LanguageFlag language={item} />
                   <View style={styles.names}>
                     <Text variant="bodyEmphasis">{item.name}</Text>
                     <Text variant="bodySmall" color="muted">{item.nativeName}</Text>
@@ -110,7 +111,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md, borderWidth: 1, borderColor: Colors.border, borderRadius: Radii.lg },
   selectedRow: { borderColor: Colors.primary, backgroundColor: Colors.redSurface },
   pressed: { opacity: 0.7 },
-  flag: { fontSize: 26, lineHeight: 32 },
   names: { flex: 1, minWidth: 0, gap: 2 },
   empty: { paddingVertical: Spacing.xl },
 });

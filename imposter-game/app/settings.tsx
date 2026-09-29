@@ -10,16 +10,15 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text as RNText,
   View,
 } from 'react-native';
 import { APP_STORE_URL } from '@/services/engagement';
 import { adsEnabled, openAdPrivacy } from '@/services/ads';
 import { useAccessibilitySettings } from '@/hooks/use-accessibility-settings';
 
+import { LanguageFlag } from '@/components/language-flag';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { getLanguageFlagEmoji } from '@/constants/languages';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useGame } from '@/contexts/game-context';
 import { useLanguageSettings } from '@/contexts/language-settings';
@@ -234,9 +233,7 @@ export default function SettingsScreen() {
               {selectedLanguage.name}
             </Text>
           </View>
-          <RNText allowFontScaling={false} style={styles.languageFlagIcon}>
-            {getLanguageFlagEmoji(selectedLanguage)}
-          </RNText>
+          <LanguageFlag language={selectedLanguage} />
           <MaterialIcons name={CHEVRON_ICON} size={24} color={Colors.muted} />
         </Pressable>
 
@@ -582,14 +579,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlignVertical: 'center',
     transform: [{ translateY: -2 }],
-  },
-  languageFlagIcon: {
-    width: 34,
-    fontSize: 26,
-    lineHeight: 30,
-    includeFontPadding: false,
-    textAlign: 'right',
-    textAlignVertical: 'center',
   },
   countControl: {
     flexShrink: 0,

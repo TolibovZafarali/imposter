@@ -1,9 +1,11 @@
 import type { WordDifficulty } from '../data/wordBank.ts';
+import type { PlayerAvatarId } from './playerAvatars.ts';
 
 export type Player = {
   id: string;
   name: string;
   languageId?: string;
+  avatarId?: PlayerAvatarId;
 };
 
 export type Role = 'regular' | 'imposter';
